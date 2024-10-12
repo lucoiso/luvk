@@ -73,6 +73,12 @@ namespace luvk
             return m_Layers;
         }
 
+        /* Get the available layers */
+        [[nodiscard]] inline std::vector<Layer>& GetMutableLayers()
+        {
+            return m_Layers;
+        }
+
         /* Get the enabled layers */
         [[nodiscard]] std::span<const char*> GetEnabledLayersNames() const;
 
