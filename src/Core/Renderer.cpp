@@ -10,9 +10,9 @@ luvk::Renderer::Renderer()
     InitializeDependencies();
 }
 
-std::span<const char *> luvk::Renderer::GetEnabledLayersNames() const
+luvk::ExtensionNameArray luvk::Renderer::GetEnabledLayersNames() const
 {
-    OversizedArray<const char*> Output {};
+    ExtensionNameArray Output {};
 
     for (auto const& [Enabled, Name, Extensions] : m_Layers)
     {
@@ -26,12 +26,12 @@ std::span<const char *> luvk::Renderer::GetEnabledLayersNames() const
         Output.Emplace(LayerData);
     }
 
-    return { std::begin(Output), std::end(Output) };
+    return Output;
 }
 
-std::span<const char *> luvk::Renderer::GetEnabledExtensionsNames() const
+luvk::ExtensionNameArray luvk::Renderer::GetEnabledExtensionsNames() const
 {
-    OversizedArray<const char*> Output {};
+    ExtensionNameArray Output {};
 
     for (auto const& [LayerEnabled, LayerName, LayerExtensions] : m_Layers)
     {
@@ -53,7 +53,7 @@ std::span<const char *> luvk::Renderer::GetEnabledExtensionsNames() const
         }
     }
 
-    return { std::begin(Output), std::end(Output) };
+    return Output;
 }
 
 void luvk::Renderer::InitializeDependencies()
@@ -127,8 +127,6 @@ void luvk::Renderer::FetchAvailableLayers()
     std::vector<VkLayerProperties> LayerProperties(NumLayers);
     vkEnumerateInstanceLayerProperties(&NumLayers, std::data(LayerProperties));
 
-    m_Layers.reserve(NumLayers);
-
     for (auto &[LayerName,
                 LayerSpecVersion,
                 LayerImplementationVersion,
@@ -138,6 +136,6 @@ void luvk::Renderer::FetchAvailableLayers()
         auto AvailableExtensions = FetchAvailableLayerExtensions(LayerName);
         std::ranges::copy(AvailableExtensions, std::back_inserter(NewLayer.Extensions));
 
-        m_Layers.push_back(std::move(NewLayer));
+        m_Layers.Emplace(std::move(NewLayer));
     }
 }

@@ -6,6 +6,7 @@
 
 #include "luvk/Module.hpp"
 #include "luvk/Types/Layer.hpp"
+#include "luvk/Libraries/Compile.hpp"
 
 #include <execution>
 #include <string>
@@ -14,10 +15,14 @@
 
 namespace luvk
 {
+    constexpr std::size_t LayersCapacity = 256U;
+    using LayerArray = Array<Layer, LayersCapacity>;
+    using ExtensionNameArray = Array<const char*, LayersCapacity>;
+
     class LUVKMODULE_API Renderer
     {
         VkInstance m_Instance {};
-        std::vector<Layer> m_Layers {};
+        LayerArray m_Layers {};
 
     public:
         Renderer();
@@ -68,22 +73,22 @@ namespace luvk
         }
 
         /* Get the available layers */
-        [[nodiscard]] inline std::vector<Layer> const& GetLayers() const
+        [[nodiscard]] inline luvk::LayerArray const& GetLayers() const
         {
             return m_Layers;
         }
 
         /* Get the available layers */
-        [[nodiscard]] inline std::vector<Layer>& GetMutableLayers()
+        [[nodiscard]] inline luvk::LayerArray& GetMutableLayers()
         {
             return m_Layers;
         }
 
         /* Get the enabled layers */
-        [[nodiscard]] std::span<const char*> GetEnabledLayersNames() const;
+        [[nodiscard]] luvk::ExtensionNameArray GetEnabledLayersNames() const;
 
         /* Get the enabled extensions */
-        [[nodiscard]] std::span<const char*> GetEnabledExtensionsNames() const;
+        [[nodiscard]] luvk::ExtensionNameArray GetEnabledExtensionsNames() const;
 
         /* Arguments to create the vulkan instance */
         struct InstanceCreationArguments

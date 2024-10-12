@@ -20,7 +20,7 @@ namespace luvk
     constexpr static auto &AsStatic = Data;
 
     template<typename Type, std::size_t Capacity = 1024U>
-    struct LUVKMODULE_API OversizedArray
+    struct LUVKMODULE_API Array
     {
         using value_type = Type;
 
@@ -47,30 +47,34 @@ namespace luvk
                              Item) != std::cend(Data);
         }
 
-        [[nodiscard]] constexpr auto data() noexcept
+        [[nodiscard]] constexpr auto data() const noexcept
         {
             return std::data(Data);
         }
 
-        [[nodiscard]] constexpr auto begin() noexcept
+        [[nodiscard]] constexpr auto size() const noexcept
+        {
+            return Size;
+        }
+
+        [[nodiscard]] constexpr auto begin() const noexcept
         {
             return std::begin(Data);
         }
 
-        [[nodiscard]] constexpr auto end() noexcept
+        [[nodiscard]] constexpr auto end() const noexcept
         {
-            return std::next(std::begin(Data),
-                             static_cast<std::ptrdiff_t>(Size));
+            return std::next(std::begin(Data), static_cast<std::ptrdiff_t>(Size));
         }
     };
 
-    constexpr auto GenerateOversized(auto Getter)
+    constexpr auto GenerateArray(auto Getter)
     {
         auto GeneratedContainer = Getter();
         constexpr auto& StaticContainer = AsStatic<GeneratedContainer>;
 
         using InputType = typename std::decay_t<decltype(StaticContainer)>::value_type;
-        OversizedArray<InputType> OutputOversized {};
+        Array<InputType> OutputOversized {};
         OutputOversized.Size = std::size(StaticContainer);
 
         std::ranges::copy(StaticContainer, OutputOversized);
@@ -81,32 +85,38 @@ namespace luvk
     consteval auto GenerateSpan(auto Getter)
     {
         constexpr auto& StaticGetter = AsStatic<Getter>;
-        constexpr auto GeneratedOversized = GenerateOversized(StaticGetter);
-        return std::span<InputType> { std::begin(GeneratedOversized), std::end(GeneratedOversized) };
+        constexpr auto NewArray = GenerateArray(StaticGetter);
+        return std::span<InputType> { std::begin(NewArray), std::end(NewArray) };
     }
 
     consteval auto GenerateSpan(auto Getter)
     {
         constexpr auto& StaticGetter = AsStatic<Getter>;
-        constexpr auto GeneratedOversized = GenerateOversized(StaticGetter);
+        constexpr auto NewArray = GenerateArray(StaticGetter);
 
-        using InputType = typename std::decay_t<decltype(GeneratedOversized)>::value_type;
-        return std::span<InputType> { std::begin(GeneratedOversized), std::end(GeneratedOversized) };
+        using InputType = typename std::decay_t<decltype(NewArray)>::value_type;
+        return std::span<InputType> { std::begin(NewArray), std::end(NewArray) };
     }
 
-    template<typename InputType>
-    constexpr std::span<InputType> ToSpan(OversizedArray<InputType> Input)
+    constexpr decltype(auto) ToSpan(auto const& Input)
     {
-        return { std::begin(Input), std::end(Input) };
+        using InputType = typename std::decay_t<decltype(Input)>::value_type;
+        return std::span<InputType> { std::data(Input), std::end(Input) };
     }
 
     consteval auto GenerateStringView(auto Getter)
     {
         constexpr auto& StaticGetter = AsStatic<Getter>;
-        constexpr auto GeneratedOversized = GenerateOversized(StaticGetter);
+        constexpr auto NewArray = GenerateArray(StaticGetter);
 
-        using InputType = typename std::decay_t<decltype(GeneratedOversized)>::value_type;
-        return std::basic_string_view<InputType> { std::begin(GeneratedOversized), std::end(GeneratedOversized) };
+        using InputType = typename std::decay_t<decltype(NewArray)>::value_type;
+        return std::basic_string_view<InputType> { std::begin(NewArray), std::end(NewArray) };
+    }
+
+    constexpr decltype(auto) ToView(auto const& Input)
+    {
+        using InputType = typename std::decay_t<decltype(Input)>::value_type;
+        return std::basic_string_view<InputType> { std::begin(Input), std::end(Input) };
     }
 
     template<typename... Args>
