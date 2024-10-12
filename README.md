@@ -1,5 +1,3 @@
-[![luvk CMake Workflow](https://github.com/lucoiso/luvk/actions/workflows/cmake-build.yml/badge.svg)](https://github.com/lucoiso/luvk/actions/workflows/cmake-build.yml)
-
 # About
 New Vulkan Renderer being made from scratch with the objective of being modern while aiming modularity, performance and a better structurization.
 
