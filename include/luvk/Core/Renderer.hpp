@@ -35,6 +35,7 @@ namespace luvk
          * 1. Device
          * 2. ...
          */
+        // TODO : Add shutdown logic
         Array<std::shared_ptr<IRenderModule>, ToModuleIndex(RenderModuleIndex::Count)> m_RenderModules{};
 
     public:
