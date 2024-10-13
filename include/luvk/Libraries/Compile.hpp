@@ -105,7 +105,6 @@ namespace luvk
             return std::tuple { std::size(InputData), DataSize, ConcatenatedDataArray, DataSizeArray};
         }();
 
-
         constexpr auto DataSize = std::get<1>(AllocationResult);
 
         static constexpr auto RightSizedData = [&]
@@ -116,7 +115,7 @@ namespace luvk
             std::array<InputType, DataSize> Output;
 
             std::copy(std::begin(ConcatenatedDataArray),
-                      std::end(ConcatenatedDataArray),
+                      std::begin(ConcatenatedDataArray) + static_cast<std::ptrdiff_t>(DataSize),
                       std::begin(Output));
 
             return Output;
@@ -128,15 +127,17 @@ namespace luvk
         std::array<OutputType, NumInputs> GeneratedArray {};
         std::size_t DataStart = 0U;
 
+        using RightSizedFullType = decltype(RightSizedData);
+
         for (std::size_t Iterator = 0U; Iterator < std::size(GeneratedArray); ++Iterator)
         {
-            std::size_t const& CurrentSize = DataSizeArray.Data.at(Iterator);
+            std::size_t const& CurrentSize = DataSizeArray.at(Iterator);
 
             GeneratedArray.at(Iterator) = OutputType
-            (
-                std::begin(RightSizedData) + DataStart,
-                std::begin(RightSizedData) + DataStart + CurrentSize
-            );
+            {
+                static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart)),
+                static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart + CurrentSize))
+            };
 
             DataStart += CurrentSize;
         }
