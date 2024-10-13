@@ -5,92 +5,67 @@
 #pragma once
 
 #include "luvk/Module.hpp"
-#include "luvk/Types/Layer.hpp"
-#include "luvk/Libraries/Compile.hpp"
+#include "luvk/Core/Extensions.hpp"
+#include "luvk/Core/IRenderModule.hpp"
 
-#include <execution>
-#include <string>
-#include <vector>
 #include <Volk/volk.h>
 
 namespace luvk
 {
-    constexpr std::size_t LayersCapacity = 256U;
-    using LayerArray = Array<Layer, LayersCapacity>;
-    using ExtensionNameArray = Array<const char*, LayersCapacity>;
 
-    class LUVKMODULE_API Renderer
+    /** Render module index representation */
+    enum class RenderModuleIndex : std::uint8_t
+    {
+        DEVICE = 0U,
+        // ...
+
+        Count
+    };
+
+    using ModuleIndex = std::underlying_type_t<RenderModuleIndex>;
+    static constexpr inline std::uint8_t ToModuleIndex(RenderModuleIndex const Index) { return static_cast<ModuleIndex>(Index); }
+
+    /** Renderer object that will be responsible for managing all resources and modules */
+    class LUVKMODULE_API Renderer : public IRenderModule, public std::enable_shared_from_this<Renderer>
     {
         VkInstance m_Instance {};
-        LayerArray m_Layers {};
+        InstanceExtensions m_Extensions {};
+
+        /** Modules:
+         * 1. Device
+         * 2. ...
+         */
+        Array<std::shared_ptr<IRenderModule>, ToModuleIndex(RenderModuleIndex::Count)> m_RenderModules{};
 
     public:
-        Renderer();
-        ~Renderer() = default;
+        constexpr Renderer() = default;
+        ~Renderer() override = default;
 
-        /* Check if the layer with the given name is available in the system */
-        [[nodiscard]] constexpr bool HasAvailableLayer(std::string_view const LayerName) const noexcept
+        /** Pre initialize the renderer, loading the volk library, fetching available extensions and other resources */
+        void PreInitializeRenderer();
+
+        /** Post initialize the renderer, setting up the direct dependencies of this module such as device module, etc. */
+        void PostInitializeRenderer();
+
+        /** Get associated vulkan instance */
+        [[nodiscard]] inline VkInstance const& GetInstance() const
         {
-            auto const CompareLayerName = [&LayerName] (Layer const& Iterator)
-            {
-                return std::equal(std::execution::unseq,
-                                  std::begin(Iterator.Name),
-                                  std::end(Iterator.Name),
-                                  std::begin(LayerName),
-                                  std::end(LayerName));
-            };
-
-            return std::find_if(std::execution::unseq,
-                                std::begin(m_Layers),
-                                std::end(m_Layers),
-                                CompareLayerName) != std::end(m_Layers);
+            return m_Instance;
         }
 
-        /* Check if the extension with the given name is available in the system */
-        [[nodiscard]] constexpr bool HasAvailableExtension(std::string_view const ExtensionName) const noexcept
+        /** Get the available instance layers and extensions */
+        [[nodiscard]] inline InstanceExtensions& GetExtensions()
         {
-            auto const CompareExtensionName = [&ExtensionName] (Pair<std::string, bool> const& Iterator)
-            {
-                return std::equal(std::execution::unseq,
-                                  std::begin(Iterator.First),
-                                  std::end(Iterator.First),
-                                  std::begin(ExtensionName),
-                                  std::end(ExtensionName));
-            };
-
-            auto const CheckLayerExtensions = [&CompareExtensionName] (Layer const& Iterator)
-            {
-                return std::find_if(std::execution::unseq,
-                                    std::begin(Iterator.Extensions),
-                                    std::end(Iterator.Extensions),
-                                    CompareExtensionName) != std::end(Iterator.Extensions);
-            };
-
-            return std::find_if(std::execution::unseq,
-                                std::begin(m_Layers),
-                                std::end(m_Layers),
-                                CheckLayerExtensions) != std::end(m_Layers);
+            return m_Extensions;
         }
 
-        /* Get the available layers */
-        [[nodiscard]] inline luvk::LayerArray const& GetLayers() const
+        /** Get the render module in the specified index */
+        [[nodiscard]] inline std::shared_ptr<IRenderModule> const& GetModule(RenderModuleIndex const Index) const
         {
-            return m_Layers;
+            return m_RenderModules.Data.at(ToModuleIndex(Index));
         }
 
-        /* Get the available layers */
-        [[nodiscard]] inline luvk::LayerArray& GetMutableLayers()
-        {
-            return m_Layers;
-        }
-
-        /* Get the enabled layers */
-        [[nodiscard]] luvk::ExtensionNameArray GetEnabledLayersNames() const;
-
-        /* Get the enabled extensions */
-        [[nodiscard]] luvk::ExtensionNameArray GetEnabledExtensionsNames() const;
-
-        /* Arguments to create the vulkan instance */
+        /** Arguments to create the vulkan instance */
         struct InstanceCreationArguments
         {
             std::string_view ApplicationName;
@@ -103,13 +78,7 @@ namespace luvk
         [[nodiscard]] bool InitializeRenderer(InstanceCreationArguments const& Arguments);
 
     private:
-        /** Initialize instance dependencies */
-        void InitializeDependencies();
-
-        /* Check for available extensions in the given layer */
-        static std::vector<Pair<std::string, bool>> FetchAvailableLayerExtensions(std::string_view LayerName);
-
-        /* Check for available layers and fill the layers container */
-        void FetchAvailableLayers();
+        /** Initialize the dependencies of this module */
+        void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
     };
 } // namespace luvk

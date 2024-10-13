@@ -18,6 +18,8 @@ SET(LUVK_INCLUDE_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
 SET(SOURCE_FILES
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Renderer.cpp"
+		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Device.cpp"
+		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Extensions.cpp"
 
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Types/Layer.cpp"
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Types/Pair.cpp"
@@ -27,6 +29,8 @@ SET(SOURCE_FILES
 
 SET(INCLUDE_FILES
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Renderer.hpp"
+		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Device.hpp"
+		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Extensions.hpp"
 
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Layer.hpp"
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Pair.hpp"

@@ -41,10 +41,25 @@ namespace luvk
 
         [[nodiscard]] constexpr bool Contains(Type const& Item) const noexcept
         {
-            return std::find(std::execution::par_unseq,
+            return std::find(std::execution::unseq,
                              std::cbegin(Data),
                              std::cend(Data),
                              Item) != std::cend(Data);
+        }
+
+        constexpr void clear() noexcept
+        {
+            std::for_each(std::execution::unseq,
+                          std::begin(Data),
+                          std::end(Data),
+                          [] (Type& Iterator) { Iterator = Type {}; });
+
+            Size = 0U;
+        }
+
+        [[nodiscard]] constexpr bool empty() const noexcept
+        {
+            return Size == 0U;
         }
 
         [[nodiscard]] constexpr auto data() const noexcept
@@ -57,14 +72,24 @@ namespace luvk
             return Size;
         }
 
-        [[nodiscard]] constexpr auto begin() const noexcept
+        [[nodiscard]] constexpr auto begin() noexcept
         {
             return std::begin(Data);
         }
 
-        [[nodiscard]] constexpr auto end() const noexcept
+        [[nodiscard]] constexpr auto end() noexcept
         {
             return std::next(std::begin(Data), static_cast<std::ptrdiff_t>(Size));
+        }
+
+        [[nodiscard]] constexpr auto begin() const noexcept
+        {
+            return std::cbegin(Data);
+        }
+
+        [[nodiscard]] constexpr auto end() const noexcept
+        {
+            return std::next(std::cbegin(Data), static_cast<std::ptrdiff_t>(Size));
         }
     };
 
