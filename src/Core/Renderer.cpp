@@ -5,6 +5,9 @@
 #include "luvk/Core/Renderer.hpp"
 #include "luvk/Core/Device.hpp"
 
+#define VOLK_IMPLEMENTATION
+#include <volk.h>
+
 static bool s_IsVolkInitialized = false;
 
 void luvk::Renderer::PreInitializeRenderer()
@@ -33,7 +36,8 @@ bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Argumen
                                     .apiVersion = VK_API_VERSION_1_3};
 
     auto const Layers = m_Extensions.GetEnabledLayersNames();
-    auto const Extensions = m_Extensions.GetEnabledExtensionsNames();
+    auto Extensions = m_Extensions.GetEnabledExtensionsNames();
+    Extensions.insert(std::end(Extensions), std::begin(Arguments.ExtraExtensions), std::end(Arguments.ExtraExtensions));
 
     VkInstanceCreateInfo const InstanceCreateInfo {.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
                                                    .pNext = nullptr,
@@ -59,9 +63,21 @@ void luvk::Renderer::PostInitializeRenderer()
     InitializeDependencies(nullptr);
 }
 
+bool luvk::Renderer::DoInitialization(InstanceCreationArguments const &Arguments)
+{
+    PreInitializeRenderer();
+    if (InitializeRenderer(Arguments))
+    {
+        PostInitializeRenderer();
+        return true;
+    }
+
+    return false;
+}
+
 void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
-    m_RenderModules.Emplace(std::make_shared<luvk::Device>());
+    m_RenderModules.at(0U) = std::make_shared<luvk::Device>();
 
     for (const auto& ModuleIt : m_RenderModules)
     {

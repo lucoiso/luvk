@@ -5,148 +5,140 @@
 #pragma once
 
 #include "luvk/Module.hpp"
+#include "luvk/Types/Array.hpp"
 
+#include <algorithm>
 #include <array>
 #include <execution>
 #include <span>
-#include <xstring>
+#include <ranges>
+#include <string>
 
 namespace luvk
 {
-    // Functions inspired by Jason Turner's implementations that can be found on:
+    // Functions inspired by Jason Turner's presentations and implementations that can be found on:
     // https://github.com/lefticus/tools/blob/main/include/lefticus/tools/static_views.hpp
 
-    template <auto Data>
-    constexpr static auto &AsStatic = Data;
-
-    template<typename Type, std::size_t Capacity = 1024U>
-    struct LUVKMODULE_API Array
+    template<typename Value>
+    concept IsIterable = requires(const Value &Input)
     {
-        using value_type = Type;
-
-        std::array<Type, Capacity> Data {};
-        std::size_t Size { 0U };
-
-        constexpr void Emplace(Type&& Item) noexcept
-        {
-            Data.at(Size) = Item;
-            ++Size;
-        }
-
-        constexpr void Emplace(Type const& Item) noexcept
-        {
-            Data.at(Size) = Item;
-            ++Size;
-        }
-
-        [[nodiscard]] constexpr bool Contains(Type const& Item) const noexcept
-        {
-            return std::find(std::execution::unseq,
-                             std::cbegin(Data),
-                             std::cend(Data),
-                             Item) != std::cend(Data);
-        }
-
-        constexpr void clear() noexcept
-        {
-            std::for_each(std::execution::unseq,
-                          std::begin(Data),
-                          std::end(Data),
-                          [] (Type& Iterator) { Iterator = Type {}; });
-
-            Size = 0U;
-        }
-
-        [[nodiscard]] constexpr bool empty() const noexcept
-        {
-            return Size == 0U;
-        }
-
-        [[nodiscard]] constexpr auto data() const noexcept
-        {
-            return std::data(Data);
-        }
-
-        [[nodiscard]] constexpr auto size() const noexcept
-        {
-            return Size;
-        }
-
-        [[nodiscard]] constexpr auto begin() noexcept
-        {
-            return std::begin(Data);
-        }
-
-        [[nodiscard]] constexpr auto end() noexcept
-        {
-            return std::next(std::begin(Data), static_cast<std::ptrdiff_t>(Size));
-        }
-
-        [[nodiscard]] constexpr auto begin() const noexcept
-        {
-            return std::cbegin(Data);
-        }
-
-        [[nodiscard]] constexpr auto end() const noexcept
-        {
-            return std::next(std::cbegin(Data), static_cast<std::ptrdiff_t>(Size));
-        }
+        Input.begin();
+        Input.end();
     };
 
-    constexpr auto GenerateArray(auto Getter)
+    template<typename Callable>
+    concept CreatesIterable = requires(const Callable &Input)
     {
-        auto GeneratedContainer = Getter();
-        constexpr auto& StaticContainer = AsStatic<GeneratedContainer>;
+        requires IsIterable<std::decay_t<decltype(Input())>>;
+    };
 
-        using InputType = typename std::decay_t<decltype(StaticContainer)>::value_type;
-        Array<InputType> OutputOversized {};
-        OutputOversized.Size = std::size(StaticContainer);
+    template <auto Data>
+    inline LUVKMODULE_API constexpr auto const &AsStatic = Data;
 
-        std::ranges::copy(StaticContainer, OutputOversized);
+    template<typename DataType>
+    constexpr LUVKMODULE_API auto GenerateOversizedArray(DataType const &Data)
+    {
+        using InputType = typename DataType::value_type;
+        luvk::Array<InputType> OutputOversized {};
+
+        std::copy(std::begin(Data),
+                  std::end(Data),
+                  std::begin(OutputOversized));
+
+        OutputOversized.Size = std::size(Data);
+
         return OutputOversized;
     }
 
-    template<typename InputType>
-    consteval auto GenerateSpan(auto Getter)
+    constexpr LUVKMODULE_API auto GenerateRightSized(CreatesIterable auto Getter)
     {
-        constexpr auto& StaticGetter = AsStatic<Getter>;
-        constexpr auto NewArray = GenerateArray(StaticGetter);
-        return std::span<InputType> { std::begin(NewArray), std::end(NewArray) };
+        constexpr auto GeneratedContainer = GenerateOversizedArray(Getter());
+        using InputType = typename std::decay_t<decltype(GeneratedContainer)>::value_type;
+
+        std::array<InputType, GeneratedContainer.Size> RightSizedArray {};
+
+        std::copy(std::begin(GeneratedContainer),
+                  std::end(GeneratedContainer),
+                  std::begin(RightSizedArray));
+
+        return RightSizedArray;
     }
 
-    consteval auto GenerateSpan(auto Getter)
+    consteval LUVKMODULE_API auto ToSpan(CreatesIterable auto Getter)
     {
-        constexpr auto& StaticGetter = AsStatic<Getter>;
-        constexpr auto NewArray = GenerateArray(StaticGetter);
-
-        using InputType = typename std::decay_t<decltype(NewArray)>::value_type;
-        return std::span<InputType> { std::begin(NewArray), std::end(NewArray) };
+        constexpr auto& StaticData = AsStatic<GenerateRightSized(Getter)>;
+        using InputType = typename std::decay_t<decltype(StaticData)>::value_type;
+        return std::span<InputType const> { std::begin(StaticData), std::end(StaticData) };
     }
 
-    constexpr decltype(auto) ToSpan(auto const& Input)
+    consteval LUVKMODULE_API auto ToStringView(CreatesIterable auto Getter)
     {
-        using InputType = typename std::decay_t<decltype(Input)>::value_type;
-        return std::span<InputType> { std::data(Input), std::end(Input) };
+        constexpr auto& StaticData = AsStatic<GenerateRightSized(Getter)>;
+        using InputType = typename std::decay_t<decltype(StaticData)>::value_type;
+        return std::basic_string_view<InputType> { std::begin(StaticData), std::end(StaticData) };
     }
 
-    consteval auto GenerateStringView(auto Getter)
+    template <typename OutputType>
+    consteval LUVKMODULE_API auto ToContainerSpan(CreatesIterable auto Getter)
     {
-        constexpr auto& StaticGetter = AsStatic<Getter>;
-        constexpr auto NewArray = GenerateArray(StaticGetter);
+        constexpr std::size_t AllocationSize = 256U;
 
-        using InputType = typename std::decay_t<decltype(NewArray)>::value_type;
-        return std::basic_string_view<InputType> { std::begin(NewArray), std::end(NewArray) };
-    }
+        constexpr auto AllocationResult = [&]
+        {
+            auto const InputData = Getter();
+            using InputType = typename std::decay_t<decltype(InputData)>::value_type;
+            using InputItemType = typename InputType::value_type;
 
-    constexpr decltype(auto) ToView(auto const& Input)
-    {
-        using InputType = typename std::decay_t<decltype(Input)>::value_type;
-        return std::basic_string_view<InputType> { std::begin(Input), std::end(Input) };
-    }
+            luvk::Array<InputItemType, AllocationSize * AllocationSize> ConcatenatedDataArray {};
+            luvk::Array<std::size_t, AllocationSize> DataSizeArray {};
 
-    template<typename... Args>
-    consteval decltype(auto) Invoke(Args &&...Arguments)
-    {
-        return std::invoke(std::forward<Args>(Arguments)...);
+            auto LastIterator = std::begin(ConcatenatedDataArray);
+
+            for (std::size_t Iterator = 0U; const auto &InputIt : InputData)
+            {
+                LastIterator = std::ranges::copy(InputIt, LastIterator).out;
+                DataSizeArray.Data.at(Iterator++) = std::size(InputIt);
+            }
+
+            std::size_t const DataSize = std::distance(std::begin(ConcatenatedDataArray), LastIterator);
+
+            return std::tuple { std::size(InputData), DataSize, ConcatenatedDataArray, DataSizeArray};
+        }();
+
+
+        constexpr auto DataSize = std::get<1>(AllocationResult);
+
+        static constexpr auto RightSizedData = [&]
+        {
+            luvk::Array<char, DataSize> Output;
+            auto& ConcatenatedDataArray = std::get<2>(AllocationResult);
+
+            std::copy(std::begin(ConcatenatedDataArray),
+                      std::end(ConcatenatedDataArray),
+                      std::begin(Output));
+
+            return Output;
+        }();
+
+        constexpr auto NumInputs = std::get<0>(AllocationResult);
+        auto& DataSizeArray = std::get<3>(AllocationResult);
+
+        std::array<OutputType, NumInputs> GeneratedArray {};
+        std::size_t DataStart = 0U;
+
+        for (std::size_t Iterator = 0U; Iterator < std::size(GeneratedArray); ++Iterator)
+        {
+            std::size_t const& CurrentSize = DataSizeArray.Data.at(Iterator);
+
+            GeneratedArray.at(Iterator) = OutputType
+            (
+                std::begin(RightSizedData) + DataStart,
+                std::begin(RightSizedData) + DataStart + CurrentSize
+            );
+
+            DataStart += CurrentSize;
+        }
+
+        return GeneratedArray;
     }
 } // namespace luvk

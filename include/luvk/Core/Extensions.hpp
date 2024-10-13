@@ -11,22 +11,14 @@
 #include <execution>
 #include <string>
 #include <vector>
-#include <Volk/volk.h>
+#include <volk.h>
 
 namespace luvk
 {
-    constexpr std::size_t LayersCapacity = 512U;
-
-    using LayerArray = Array<Layer, LayersCapacity>;
-    using ExtensionNameArray = Array<const char*, LayersCapacity>;
-
-    using ExtensionPropertyArray = std::vector<VkExtensionProperties>;
-    using LayerPropertyArray = std::vector<VkLayerProperties>;
-
     /** Interface for managing device or instance extensions */
     class LUVKMODULE_API IExtensions
     {
-        LayerArray m_Layers {};
+        std::vector<Layer> m_Layers {};
 
     public:
         constexpr IExtensions() = default;
@@ -77,7 +69,7 @@ namespace luvk
         }
 
         /** Get the available layers */
-        [[nodiscard]] inline luvk::LayerArray const& GetLayers() const
+        [[nodiscard]] inline std::vector<Layer> const& GetLayers() const
         {
             return m_Layers;
         }
@@ -89,20 +81,20 @@ namespace luvk
         void SetExtensionState(std::string_view FromLayer, std::string_view Extension, bool State);
 
         /** Get the enabled layers */
-        [[nodiscard]] luvk::ExtensionNameArray GetEnabledLayersNames() const;
+        [[nodiscard]] std::vector<const char*> GetEnabledLayersNames() const;
 
         /** Get the enabled extensions */
-        [[nodiscard]] luvk::ExtensionNameArray GetEnabledExtensionsNames() const;
+        [[nodiscard]] std::vector<const char*> GetEnabledExtensionsNames() const;
 
         /** Fill the extensions container */
         void FillExtensionsContainer();
 
     protected:
         /** Check for available extensions in the given layer */
-        [[nodiscard]] virtual ExtensionPropertyArray FetchAvailableLayerExtensions(std::string_view LayerName) const = 0;
+        [[nodiscard]] virtual std::vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const = 0;
 
         /** Check for available layers and fill the layers container */
-        [[nodiscard]] virtual LayerPropertyArray FetchAvailableLayers() const = 0;
+        [[nodiscard]] virtual std::vector<VkLayerProperties> FetchAvailableLayers() const = 0;
     };
 
     /** Object that will manage instance extensions */
@@ -114,10 +106,10 @@ namespace luvk
 
     protected:
         /** Check for available extensions in the given layer */
-        [[nodiscard]] ExtensionPropertyArray FetchAvailableLayerExtensions(std::string_view LayerName) const override;
+        [[nodiscard]] std::vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const override;
 
         /** Check for available layers and fill the layers container */
-        [[nodiscard]] LayerPropertyArray FetchAvailableLayers() const override;
+        [[nodiscard]] std::vector<VkLayerProperties> FetchAvailableLayers() const override;
     };
 
     /** Object that will manage device extensions */
@@ -132,9 +124,9 @@ namespace luvk
 
     protected:
         /** Check for available extensions in the given layer */
-        [[nodiscard]] ExtensionPropertyArray FetchAvailableLayerExtensions(std::string_view LayerName) const override;
+        [[nodiscard]] std::vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const override;
 
         /** Check for available layers and fill the layers container */
-        [[nodiscard]] LayerPropertyArray FetchAvailableLayers() const override;
+        [[nodiscard]] std::vector<VkLayerProperties> FetchAvailableLayers() const override;
     };
 } // namespace luvk

@@ -8,7 +8,8 @@
 #include "luvk/Core/Extensions.hpp"
 #include "luvk/Core/IRenderModule.hpp"
 
-#include <Volk/volk.h>
+#include <volk.h>
+#include <cstdint>
 
 namespace luvk
 {
@@ -16,12 +17,11 @@ namespace luvk
     class LUVKMODULE_API Device : public IRenderModule
     {
         VkPhysicalDevice m_PhysicalDevice {};
+        VkSurfaceKHR m_Surface {};
 
-        VkPhysicalDeviceProperties m_DeviceProperties {};
-        VkPhysicalDeviceProperties2 m_DeviceProperties2 {};
-
-        VkPhysicalDeviceFeatures m_DeviceFeatures {};
-        VkPhysicalDeviceFeatures2 m_DeviceFeatures2 {};
+        Pair<std::vector<VkSurfaceFormatKHR>, std::vector<VkSurfaceFormat2KHR>> m_SurfaceFormat {};
+        Pair<VkPhysicalDeviceProperties, VkPhysicalDeviceProperties2> m_DeviceProperties {};
+        Pair<VkPhysicalDeviceFeatures, VkPhysicalDeviceFeatures2> m_DeviceFeatures {};
 
         DeviceExtensions m_Extensions { m_PhysicalDevice };
         std::vector<VkPhysicalDevice> m_AvailableDevices {};
@@ -33,17 +33,43 @@ namespace luvk
         /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
 
+        /** Set the preferred physical device */
+        void SetPhysicalDevice(std::uint8_t Index);
+
+        /** Set the preferred physical device */
+        void SetPhysicalDevice(VkPhysicalDeviceType Type);
+
+        /** Set the preferred physical device */
+        inline void SetSurface(VkSurfaceKHR const& Surface)
+        {
+            m_Surface = Surface;
+        }
+
         /** Get the current associated physical device */
         [[nodiscard]] constexpr inline VkPhysicalDevice const& GetPhysicalDevice() const
         {
             return m_PhysicalDevice;
         }
 
-        /** Set the preferred physical device */
-        void SetPhysicalDevice(std::uint8_t Index);
+        [[nodiscard]] constexpr inline VkSurfaceKHR const& GetSurface() const
+        {
+            return m_Surface;
+        }
 
-        /** Set the preferred physical device */
-        void SetPhysicalDevice(VkPhysicalDeviceType Type);
+        [[nodiscard]] constexpr inline Pair<std::vector<VkSurfaceFormatKHR>, std::vector<VkSurfaceFormat2KHR>> const& GetSurfaceFormat() const
+        {
+            return m_SurfaceFormat;
+        }
+
+        [[nodiscard]] constexpr inline Pair<VkPhysicalDeviceProperties, VkPhysicalDeviceProperties2> const& GetDeviceProperties() const
+        {
+            return m_DeviceProperties;
+        }
+
+        [[nodiscard]] constexpr inline Pair<VkPhysicalDeviceFeatures, VkPhysicalDeviceFeatures2> const& GetDeviceFeatures() const
+        {
+            return m_DeviceFeatures;
+        }
 
         /** Get the available device layers and extensions */
         [[nodiscard]] inline DeviceExtensions& GetExtensions()

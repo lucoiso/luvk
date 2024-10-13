@@ -8,7 +8,8 @@
 #include "luvk/Core/Extensions.hpp"
 #include "luvk/Core/IRenderModule.hpp"
 
-#include <Volk/volk.h>
+#include <volk.h>
+#include <cstdint>
 
 namespace luvk
 {
@@ -36,7 +37,7 @@ namespace luvk
          * 2. ...
          */
         // TODO : Add shutdown logic
-        Array<std::shared_ptr<IRenderModule>, ToModuleIndex(RenderModuleIndex::Count)> m_RenderModules{};
+        std::array<std::shared_ptr<IRenderModule>, ToModuleIndex(RenderModuleIndex::Count)> m_RenderModules{};
 
     public:
         constexpr Renderer() = default;
@@ -57,7 +58,14 @@ namespace luvk
         /** Get the render module in the specified index */
         [[nodiscard]] inline std::shared_ptr<IRenderModule> const& GetModule(RenderModuleIndex const Index) const
         {
-            return m_RenderModules.Data.at(ToModuleIndex(Index));
+            return m_RenderModules.at(ToModuleIndex(Index));
+        }
+
+        /** Get the render module in the specified index casted to the desired type */
+        template <class RenderModuleType>
+        [[nodiscard]] inline RenderModuleType* GetModuleCast(RenderModuleIndex const Index) const
+        {
+            return dynamic_cast<RenderModuleType*>(m_RenderModules.at(ToModuleIndex(Index)).get());
         }
 
         /** Pre initialize the renderer, loading the volk library, fetching available extensions and other resources */
@@ -70,6 +78,7 @@ namespace luvk
             std::string_view EngineName;
             std::uint32_t ApplicationVersion;
             std::uint32_t EngineVersion;
+            std::vector<const char*> ExtraExtensions {};
         };
 
         /** Initialize instance resources */
@@ -77,6 +86,9 @@ namespace luvk
 
         /** Post initialize the renderer, setting up the direct dependencies of this module such as device module, etc. */
         void PostInitializeRenderer();
+
+        /** Perform complete initialization. Calls PreInitializeRenderer, InitializeRenderer and PostInitializeRenderer sequentially */
+        [[nodiscard]] bool DoInitialization(InstanceCreationArguments const& Arguments);
 
     private:
         /** Initialize the dependencies of this module */
