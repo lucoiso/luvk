@@ -89,15 +89,15 @@ namespace luvk
             using InputType = typename std::decay_t<decltype(InputData)>::value_type;
             using InputItemType = typename InputType::value_type;
 
-            luvk::Array<InputItemType, AllocationSize * AllocationSize> ConcatenatedDataArray {};
-            luvk::Array<std::size_t, AllocationSize> DataSizeArray {};
+            std::array<InputItemType, AllocationSize * AllocationSize> ConcatenatedDataArray {};
+            std::array<std::size_t, AllocationSize> DataSizeArray {};
 
             auto LastIterator = std::begin(ConcatenatedDataArray);
 
             for (std::size_t Iterator = 0U; const auto &InputIt : InputData)
             {
                 LastIterator = std::ranges::copy(InputIt, LastIterator).out;
-                DataSizeArray.Data.at(Iterator++) = std::size(InputIt);
+                DataSizeArray.at(Iterator++) = std::size(InputIt);
             }
 
             std::size_t const DataSize = std::distance(std::begin(ConcatenatedDataArray), LastIterator);
@@ -110,8 +110,10 @@ namespace luvk
 
         static constexpr auto RightSizedData = [&]
         {
-            luvk::Array<char, DataSize> Output;
             auto& ConcatenatedDataArray = std::get<2>(AllocationResult);
+            using InputType = typename std::decay_t<decltype(ConcatenatedDataArray)>::value_type;
+
+            std::array<InputType, DataSize> Output;
 
             std::copy(std::begin(ConcatenatedDataArray),
                       std::end(ConcatenatedDataArray),
