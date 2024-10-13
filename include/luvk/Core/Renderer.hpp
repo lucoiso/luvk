@@ -41,12 +41,6 @@ namespace luvk
         constexpr Renderer() = default;
         ~Renderer() override = default;
 
-        /** Pre initialize the renderer, loading the volk library, fetching available extensions and other resources */
-        void PreInitializeRenderer();
-
-        /** Post initialize the renderer, setting up the direct dependencies of this module such as device module, etc. */
-        void PostInitializeRenderer();
-
         /** Get associated vulkan instance */
         [[nodiscard]] inline VkInstance const& GetInstance() const
         {
@@ -65,6 +59,9 @@ namespace luvk
             return m_RenderModules.Data.at(ToModuleIndex(Index));
         }
 
+        /** Pre initialize the renderer, loading the volk library, fetching available extensions and other resources */
+        void PreInitializeRenderer();
+
         /** Arguments to create the vulkan instance */
         struct InstanceCreationArguments
         {
@@ -76,6 +73,9 @@ namespace luvk
 
         /** Initialize instance resources */
         [[nodiscard]] bool InitializeRenderer(InstanceCreationArguments const& Arguments);
+
+        /** Post initialize the renderer, setting up the direct dependencies of this module such as device module, etc. */
+        void PostInitializeRenderer();
 
     private:
         /** Initialize the dependencies of this module */

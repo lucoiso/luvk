@@ -18,11 +18,6 @@ void luvk::Renderer::PreInitializeRenderer()
     m_Extensions.FillExtensionsContainer();
 }
 
-void luvk::Renderer::PostInitializeRenderer()
-{
-    InitializeDependencies(nullptr);
-}
-
 bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Arguments)
 {
     if (!s_IsVolkInitialized)
@@ -57,6 +52,11 @@ bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Argumen
     }
 
     return false;
+}
+
+void luvk::Renderer::PostInitializeRenderer()
+{
+    InitializeDependencies(nullptr);
 }
 
 void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
