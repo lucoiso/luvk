@@ -102,7 +102,7 @@ std::vector<const char*> luvk::IExtensions::GetEnabledExtensionsNames() const
 
 void luvk::IExtensions::FillExtensionsContainer()
 {
-    if (!m_Layers.empty())
+    if (!std::empty(m_Layers))
     {
         m_Layers.clear();
     }
@@ -116,6 +116,7 @@ void luvk::IExtensions::FillExtensionsContainer()
                   [this] (VkLayerProperties const& Iterator)
                   {
                         std::vector<VkExtensionProperties> const AvailableExtensions = FetchAvailableLayerExtensions(Iterator.layerName);
+
                         Layer NewLayer { .Name = Iterator.layerName, .Extensions = {} };
                         NewLayer.Extensions.reserve(g_ReservationSize);
 
@@ -147,7 +148,7 @@ std::vector<VkLayerProperties> luvk::InstanceExtensions::FetchAvailableLayers() 
     std::uint32_t NumLayers = 0U;
     vkEnumerateInstanceLayerProperties(&NumLayers, nullptr);
 
-    std::vector<VkLayerProperties> Output(NumLayers);
+    std::vector<VkLayerProperties> Output(NumLayers + 1U);
     vkEnumerateInstanceLayerProperties(&NumLayers, std::data(Output));
 
     return Output;
@@ -169,7 +170,7 @@ std::vector<VkLayerProperties> luvk::DeviceExtensions::FetchAvailableLayers() co
     std::uint32_t NumLayers = 0U;
     vkEnumerateDeviceLayerProperties(m_Device, &NumLayers, nullptr);
 
-    std::vector<VkLayerProperties> Output(NumLayers);
+    std::vector<VkLayerProperties> Output(NumLayers + 1U);
     vkEnumerateDeviceLayerProperties(m_Device, &NumLayers, std::data(Output));
 
     return Output;
