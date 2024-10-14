@@ -5,6 +5,11 @@
 #include "luvk/Core/Device.hpp"
 #include "luvk/Core/Renderer.hpp"
 
+luvk::Device::~Device()
+{
+    // TODO : Add shutdown logic
+}
+
 void luvk::Device::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
     FetchAvailableDevices(dynamic_cast<luvk::Renderer*>(MainRenderer.get())->GetInstance());
@@ -46,7 +51,10 @@ void luvk::Device::SetPhysicalDevice(std::uint8_t const Index)
     m_Extensions.FillExtensionsContainer();
 
     // TODO : Surface register - needs to be generic and sent by the application using the library
-    // TODO : Extension & Logical Devices Management
+    // TODO : Extension management - some extensions depends on different structures to add to the pNext chain
+    // TODO : Logical device creation - Render Graph module depends on this resource to be created
+
+    InitializeLogicalDevice();
 }
 
 void luvk::Device::SetPhysicalDevice(VkPhysicalDeviceType const Type)
@@ -71,4 +79,8 @@ void luvk::Device::FetchAvailableDevices(VkInstance const& Instance)
 
     m_AvailableDevices.resize(NumDevices);
     vkEnumeratePhysicalDevices(Instance, &NumDevices, std::data(m_AvailableDevices));
+}
+
+void luvk::Device::InitializeLogicalDevice()
+{
 }

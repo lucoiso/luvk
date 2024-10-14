@@ -5,6 +5,7 @@
 #pragma once
 
 #include "luvk/Module.hpp"
+#include <memory>
 
 namespace luvk
 {

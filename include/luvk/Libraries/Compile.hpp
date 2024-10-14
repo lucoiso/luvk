@@ -133,11 +133,24 @@ namespace luvk
         {
             std::size_t const& CurrentSize = DataSizeArray.at(Iterator);
 
-            GeneratedArray.at(Iterator) = OutputType
+            if constexpr (std::is_same_v<OutputType, const char*>)
             {
-                static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart)),
-                static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart + CurrentSize))
-            };
+                std::string_view const NewView
+                {
+                    static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart)),
+                    static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart + CurrentSize))
+                };
+
+                GeneratedArray.at(Iterator) = std::data(NewView);
+            }
+            else
+            {
+                GeneratedArray.at(Iterator) = OutputType
+                {
+                    static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart)),
+                    static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart + CurrentSize))
+                };
+            }
 
             DataStart += CurrentSize;
         }

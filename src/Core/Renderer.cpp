@@ -4,11 +4,14 @@
 
 #include "luvk/Core/Renderer.hpp"
 #include "luvk/Core/Device.hpp"
-
-#define VOLK_IMPLEMENTATION
-#include <volk.h>
+#include "luvk/Core/RenderGraph.hpp"
 
 static bool s_IsVolkInitialized = false;
+
+luvk::Renderer::~Renderer()
+{
+    // TODO : Add shutdown logic
+}
 
 void luvk::Renderer::PreInitializeRenderer()
 {
@@ -37,7 +40,8 @@ bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Argumen
 
     auto const Layers = m_Extensions.GetEnabledLayersNames();
     auto Extensions = m_Extensions.GetEnabledExtensionsNames();
-    Extensions.insert(std::end(Extensions), std::begin(Arguments.ExtraExtensions), std::end(Arguments.ExtraExtensions));
+
+    Extensions.insert(std::end(Extensions), Arguments.ExtraExtensions,Arguments.ExtraExtensions + Arguments.ExtraExtensionsSize);
 
     VkInstanceCreateInfo const InstanceCreateInfo {.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
                                                    .pNext = nullptr,
@@ -78,9 +82,13 @@ bool luvk::Renderer::DoInitialization(InstanceCreationArguments const &Arguments
 void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
     m_RenderModules.at(0U) = std::make_shared<luvk::Device>();
+    m_RenderModules.at(1U) = std::make_shared<luvk::RenderGraph>();
 
-    for (const auto& ModuleIt : m_RenderModules)
-    {
-        ModuleIt->InitializeDependencies(shared_from_this());
-    }
+    std::for_each(std::execution::seq,
+                  std::begin(m_RenderModules),
+                  std::end(m_RenderModules),
+                  [this] (const auto& ModuleIt)
+                  {
+                        ModuleIt->InitializeDependencies(shared_from_this());
+                  });
 }

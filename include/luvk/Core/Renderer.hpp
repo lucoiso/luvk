@@ -36,12 +36,11 @@ namespace luvk
          * 1. Device
          * 2. ...
          */
-        // TODO : Add shutdown logic
         std::array<std::shared_ptr<IRenderModule>, ToModuleIndex(RenderModuleIndex::Count)> m_RenderModules{};
 
     public:
         constexpr Renderer() = default;
-        ~Renderer() override = default;
+        ~Renderer() override;
 
         /** Get associated vulkan instance */
         [[nodiscard]] inline VkInstance const& GetInstance() const
@@ -78,7 +77,8 @@ namespace luvk
             std::string_view EngineName;
             std::uint32_t ApplicationVersion;
             std::uint32_t EngineVersion;
-            std::vector<const char*> ExtraExtensions {};
+            std::size_t ExtraExtensionsSize {};
+            char const* const* ExtraExtensions {};
         };
 
         /** Initialize instance resources */

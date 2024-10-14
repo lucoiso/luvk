@@ -16,6 +16,7 @@ namespace luvk
     /** Render module responsible for device operations */
     class LUVKMODULE_API Device : public IRenderModule
     {
+        VkDevice m_LogicalDevice {};
         VkPhysicalDevice m_PhysicalDevice {};
         VkSurfaceKHR m_Surface {};
 
@@ -28,7 +29,7 @@ namespace luvk
 
     public:
         constexpr Device() = default;
-        ~Device() override = default;
+        ~Device() override;
 
         /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
@@ -45,27 +46,37 @@ namespace luvk
             m_Surface = Surface;
         }
 
+        /** Get the current associated logical device */
+        [[nodiscard]] constexpr inline VkDevice const& GetLogicalDevice() const
+        {
+            return m_LogicalDevice;
+        }
+
         /** Get the current associated physical device */
         [[nodiscard]] constexpr inline VkPhysicalDevice const& GetPhysicalDevice() const
         {
             return m_PhysicalDevice;
         }
 
+        /** Get the current associated surface */
         [[nodiscard]] constexpr inline VkSurfaceKHR const& GetSurface() const
         {
             return m_Surface;
         }
 
+        /** Get the supported formats for the associated surface */
         [[nodiscard]] constexpr inline Pair<std::vector<VkSurfaceFormatKHR>, std::vector<VkSurfaceFormat2KHR>> const& GetSurfaceFormat() const
         {
             return m_SurfaceFormat;
         }
 
+        /** Get the properties of the associated device */
         [[nodiscard]] constexpr inline Pair<VkPhysicalDeviceProperties, VkPhysicalDeviceProperties2> const& GetDeviceProperties() const
         {
             return m_DeviceProperties;
         }
 
+        /** Get the supported features for the associated device */
         [[nodiscard]] constexpr inline Pair<VkPhysicalDeviceFeatures, VkPhysicalDeviceFeatures2> const& GetDeviceFeatures() const
         {
             return m_DeviceFeatures;
@@ -86,5 +97,8 @@ namespace luvk
     private:
         /** Get the available devices */
         void FetchAvailableDevices(VkInstance const& Instance);
+
+        /** Initialize the logical device */
+        void InitializeLogicalDevice();
     };
 } // namespace luvk
