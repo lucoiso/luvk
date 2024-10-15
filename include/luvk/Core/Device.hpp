@@ -10,6 +10,7 @@
 
 #include <volk.h>
 #include <cstdint>
+#include <unordered_map>
 
 namespace luvk
 {
@@ -20,19 +21,22 @@ namespace luvk
         VkPhysicalDevice m_PhysicalDevice {};
         VkSurfaceKHR m_Surface {};
 
-        Pair<std::vector<VkSurfaceFormatKHR>, std::vector<VkSurfaceFormat2KHR>> m_SurfaceFormat {};
-        Pair<VkPhysicalDeviceProperties, VkPhysicalDeviceProperties2> m_DeviceProperties {};
-        Pair<VkPhysicalDeviceFeatures, VkPhysicalDeviceFeatures2> m_DeviceFeatures {};
-
         DeviceExtensions m_Extensions { m_PhysicalDevice };
         std::vector<VkPhysicalDevice> m_AvailableDevices {};
 
+        VkPhysicalDeviceFeatures m_DeviceFeatures {};
+        VkPhysicalDeviceProperties m_DeviceProperties {};
+        std::vector<VkSurfaceFormatKHR> m_SurfaceFormat {};
+        std::vector<VkQueueFamilyProperties> m_DeviceQueueFamilyProperties {};
+
+        std::unordered_map<std::uint32_t, std::vector<VkQueue>> m_Queues {};
+
     public:
         constexpr Device() = default;
-        ~Device() override;
+        ~Device() override = default;
 
-        /** Initialize the dependencies of this module */
-        void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
+        /** Set the preferred physical device */
+        void SetPhysicalDevice(VkPhysicalDevice const& Device);
 
         /** Set the preferred physical device */
         void SetPhysicalDevice(std::uint8_t Index);
@@ -41,10 +45,10 @@ namespace luvk
         void SetPhysicalDevice(VkPhysicalDeviceType Type);
 
         /** Set the preferred physical device */
-        inline void SetSurface(VkSurfaceKHR const& Surface)
-        {
-            m_Surface = Surface;
-        }
+        void SetSurface(VkSurfaceKHR const& Surface);
+
+        /** Create the logical device - Note: QueueIndices is a map of <Family Index, Num Queues> */
+        void CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t> const& QueueIndices, void* const& pNext);
 
         /** Get the current associated logical device */
         [[nodiscard]] constexpr inline VkDevice const& GetLogicalDevice() const
@@ -65,21 +69,33 @@ namespace luvk
         }
 
         /** Get the supported formats for the associated surface */
-        [[nodiscard]] constexpr inline Pair<std::vector<VkSurfaceFormatKHR>, std::vector<VkSurfaceFormat2KHR>> const& GetSurfaceFormat() const
+        [[nodiscard]] constexpr inline std::vector<VkSurfaceFormatKHR> const& GetSurfaceFormat() const
         {
             return m_SurfaceFormat;
         }
 
         /** Get the properties of the associated device */
-        [[nodiscard]] constexpr inline Pair<VkPhysicalDeviceProperties, VkPhysicalDeviceProperties2> const& GetDeviceProperties() const
+        [[nodiscard]] constexpr inline VkPhysicalDeviceProperties const& GetDeviceProperties() const
         {
             return m_DeviceProperties;
         }
 
         /** Get the supported features for the associated device */
-        [[nodiscard]] constexpr inline Pair<VkPhysicalDeviceFeatures, VkPhysicalDeviceFeatures2> const& GetDeviceFeatures() const
+        [[nodiscard]] constexpr inline VkPhysicalDeviceFeatures const& GetDeviceFeatures() const
         {
             return m_DeviceFeatures;
+        }
+
+        /** Get the device queue family properties of the associated device */
+        [[nodiscard]] constexpr inline std::vector<VkQueueFamilyProperties> const& GetDeviceQueueFamilyProperties() const
+        {
+            return m_DeviceQueueFamilyProperties;
+        }
+
+        /** Get the queue map that we got from the logical device creation - Map: <Family Index - Queues> */
+        [[nodiscard]] constexpr inline std::unordered_map<std::uint32_t, std::vector<VkQueue>> const& GetQueues() const
+        {
+            return m_Queues;
         }
 
         /** Get the available device layers and extensions */
@@ -95,10 +111,13 @@ namespace luvk
         }
 
     private:
+        /** Initialize the dependencies of this module */
+        void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
+
+        /** Clear the resources of this module */
+        void ClearResources(IRenderModule* MainRenderer) override;
+
         /** Get the available devices */
         void FetchAvailableDevices(VkInstance const& Instance);
-
-        /** Initialize the logical device */
-        void InitializeLogicalDevice();
     };
 } // namespace luvk

@@ -18,13 +18,16 @@ namespace luvk
 
     public:
         constexpr RenderGraph() = default;
-        ~RenderGraph() override;
+        ~RenderGraph() override = default;
 
+        /** Initialize the render graph device */
+        void InitializeRPSDevice(std::shared_ptr<IRenderModule> const& DeviceModule);
+
+    protected:
         /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
 
-    private:
-        /** Initialize the render graph device */
-        void InitializeRPSDevice(std::shared_ptr<IRenderModule> const& DeviceModule);
+        /** Clear the resources of this module */
+        void ClearResources(IRenderModule* MainRenderer) override;
     };
 } // namespace luvk

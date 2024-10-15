@@ -43,6 +43,11 @@ void luvk::IExtensions::SetExtensionState(std::string_view const FromLayer, std:
                                std::cbegin(Extension),
                                std::cend(Extension)))
                 {
+                    if (State)
+                    {
+                        LayerEnabled = true;
+                    }
+
                     ExtensionEnabled = State;
                     return;
                 }
@@ -61,7 +66,7 @@ std::vector<const char*> luvk::IExtensions::GetEnabledLayersNames() const
     {
         const char *LayerData = std::data(Name);
 
-        if (!Enabled || Contains(Output, LayerData))
+        if (std::empty(Name) || !Enabled || Contains(Output, LayerData))
         {
             continue;
         }
@@ -88,7 +93,7 @@ std::vector<const char*> luvk::IExtensions::GetEnabledExtensionsNames() const
         {
             const char *ExtData = std::data(ExtensionName);
 
-            if (!ExtensionEnabled || Contains(Output, ExtData))
+            if (std::empty(ExtensionName) || !ExtensionEnabled || Contains(Output, ExtData))
             {
                 continue;
             }

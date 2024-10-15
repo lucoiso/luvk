@@ -18,6 +18,7 @@ namespace luvk
     enum class RenderModuleIndex : std::uint8_t
     {
         DEVICE = 0U,
+        RENDER_GRAPH = 1U,
         // ...
 
         Count
@@ -77,21 +78,19 @@ namespace luvk
             std::string_view EngineName;
             std::uint32_t ApplicationVersion;
             std::uint32_t EngineVersion;
-            std::size_t ExtraExtensionsSize {};
-            char const* const* ExtraExtensions {};
         };
 
         /** Initialize instance resources */
-        [[nodiscard]] bool InitializeRenderer(InstanceCreationArguments const& Arguments);
+        [[nodiscard]] bool InitializeRenderer(InstanceCreationArguments const& Arguments, void* const& pNext);
 
         /** Post initialize the renderer, setting up the direct dependencies of this module such as device module, etc. */
         void PostInitializeRenderer();
 
-        /** Perform complete initialization. Calls PreInitializeRenderer, InitializeRenderer and PostInitializeRenderer sequentially */
-        [[nodiscard]] bool DoInitialization(InstanceCreationArguments const& Arguments);
-
     private:
         /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
+
+        /** Clear the resources of this module */
+        void ClearResources(IRenderModule* MainRenderer) override;
     };
 } // namespace luvk

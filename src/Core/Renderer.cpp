@@ -10,7 +10,7 @@ static bool s_IsVolkInitialized = false;
 
 luvk::Renderer::~Renderer()
 {
-    // TODO : Add shutdown logic
+    Renderer::ClearResources(nullptr);
 }
 
 void luvk::Renderer::PreInitializeRenderer()
@@ -24,7 +24,7 @@ void luvk::Renderer::PreInitializeRenderer()
     m_Extensions.FillExtensionsContainer();
 }
 
-bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Arguments)
+bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Arguments, void* const& pNext)
 {
     if (!s_IsVolkInitialized)
     {
@@ -39,12 +39,10 @@ bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Argumen
                                     .apiVersion = VK_API_VERSION_1_3};
 
     auto const Layers = m_Extensions.GetEnabledLayersNames();
-    auto Extensions = m_Extensions.GetEnabledExtensionsNames();
-
-    Extensions.insert(std::end(Extensions), Arguments.ExtraExtensions,Arguments.ExtraExtensions + Arguments.ExtraExtensionsSize);
+    auto const Extensions = m_Extensions.GetEnabledExtensionsNames();
 
     VkInstanceCreateInfo const InstanceCreateInfo {.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-                                                   .pNext = nullptr,
+                                                   .pNext = pNext,
                                                    .pApplicationInfo = &AppInfo,
                                                    .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
                                                    .ppEnabledLayerNames = std::data(Layers),
@@ -67,18 +65,6 @@ void luvk::Renderer::PostInitializeRenderer()
     InitializeDependencies(nullptr);
 }
 
-bool luvk::Renderer::DoInitialization(InstanceCreationArguments const &Arguments)
-{
-    PreInitializeRenderer();
-    if (InitializeRenderer(Arguments))
-    {
-        PostInitializeRenderer();
-        return true;
-    }
-
-    return false;
-}
-
 void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
     m_RenderModules.at(0U) = std::make_shared<luvk::Device>();
@@ -91,4 +77,25 @@ void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const
                   {
                         ModuleIt->InitializeDependencies(shared_from_this());
                   });
+}
+
+void luvk::Renderer::ClearResources(IRenderModule* const MainRenderer)
+{
+    std::for_each(std::execution::seq,
+                  std::rbegin(m_RenderModules),
+                  std::rend(m_RenderModules),
+                  [this] (std::shared_ptr<IRenderModule> const& ModuleIt)
+                  {
+                      ModuleIt->ClearResources(this);
+                  });
+
+    if (m_Instance != VK_NULL_HANDLE)
+    {
+        vkDestroyInstance(m_Instance, nullptr);
+    }
+
+    if (s_IsVolkInitialized)
+    {
+        volkFinalize();
+    }
 }

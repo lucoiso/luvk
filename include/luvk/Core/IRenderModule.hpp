@@ -18,5 +18,8 @@ namespace luvk
 
         /** Initialize the dependencies of this module */
         virtual void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) = 0;
+
+        /** Clear the resources of this module */
+        virtual void ClearResources(IRenderModule* MainRenderer) = 0;
     };
 } // namespace luvk
