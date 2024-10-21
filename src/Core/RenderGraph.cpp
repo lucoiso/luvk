@@ -10,7 +10,7 @@
 
 void luvk::RenderGraph::InitializeRPSDevice(std::shared_ptr<IRenderModule> const& DeviceModule)
 {
-    auto const CastedModule = dynamic_cast<luvk::Device*>(DeviceModule.get());
+    auto const CastModule = dynamic_cast<luvk::Device*>(DeviceModule.get());
 
     #define VOLK_TO_RPS(callName) .##callName = callName,
 
@@ -18,8 +18,8 @@ void luvk::RenderGraph::InitializeRPSDevice(std::shared_ptr<IRenderModule> const
         RPS_VK_FUNCTION_TABLE(VOLK_TO_RPS)
     };
 
-    RpsVKRuntimeDeviceCreateInfo const CreationArguments{.hVkDevice = CastedModule->GetLogicalDevice(),
-                                                         .hVkPhysicalDevice = CastedModule->GetPhysicalDevice(),
+    RpsVKRuntimeDeviceCreateInfo const CreationArguments{.hVkDevice = CastModule->GetLogicalDevice(),
+                                                         .hVkPhysicalDevice = CastModule->GetPhysicalDevice(),
                                                          .flags = RPS_VK_RUNTIME_FLAG_NONE,
                                                          .pVkFunctions = &DynamicTable};
 

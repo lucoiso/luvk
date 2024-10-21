@@ -3,8 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Core/Renderer.hpp"
-#include "luvk/Core/Device.hpp"
-#include "luvk/Core/RenderGraph.hpp"
 
 static bool s_IsVolkInitialized = false;
 
@@ -60,22 +58,26 @@ bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Argumen
     return false;
 }
 
-void luvk::Renderer::PostInitializeRenderer()
+void luvk::Renderer::PostInitializeRenderer(std::vector<std::shared_ptr<IRenderModule>> &&Modules)
 {
+    m_RenderModules.resize(std::size(Modules));
+
+    std::move(std::execution::seq,
+              std::begin(Modules),
+              std::end(Modules),
+              std::begin(m_RenderModules));
+
     InitializeDependencies(nullptr);
 }
 
 void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
-    m_RenderModules.at(0U) = std::make_shared<luvk::Device>();
-    m_RenderModules.at(1U) = std::make_shared<luvk::RenderGraph>();
-
     std::for_each(std::execution::seq,
                   std::begin(m_RenderModules),
                   std::end(m_RenderModules),
                   [this] (const auto& ModuleIt)
                   {
-                        ModuleIt->InitializeDependencies(shared_from_this());
+                      ModuleIt->InitializeDependencies(shared_from_this());
                   });
 }
 
