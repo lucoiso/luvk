@@ -29,6 +29,27 @@ void luvk::RenderGraph::InitializeRPSDevice(std::shared_ptr<IRenderModule> const
     }
 }
 
+void luvk::RenderGraph::CreateRenderGraph(std::vector<RpsQueueFlags>&& QueueFlags, RpsRpslEntry const Entry)
+{
+    RpsRenderGraphCreateInfo GraphCreateInfo {};
+    GraphCreateInfo.scheduleInfo.numQueues = static_cast<std::uint32_t>(std::size(QueueFlags));
+    GraphCreateInfo.scheduleInfo.pQueueInfos = std::data(QueueFlags);
+    GraphCreateInfo.mainEntryCreateInfo.hRpslEntryPoint = Entry;
+
+    if (rpsRenderGraphCreate(m_Device, &GraphCreateInfo, &m_RenderGraph) != RPS_OK)
+    {
+        throw std::runtime_error("Failed to create the RPS Render Graph.");
+    }
+}
+
+void luvk::RenderGraph::BindNode(std::string_view const Name, PFN_rpsCmdCallback const Callback, void* const Context, RpsCmdCallbackFlags const Flags) const
+{
+    if (rpsProgramBindNode(rpsRenderGraphGetMainEntry(m_RenderGraph), std::data(Name), Callback, Context, Flags) != RPS_OK)
+    {
+        throw std::runtime_error("Failed to bind to RPS node.");
+    }
+}
+
 void luvk::RenderGraph::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
     // Do nothing: Needs Device Module configuration to be set by the user. InitializeRPSDevice needs to be called after creating the logical device.
@@ -36,8 +57,15 @@ void luvk::RenderGraph::InitializeDependencies(std::shared_ptr<IRenderModule> co
 
 void luvk::RenderGraph::ClearResources(IRenderModule* const MainRenderer)
 {
+    if (m_RenderGraph != RPS_NULL_HANDLE)
+    {
+        rpsRenderGraphDestroy(m_RenderGraph);
+        m_RenderGraph = RPS_NULL_HANDLE;
+    }
+
     if (m_Device != RPS_NULL_HANDLE)
     {
         rpsDeviceDestroy(m_Device);
+        m_Device = RPS_NULL_HANDLE;
     }
 }

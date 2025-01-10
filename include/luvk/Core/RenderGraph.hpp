@@ -8,6 +8,7 @@
 #include "luvk/Core/IRenderModule.hpp"
 
 #include <rps/runtime/vk/rps_vk_runtime.h>
+#include <string_view>
 
 namespace luvk
 {
@@ -15,6 +16,7 @@ namespace luvk
     class LUVKMODULE_API RenderGraph : public IRenderModule
     {
         RpsDevice m_Device {};
+        RpsRenderGraph m_RenderGraph {};
 
     public:
         constexpr RenderGraph() = default;
@@ -22,6 +24,12 @@ namespace luvk
 
         /** Initialize the render graph device */
         void InitializeRPSDevice(std::shared_ptr<IRenderModule> const& DeviceModule);
+
+        /** Create the render graph object */
+        void CreateRenderGraph(std::vector<RpsQueueFlags>&& QueueFlags, RpsRpslEntry Entry);
+
+        /** Bind the specified node */
+        void BindNode(std::string_view Name, PFN_rpsCmdCallback Callback, void* Context = nullptr, RpsCmdCallbackFlags Flags = RPS_CMD_CALLBACK_FLAG_NONE) const;
 
     protected:
         /** Initialize the dependencies of this module */

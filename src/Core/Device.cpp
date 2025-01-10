@@ -104,11 +104,13 @@ void luvk::Device::ClearResources(IRenderModule* const MainRenderer)
     if (m_LogicalDevice != VK_NULL_HANDLE)
     {
         vkDestroyDevice(m_LogicalDevice, nullptr);
+        m_LogicalDevice = VK_NULL_HANDLE;
     }
 
     if (m_Surface != VK_NULL_HANDLE)
     {
         vkDestroySurfaceKHR(static_cast<luvk::Renderer*>(MainRenderer)->GetInstance(), m_Surface, nullptr);
+        m_Surface = VK_NULL_HANDLE;
     }
 }
 

@@ -94,10 +94,12 @@ void luvk::Renderer::ClearResources(IRenderModule* const MainRenderer)
     if (m_Instance != VK_NULL_HANDLE)
     {
         vkDestroyInstance(m_Instance, nullptr);
+        m_Instance = VK_NULL_HANDLE;
     }
 
     if (s_IsVolkInitialized)
     {
         volkFinalize();
+        s_IsVolkInitialized = false;
     }
 }
