@@ -1,16 +1,16 @@
 // Author: Lucas Vilas-Boas
-// Year : 2024
+// Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Core/RenderGraph.hpp"
 #include "luvk/Core/Renderer.hpp"
 #include "luvk/Core/Device.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 
 void luvk::RenderGraph::InitializeRPSDevice(std::shared_ptr<IRenderModule> const& DeviceModule)
 {
-    auto const CastModule = dynamic_cast<luvk::Device*>(DeviceModule.get());
+    auto const CastModule = static_cast<luvk::Device*>(DeviceModule.get());
 
     #define VOLK_TO_RPS(callName) .##callName = callName,
 

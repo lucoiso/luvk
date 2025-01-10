@@ -1,5 +1,5 @@
 # Author: Lucas Vilas-Boas
-# Year: 2024
+# Year: 2025
 # Repo: https://github.com/lucoiso/luvk
 
 # ----------- Global Definitions -----------
@@ -70,24 +70,16 @@ ADD_DEFINITIONS(-DRPS_VK_RUNTIME=1)
 INCLUDE(FetchContent)
 
 FETCHCONTENT_DECLARE(
-		volk
-		GIT_REPOSITORY https://github.com/zeux/volk.git
-		GIT_TAG master
-)
-
-FETCHCONTENT_DECLARE(
 		rps
 		GIT_REPOSITORY https://github.com/GPUOpen-LibrariesAndSDKs/RenderPipelineShaders.git
 		GIT_TAG main
 )
 
 FETCHCONTENT_MAKEAVAILABLE(
-		volk
 		rps
 )
 
 TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
-		volk
 		# rps_core		- Not using yet
 		# rps_frontend  - Not using yet
 		# rps_runtime   - Not using yet
@@ -95,7 +87,34 @@ TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC
 )
 
 TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC
-		${volk_SOURCE_DIR}
 		${rps_SOURCE_DIR}/include
 )
 
+SET(LUVK_VULKAN_LIBS_TO_LINK
+		volk
+		# SPIRV-Tools
+		# SPIRV-Tools-opt
+		# GenericCodeGen
+		# glslang
+		# glslang-default-resource-limits
+		# MachineIndependent
+		# OSDependent
+		# SPIRV
+)
+
+MACRO(LUVK_UTIL_LINK_TO_VK_LIB VK_LIB_ARG)
+	IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+		SET(_LUVK_INT_LIB_PATH $ENV{VULKAN_SDK}\\Lib\\${VK_LIB_ARG}d.lib)
+	ELSE ()
+		SET(_LUVK_INT_LIB_PATH $ENV{VULKAN_SDK}\\Lib\\${VK_LIB_ARG}.lib)
+	ENDIF (CMAKE_BUILD_TYPE MATCHES "Debug")
+
+	MESSAGE(STATUS "Linking library '${LIBRARY_NAME}' to Vulkan lib '${_LUVK_INT_LIB_PATH}'")
+	TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC ${_LUVK_INT_LIB_PATH})
+ENDMACRO(LUVK_UTIL_LINK_TO_VK_LIB)
+
+FOREACH (VkLib ${LUVK_VULKAN_LIBS_TO_LINK})
+	LUVK_UTIL_LINK_TO_VK_LIB(${VkLib})
+ENDFOREACH ()
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC $ENV{VULKAN_SDK}/Include)

@@ -1,5 +1,5 @@
 // Author: Lucas Vilas-Boas
-// Year : 2024
+// Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
@@ -11,7 +11,7 @@
 #include <execution>
 #include <string>
 #include <vector>
-#include <volk.h>
+#include <volk/volk.h>
 
 namespace luvk
 {

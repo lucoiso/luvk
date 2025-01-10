@@ -1,5 +1,5 @@
 // Author: Lucas Vilas-Boas
-// Year : 2024
+// Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
@@ -8,7 +8,7 @@
 #include "luvk/Core/Extensions.hpp"
 #include "luvk/Core/IRenderModule.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 #include <cstdint>
 #include <unordered_map>
 
@@ -48,7 +48,7 @@ namespace luvk
         void SetSurface(VkSurfaceKHR const& Surface);
 
         /** Create the logical device - Note: QueueIndices is a map of <Family Index, Num Queues> */
-        void CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t> const& QueueIndices, void* const& pNext);
+        void CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, void* const& pNext);
 
         /** Get the current associated logical device */
         [[nodiscard]] constexpr inline VkDevice const& GetLogicalDevice() const

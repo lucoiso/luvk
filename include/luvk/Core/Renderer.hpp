@@ -1,5 +1,5 @@
 // Author: Lucas Vilas-Boas
-// Year : 2024
+// Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
@@ -8,7 +8,7 @@
 #include "luvk/Core/Extensions.hpp"
 #include "luvk/Core/IRenderModule.hpp"
 
-#include <volk.h>
+#include <volk/volk.h>
 #include <cstdint>
 
 namespace luvk

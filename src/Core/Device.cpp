@@ -1,5 +1,5 @@
 // Author: Lucas Vilas-Boas
-// Year : 2024
+// Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Core/Device.hpp"
@@ -52,7 +52,7 @@ void luvk::Device::SetSurface(VkSurfaceKHR const &Surface)
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &NumFormats, std::data(m_SurfaceFormat));
 }
 
-void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t> const& QueueIndices, void* const& pNext)
+void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, void* const& pNext)
 {
     auto const QueueFamilyIndices = QueueIndices | std::views::keys;
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos(std::size(QueueFamilyIndices));
@@ -96,7 +96,7 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
 
 void luvk::Device::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
-    FetchAvailableDevices(dynamic_cast<luvk::Renderer*>(MainRenderer.get())->GetInstance());
+    FetchAvailableDevices(static_cast<luvk::Renderer*>(MainRenderer.get())->GetInstance());
 }
 
 void luvk::Device::ClearResources(IRenderModule* const MainRenderer)
@@ -108,7 +108,7 @@ void luvk::Device::ClearResources(IRenderModule* const MainRenderer)
 
     if (m_Surface != VK_NULL_HANDLE)
     {
-        vkDestroySurfaceKHR(dynamic_cast<luvk::Renderer*>(MainRenderer)->GetInstance(), m_Surface, nullptr);
+        vkDestroySurfaceKHR(static_cast<luvk::Renderer*>(MainRenderer)->GetInstance(), m_Surface, nullptr);
     }
 }
 
