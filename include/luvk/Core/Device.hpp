@@ -17,9 +17,9 @@ namespace luvk
     /** Render module responsible for device operations */
     class LUVKMODULE_API Device : public IRenderModule
     {
-        VkDevice m_LogicalDevice {};
-        VkPhysicalDevice m_PhysicalDevice {};
-        VkSurfaceKHR m_Surface {};
+        VkDevice m_LogicalDevice {VK_NULL_HANDLE};
+        VkPhysicalDevice m_PhysicalDevice {VK_NULL_HANDLE};
+        VkSurfaceKHR m_Surface {VK_NULL_HANDLE};
 
         DeviceExtensions m_Extensions { m_PhysicalDevice };
         std::vector<VkPhysicalDevice> m_AvailableDevices {};

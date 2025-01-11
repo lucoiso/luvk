@@ -15,8 +15,8 @@ namespace luvk
     /** Render module responsible for the Render Graph using AMD's RPS */
     class LUVKMODULE_API RenderGraph : public IRenderModule
     {
-        RpsDevice m_Device {};
-        RpsRenderGraph m_RenderGraph {};
+        RpsDevice m_Device {RPS_NULL_HANDLE};
+        RpsRenderGraph m_RenderGraph {RPS_NULL_HANDLE};
 
     public:
         constexpr RenderGraph() = default;
@@ -30,6 +30,18 @@ namespace luvk
 
         /** Bind the specified node */
         void BindNode(std::string_view Name, PFN_rpsCmdCallback Callback, void* Context = nullptr, RpsCmdCallbackFlags Flags = RPS_CMD_CALLBACK_FLAG_NONE) const;
+
+        /** Get the RPS device */
+        [[nodiscard]] inline RpsDevice const& GetDevice() const
+        {
+            return m_Device;
+        }
+
+        /** Get the RPS render graph */
+        [[nodiscard]] inline RpsRenderGraph const& GetRenderGraph() const
+        {
+            return m_RenderGraph;
+        }
 
     protected:
         /** Initialize the dependencies of this module */

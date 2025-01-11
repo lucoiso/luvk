@@ -16,7 +16,7 @@ namespace luvk
     /** Renderer object that will be responsible for managing all resources and modules */
     class LUVKMODULE_API Renderer : public IRenderModule, public std::enable_shared_from_this<Renderer>
     {
-        VkInstance m_Instance {};
+        VkInstance m_Instance {VK_NULL_HANDLE};
         InstanceExtensions m_Extensions {};
         std::vector<std::shared_ptr<IRenderModule>> m_RenderModules{};
 
@@ -40,6 +40,21 @@ namespace luvk
         [[nodiscard]] inline std::vector<std::shared_ptr<IRenderModule>> const& GetModules() const
         {
             return m_RenderModules;
+        }
+
+        /** Find module from type */
+        template <typename Type>
+        [[nodiscard]] constexpr Type* FindModule()
+        {
+            for (const std::shared_ptr<IRenderModule>& ModuleIt : m_RenderModules)
+            {
+                if (Type* const CastTarget = dynamic_cast<Type*>(ModuleIt.get()))
+                {
+                    return CastTarget;
+                }
+            }
+
+            return nullptr;
         }
 
         /** Pre initialize the renderer, loading the volk library, fetching available extensions and other resources */
