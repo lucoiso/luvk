@@ -13,6 +13,12 @@
 
 namespace luvk
 {
+    /** Renderer Event Keys */
+    enum class RendererEvents : std::uint8_t
+    {
+        OnPostInitialized
+    };
+
     /** Renderer object that will be responsible for managing all resources and modules */
     class LUVKMODULE_API Renderer : public IRenderModule, public std::enable_shared_from_this<Renderer>
     {

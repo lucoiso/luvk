@@ -14,6 +14,12 @@
 
 namespace luvk
 {
+    /** Device Event Keys */
+    enum class DeviceEvents : std::uint8_t
+    {
+        OnChangedLogicalDevice
+    };
+
     /** Render module responsible for device operations */
     class LUVKMODULE_API Device : public IRenderModule
     {

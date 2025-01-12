@@ -92,6 +92,8 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
 
         m_Queues.emplace(QueueCreateInfoIt.queueFamilyIndex, QueueList);
     }
+
+    GetEventSystem().Execute(DeviceEvents::OnChangedLogicalDevice);
 }
 
 void luvk::Device::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)

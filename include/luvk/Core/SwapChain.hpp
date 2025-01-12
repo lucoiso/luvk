@@ -13,11 +13,18 @@
 
 namespace luvk
 {
+    /** Swap Chain Event Keys */
+    enum class SwapChainEvents : std::uint8_t
+    {
+        OnChangedNumberOfImages
+    };
+
     /** Render module responsible for the Swap Chain management */
     class LUVKMODULE_API SwapChain : public IRenderModule
     {
         VkSwapchainKHR m_SwapChain {VK_NULL_HANDLE};
         std::vector<VkImage> m_Images{};
+        std::vector<VkImageView> m_ImageViews{};
 
     public:
         constexpr SwapChain() = default;
@@ -50,9 +57,9 @@ namespace luvk
         void ClearResources(IRenderModule* MainRenderer) override;
 
         /** Create the swap chain images */
-        void CreateSwapChainImages(std::uint32_t NumImages);
+        void CreateSwapChainImages(VkDevice const& LogicalDevice);
 
         /** Destroy the swap chain images */
-        void DestroySwapChainImages();
+        void DestroySwapChainImages(VkDevice const& LogicalDevice);
     };
 } // namespace luvk

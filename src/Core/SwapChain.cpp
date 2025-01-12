@@ -29,12 +29,22 @@ void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& Devi
                                                        .clipped = Arguments.Clip,
                                                        .oldSwapchain = m_SwapChain};
 
-    if (vkCreateSwapchainKHR(CastModule->GetLogicalDevice(), &SwapChainCreateInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
+    VkDevice const& LogicalDevice = CastModule->GetLogicalDevice();
+
+    if (vkCreateSwapchainKHR(LogicalDevice, &SwapChainCreateInfo, nullptr, &m_SwapChain) != VK_SUCCESS)
     {
         throw std::runtime_error("Failed to (re) create the swap chain.");
     }
 
-    CreateSwapChainImages(Arguments.ImageCount);
+    bool const HasChangedNumImages = Arguments.ImageCount != std::size(m_Images);
+
+    DestroySwapChainImages(LogicalDevice);
+    CreateSwapChainImages(LogicalDevice);
+
+    if (HasChangedNumImages)
+    {
+        GetEventSystem().Execute(SwapChainEvents::OnChangedNumberOfImages);
+    }
 }
 
 void luvk::SwapChain::InitializeDependencies(std::shared_ptr<IRenderModule> const &MainRenderer)
@@ -44,23 +54,41 @@ void luvk::SwapChain::InitializeDependencies(std::shared_ptr<IRenderModule> cons
 
 void luvk::SwapChain::ClearResources(IRenderModule *MainRenderer)
 {
-    DestroySwapChainImages();
-
     auto const* DeviceModule = static_cast<luvk::Renderer*>(MainRenderer)->FindModule<luvk::Device>();
+    VkDevice const& LogicalDevice = DeviceModule->GetLogicalDevice();
+
+    DestroySwapChainImages(LogicalDevice);
 
     if (m_SwapChain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(DeviceModule->GetLogicalDevice(), m_SwapChain, nullptr);
+        vkDestroySwapchainKHR(LogicalDevice, m_SwapChain, nullptr);
         m_SwapChain = VK_NULL_HANDLE;
     }
 }
 
-void luvk::SwapChain::CreateSwapChainImages([[maybe_unused]] std::uint32_t const NumImages)
+void luvk::SwapChain::CreateSwapChainImages(VkDevice const& LogicalDevice)
 {
-    // TODO : Implement
+    std::uint32_t NumImages = 0U;
+    if (vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &NumImages, nullptr) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to get the number of swap chain images.");
+    }
+
+    m_Images.resize(NumImages);
+    if (vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &NumImages, std::data(m_Images)) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to get the swap chain images.");
+    }
 }
 
-void luvk::SwapChain::DestroySwapChainImages()
+void luvk::SwapChain::DestroySwapChainImages(VkDevice const& LogicalDevice)
 {
-    // TODO : Implement
+    for (VkImageView& ImageViewIt : m_ImageViews)
+    {
+        if (ImageViewIt != VK_NULL_HANDLE)
+        {
+            vkDestroyImageView(LogicalDevice, ImageViewIt, nullptr);
+            ImageViewIt = VK_NULL_HANDLE;
+        }
+    }
 }

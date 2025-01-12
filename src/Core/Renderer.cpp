@@ -68,6 +68,7 @@ void luvk::Renderer::PostInitializeRenderer(std::vector<std::shared_ptr<IRenderM
               std::begin(m_RenderModules));
 
     InitializeDependencies(nullptr);
+    GetEventSystem().Execute(RendererEvents::OnPostInitialized);
 }
 
 void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)

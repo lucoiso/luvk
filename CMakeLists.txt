@@ -23,6 +23,7 @@ SET(SOURCE_FILES
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/SwapChain.cpp"
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/RenderGraph.cpp"
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Extensions.cpp"
+		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Event.cpp"
 
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Types/Layer.cpp"
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Types/Pair.cpp"
@@ -41,6 +42,7 @@ SET(INCLUDE_FILES
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/SwapChain.hpp"
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/RenderGraph.hpp"
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Extensions.hpp"
+		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Event.hpp"
 
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Layer.hpp"
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Pair.hpp"
