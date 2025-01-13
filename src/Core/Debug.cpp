@@ -31,13 +31,13 @@ void luvk::Debug::InitializeDependencies(std::shared_ptr<IRenderModule> const &M
                           VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
                           VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT;
 
-    VkDebugUtilsMessengerCreateInfoEXT const CreateInfo{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-                                                        .pNext = nullptr,
-                                                        .flags = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
-                                                        .messageSeverity = Severity,
-                                                        .messageType = Type,
-                                                        .pfnUserCallback = &ValidationLayerDebugCallback,
-                                                        .pUserData = nullptr};
+    constexpr VkDebugUtilsMessengerCreateInfoEXT CreateInfo{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+                                                            .pNext = nullptr,
+                                                            .flags = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT,
+                                                            .messageSeverity = Severity,
+                                                            .messageType = Type,
+                                                            .pfnUserCallback = &ValidationLayerDebugCallback,
+                                                            .pUserData = nullptr};
 
     if (vkCreateDebugUtilsMessengerEXT(Instance, &CreateInfo, nullptr, &m_Messenger) != VK_SUCCESS)
     {
