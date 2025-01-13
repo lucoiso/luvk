@@ -9,7 +9,7 @@
 
 constexpr auto g_ReservationSize = 256U;
 
-void luvk::IExtensions::SetLayerState(std::string_view const Layer, bool const State)
+void luvk::IExtensions::SetLayerState(std::string_view const Layer, bool const State, bool const EnableAllExtensions)
 {
     for (auto& [Enabled, Name, Extensions] : m_Layers)
     {
@@ -20,6 +20,18 @@ void luvk::IExtensions::SetLayerState(std::string_view const Layer, bool const S
                        std::cend(Layer)))
         {
             Enabled = State;
+
+            if (State && EnableAllExtensions)
+            {
+                std::for_each(std::execution::unseq,
+                              std::begin(Extensions),
+                              std::end(Extensions),
+                              [] (auto& ExtensionIt)
+                              {
+                                  ExtensionIt.Second = true;
+                              });
+            }
+
             break;
         }
     }

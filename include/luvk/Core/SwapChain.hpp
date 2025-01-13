@@ -23,6 +23,7 @@ namespace luvk
     class LUVKMODULE_API SwapChain : public IRenderModule
     {
         VkSwapchainKHR m_SwapChain {VK_NULL_HANDLE};
+        VkSwapchainKHR m_PreviousSwapChain {VK_NULL_HANDLE};
         std::vector<VkImage> m_Images{};
         std::vector<VkImageView> m_ImageViews{};
 

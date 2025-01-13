@@ -55,7 +55,8 @@ void luvk::Device::SetSurface(VkSurfaceKHR const &Surface)
 void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, void* const& pNext)
 {
     auto const QueueFamilyIndices = QueueIndices | std::views::keys;
-    std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos(std::size(QueueFamilyIndices));
+    std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
+    QueueCreateInfos.reserve(std::size(QueueFamilyIndices));
 
     constexpr std::array<float, 64U> Priorities { 0.F }; // 0.F, 0.F, 0.F...
     for (auto const& [Index, Num] : QueueIndices)
@@ -78,7 +79,11 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
                                               .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
                                               .ppEnabledExtensionNames = std::data(Extensions)};
 
-    vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_LogicalDevice);
+    if (vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_LogicalDevice) != VK_SUCCESS)
+    {
+        throw std::runtime_error("Failed to create the logical device.");
+    }
+
     volkLoadDevice(m_LogicalDevice);
 
     for (VkDeviceQueueCreateInfo const& QueueCreateInfoIt : QueueCreateInfos)

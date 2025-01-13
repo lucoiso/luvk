@@ -22,6 +22,7 @@ SET(SOURCE_FILES
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Memory.cpp"
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/SwapChain.cpp"
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/RenderGraph.cpp"
+		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Debug.cpp"
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Extensions.cpp"
 		"${LUVK_SOURCE_BASE_DIRECTORY}/Core/Event.cpp"
 
@@ -41,6 +42,7 @@ SET(INCLUDE_FILES
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Memory.hpp"
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/SwapChain.hpp"
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/RenderGraph.hpp"
+		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Debug.hpp"
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Extensions.hpp"
 		"${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Event.hpp"
 

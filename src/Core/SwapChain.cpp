@@ -10,6 +10,8 @@ void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& Devi
 {
     auto const CastModule = static_cast<luvk::Device*>(DeviceModule.get());
 
+    m_PreviousSwapChain = m_SwapChain;
+
     VkSwapchainCreateInfoKHR const SwapChainCreateInfo{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                                                        .pNext = pNext,
                                                        .flags = Arguments.Flags,
@@ -27,7 +29,7 @@ void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& Devi
                                                        .compositeAlpha = Arguments.CompositeAlpha,
                                                        .presentMode = Arguments.PresentMode,
                                                        .clipped = Arguments.Clip,
-                                                       .oldSwapchain = m_SwapChain};
+                                                       .oldSwapchain = m_PreviousSwapChain};
 
     VkDevice const& LogicalDevice = CastModule->GetLogicalDevice();
 
@@ -39,6 +41,13 @@ void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& Devi
     bool const HasChangedNumImages = Arguments.ImageCount != std::size(m_Images);
 
     DestroySwapChainImages(LogicalDevice);
+
+    if (m_PreviousSwapChain != VK_NULL_HANDLE)
+    {
+        vkDestroySwapchainKHR(LogicalDevice, m_PreviousSwapChain, nullptr);
+        m_PreviousSwapChain = VK_NULL_HANDLE;
+    }
+
     CreateSwapChainImages(LogicalDevice);
 
     if (HasChangedNumImages)

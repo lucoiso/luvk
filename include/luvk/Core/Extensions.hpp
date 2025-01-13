@@ -75,7 +75,7 @@ namespace luvk
         }
 
         /** Set the state of the layer */
-        void SetLayerState(std::string_view Layer, bool State);
+        void SetLayerState(std::string_view Layer, bool State, bool EnableAllExtensions = false);
 
         /** Get the available layers */
         void SetExtensionState(std::string_view FromLayer, std::string_view Extension, bool State);
