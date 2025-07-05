@@ -1,0 +1,148 @@
+# Author: Lucas Vilas-Boas
+# Year: 2025
+# Repo: https://github.com/lucoiso/luvk
+
+# ----------- Global Definitions -----------
+SET(LIBRARY_NAME luvk)
+
+CMAKE_MINIMUM_REQUIRED(VERSION 3.28)
+PROJECT(${LIBRARY_NAME} VERSION 0.0.1 LANGUAGES CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
+IF (POLICY CMP0048)
+    CMAKE_POLICY(SET CMP0048 NEW)
+ENDIF ()
+
+# ------------- Library Setup --------------
+SET(LUVK_SOURCE_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
+SET(LUVK_INCLUDE_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/)
+
+SET(SOURCE_FILES
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Renderer.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Device.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Memory.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/SwapChain.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Debug.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Extensions.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Event.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/CommandPool.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Pipeline.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/DescriptorPool.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/DescriptorSet.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/CommandBufferPool.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/PipelineCache.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/MeshRegistry.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Buffer.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Image.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Sampler.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/ThreadPool.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Synchronization.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Types/Mesh.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Libraries/ShaderCompiler.cpp"
+        "${LUVK_SOURCE_BASE_DIRECTORY}/Module.cpp"
+)
+
+SET(INCLUDE_FILES
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Renderer.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Device.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Memory.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/SwapChain.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Debug.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Extensions.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Event.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/CommandPool.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Pipeline.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/DescriptorPool.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/DescriptorSet.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/CommandBufferPool.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/PipelineCache.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/MeshRegistry.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Buffer.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Image.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Sampler.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/ThreadPool.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Synchronization.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/IRenderModule.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Layer.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Pair.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Array.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Mesh.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Transform.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Texture.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Material.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Libraries/CompileTime.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Libraries/ShaderCompiler.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Libraries/Functional.hpp"
+        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Module.hpp"
+)
+
+ADD_LIBRARY(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
+SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PRIVATE ${LUVK_SOURCE_BASE_DIRECTORY})
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${LUVK_INCLUDE_BASE_DIRECTORY})
+
+TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PRIVATE BUILD_DLL)
+
+IF (WIN32)
+    TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC VK_ENABLE_PLATFORM_WIN32_KHR)
+ELSEIF (UNIX AND NOT APPLE)
+    TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC VK_USE_PLATFORM_XCB_KHR)
+ENDIF()
+
+IF (WIN32)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_WIN32_KHR)
+ELSEIF (MACOS)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_MACOS_MVK)
+ELSEIF (UNIX)
+    SET(VOLK_STATIC_DEFINES VK_USE_PLATFORM_XCB_KHR)
+ENDIF (WIN32)
+
+TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC VK_NO_PROTOTYPES=1)
+TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC VMA_STATIC_VULKAN_FUNCTIONS=0)
+TARGET_COMPILE_DEFINITIONS(${LIBRARY_NAME} PUBLIC VMA_DYNAMIC_VULKAN_FUNCTIONS=1)
+
+IF (WIN32)
+    SET(VULKAN_SDK_LIB_DIR "$ENV{VULKAN_SDK}\\Lib")
+    SET(VULKAN_SDK_INCLUDE_DIR "$ENV{VULKAN_SDK}/Include")
+ELSE ()
+    SET(VULKAN_SDK_LIB_DIR "$ENV{VULKAN_SDK}/lib")
+    SET(VULKAN_SDK_INCLUDE_DIR "$ENV{VULKAN_SDK}/include")
+ENDIF ()
+
+LIST(APPEND LUVK_VULKAN_LIBS_TO_LINK
+        volk
+        SPIRV-Tools
+        SPIRV-Tools-opt
+        GenericCodeGen
+        glslang
+        glslang-default-resource-limits
+        MachineIndependent
+        OSDependent
+        SPIRV
+)
+
+MACRO(LUVK_UTIL_LINK_TO_VK_LIB VK_LIB_ARG)
+    IF (WIN32)
+        IF (CMAKE_BUILD_TYPE MATCHES "Debug")
+            SET(_LUVK_INT_LIB_PATH ${VULKAN_SDK_LIB_DIR}\\${VK_LIB_ARG}d.lib)
+        ELSE ()
+            SET(_LUVK_INT_LIB_PATH ${VULKAN_SDK_LIB_DIR}\\${VK_LIB_ARG}.lib)
+        ENDIF ()
+    ELSE ()
+        UNSET(_LUVK_INT_LIB_PATH CACHE)
+        UNSET(_LUVK_INT_LIB_PATH)
+        FIND_LIBRARY(_LUVK_INT_LIB_PATH ${VK_LIB_ARG} HINTS ${VULKAN_SDK_LIB_DIR} NO_DEFAULT_PATH NO_CACHE)
+    ENDIF ()
+
+    MESSAGE(STATUS "Linking library '${LIBRARY_NAME}' to Vulkan lib '${_LUVK_INT_LIB_PATH}'")
+    TARGET_LINK_LIBRARIES(${LIBRARY_NAME} PUBLIC ${_LUVK_INT_LIB_PATH})
+ENDMACRO()
+
+FOREACH (VkLib ${LUVK_VULKAN_LIBS_TO_LINK})
+    LUVK_UTIL_LINK_TO_VK_LIB(${VkLib})
+ENDFOREACH ()
+
+TARGET_INCLUDE_DIRECTORIES(${LIBRARY_NAME} PUBLIC ${VULKAN_SDK_INCLUDE_DIR})
