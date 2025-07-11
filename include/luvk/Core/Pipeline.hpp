@@ -17,6 +17,18 @@ namespace luvk
     /** Vulkan graphics pipeline resource */
     class LUVKMODULE_API Pipeline
     {
+    public:
+        enum class Type : std::uint8_t
+        {
+            Graphics,
+            Compute,
+            Mesh
+        };
+
+    private:
+        /** Type of this pipeline */
+        Type m_Type{Type::Graphics};
+
         /** Layout describing descriptor sets and push constants */
         VkPipelineLayout m_PipelineLayout{VK_NULL_HANDLE};
 
@@ -26,19 +38,8 @@ namespace luvk
         /** Device used to create the pipeline */
         std::shared_ptr<Device> m_DeviceModule{};
 
-    public: /** Default constructor */
-        /** Type of this pipeline */
-        enum class Type : std::uint8_t
-        {
-            Graphics,
-            Compute,
-            Mesh
-        };
-
-    private:
-        Type m_Type{Type::Graphics};
-
     public:
+        /** Default constructor */
         constexpr Pipeline() = default;
 
         /** Destructor releases the pipeline */

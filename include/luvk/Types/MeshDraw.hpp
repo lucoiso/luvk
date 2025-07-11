@@ -7,69 +7,74 @@
 
 namespace luvk
 {
-    /** Record draw commands for a mesh entry */
-    inline void RecordMeshCommands(VkCommandBuffer cmd, MeshEntry const& entry)
+    /** Record draw commands for a mesh Entry */
+    static inline void RecordMeshCommands(const VkCommandBuffer Command, MeshEntry const& Entry)
     {
-        if (entry.InstanceCount == 0 && !entry.UniformBuffer)
+        if (Entry.InstanceCount == 0 && !Entry.UniformBuffer)
         {
             return;
         }
 
-        auto const& material = entry.MaterialPtr;
-        if (!material || !material->GetPipeline())
+        auto const& Material = Entry.MaterialPtr;
+        if (!Material || !Material->GetPipeline())
         {
             return;
         }
 
-        auto const& pipe = material->GetPipeline();
-        VkPipelineBindPoint const bindPoint = pipe->GetBindPoint();
+        auto const& Pipeline = Material->GetPipeline();
+        VkPipelineBindPoint const BindPoint = Pipeline->GetBindPoint();
 
-        if (bindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+        if (BindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
         {
-            std::array<VkBuffer, 2> buffers{entry.VertexBuffer->GetHandle(), VK_NULL_HANDLE};
-            constexpr std::array<VkDeviceSize, 2> offsets{0, 0};
+            std::array<VkBuffer, 2> Buffers{Entry.VertexBuffer->GetHandle(), VK_NULL_HANDLE};
+            constexpr std::array<VkDeviceSize, 2> Offsets{0, 0};
             std::uint32_t bindingCount = 1U;
 
-            if (entry.InstanceBuffer)
+            if (Entry.InstanceBuffer)
             {
-                buffers[1] = entry.InstanceBuffer->GetHandle();
+                Buffers[1] = Entry.InstanceBuffer->GetHandle();
                 bindingCount = 2U;
             }
 
-            vkCmdBindVertexBuffers(cmd, 0, bindingCount, buffers.data(), offsets.data());
-            vkCmdBindIndexBuffer(cmd, entry.IndexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
+            vkCmdBindVertexBuffers(Command, 0, bindingCount, Buffers.data(), Offsets.data());
+            vkCmdBindIndexBuffer(Command, Entry.IndexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
         }
 
-        vkCmdBindPipeline(cmd, bindPoint, pipe->GetPipeline());
+        vkCmdBindPipeline(Command, BindPoint, Pipeline->GetPipeline());
 
-        if (auto const& descriptor = material->GetDescriptor())
+        if (auto const& Descriptor = Material->GetDescriptor())
         {
-            vkCmdBindDescriptorSets(cmd, bindPoint, pipe->GetPipelineLayout(), 0, 1, &descriptor->GetHandle(), 0, nullptr);
+            vkCmdBindDescriptorSets(Command, BindPoint, Pipeline->GetPipelineLayout(), 0, 1, &Descriptor->GetHandle(), 0, nullptr);
         }
 
-        if (!entry.UniformCache.empty())
+        if (!std::empty(Entry.UniformCache))
         {
-            VkShaderStageFlags const stages = pipe->GetType() == Pipeline::Type::Compute
+            VkShaderStageFlags const Stages = Pipeline->GetType() == Pipeline::Type::Compute
                                                    ? VK_SHADER_STAGE_COMPUTE_BIT
                                                    : VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
-            vkCmdPushConstants(cmd, pipe->GetPipelineLayout(), stages, 0, static_cast<std::uint32_t>(entry.UniformCache.size()), entry.UniformCache.data());
+
+            vkCmdPushConstants(Command, Pipeline->GetPipelineLayout(), Stages, 0, static_cast<std::uint32_t>(Entry.UniformCache.size()), Entry.UniformCache.data());
         }
 
-        switch (pipe->GetType())
+        switch (Pipeline->GetType())
         {
-        case Pipeline::Type::Compute:
-            vkCmdDispatch(cmd, 1, 1, 1);
-            break;
-        case Pipeline::Type::Mesh:
-            vkCmdDrawMeshTasksEXT(cmd, entry.IndexCount, 1, 1);
-            break;
-        case Pipeline::Type::Graphics:
-        default:
+            case Pipeline::Type::Compute:
             {
-                std::uint32_t const drawInstances = entry.InstanceBuffer ? entry.InstanceCount : 1U;
-                vkCmdDrawIndexed(cmd, entry.IndexCount, drawInstances, 0, 0, 0);
+                vkCmdDispatch(Command, 1, 1, 1);
+                break;
             }
-            break;
+            case Pipeline::Type::Mesh:
+            {
+                vkCmdDrawMeshTasksEXT(Command, Entry.IndexCount, 1, 1);
+                break;
+            }
+            case Pipeline::Type::Graphics:
+            default:
+            {
+                std::uint32_t const drawInstances = Entry.InstanceBuffer ? Entry.InstanceCount : 1U;
+                vkCmdDrawIndexed(Command, Entry.IndexCount, drawInstances, 0, 0, 0);
+                break;
+            }
         }
     }
 } // namespace luvk
