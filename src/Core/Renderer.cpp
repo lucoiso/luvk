@@ -8,6 +8,7 @@
 #include "luvk/Core/CommandPool.hpp"
 #include "luvk/Core/MeshRegistry.hpp"
 #include "luvk/Core/ThreadPool.hpp"
+#include "luvk/Types/MeshDraw.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Types/Material.hpp"
 #include <execution>
@@ -308,59 +309,7 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, std
             {
                 auto const& MeshIt = Meshes[MeshIndex];
 
-                if (MeshIt.InstanceCount == 0 && !MeshIt.UniformBuffer)
-                {
-                    continue;
-                }
-
-                VkBuffer Buffers[2] = {MeshIt.VertexBuffer->GetHandle(), VK_NULL_HANDLE};
-                constexpr VkDeviceSize Offsets[2] = {0, 0};
-                std::uint32_t BindingCount = 1U;
-
-                if (MeshIt.InstanceBuffer)
-                {
-                    Buffers[1] = MeshIt.InstanceBuffer->GetHandle();
-                    BindingCount = 2U;
-                }
-
-                vkCmdBindVertexBuffers(SecCmd, 0, BindingCount, Buffers, Offsets);
-
-                vkCmdBindIndexBuffer(SecCmd, MeshIt.IndexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
-
-                auto const& Material = MeshIt.MaterialPtr;
-                if (!Material || !Material->GetPipeline())
-                {
-                    continue;
-                }
-
-                vkCmdBindPipeline(SecCmd, VK_PIPELINE_BIND_POINT_GRAPHICS, Material->GetPipeline()->GetPipeline());
-
-                if (auto const& Descriptor = Material->GetDescriptor())
-                {
-                    vkCmdBindDescriptorSets(SecCmd,
-                                            VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                            Material->GetPipeline()->GetPipelineLayout(),
-                                            0,
-                                            1,
-                                            &Descriptor->GetHandle(),
-                                            0,
-                                            nullptr);
-                }
-
-                if (!std::empty(MeshIt.UniformCache))
-                {
-                    vkCmdPushConstants(SecCmd,
-                                       Material->GetPipeline()->GetPipelineLayout(),
-                                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                       0,
-                                       static_cast<std::uint32_t>(std::size(MeshIt.UniformCache)),
-                                       std::data(MeshIt.UniformCache));
-                }
-
-                const std::uint32_t DrawInstances = MeshIt.InstanceBuffer
-                                                        ? MeshIt.InstanceCount
-                                                        : 1U;
-                vkCmdDrawIndexed(SecCmd, MeshIt.IndexCount, DrawInstances, 0, 0, 0);
+                luvk::RecordMeshCommands(SecCmd, MeshIt);
             }
 
             vkEndCommandBuffer(SecCmd);
