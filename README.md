@@ -9,7 +9,7 @@ This new library will focus on designing the renderer to be reusable on other pr
 - I'll avoid using C++20 modules: Some IDEs still doesn't support well and it is terrible to read with so many false errors.
 - I'll avoid third party libraries: Will rely on third party only when strictly necessary.
 - Descriptor Buffers will be optional: For debugging purpose. Many tools still does not support this extension.
-- Support for Mesh Shaders will be delayed: Lacking experience and found some issues while trying to implement in the previous repository.
+- Mesh and Compute Shaders are supported.
 
 # Dependencies
 
