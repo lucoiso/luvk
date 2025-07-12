@@ -9,6 +9,7 @@
 #include <volk/volk.h>
 #include <span>
 #include <memory>
+#include <cstdint>
 
 namespace luvk
 {
@@ -61,11 +62,19 @@ namespace luvk
                       std::shared_ptr<DescriptorPool> const& PoolModule,
                       std::shared_ptr<Memory> const& MemoryModule = nullptr);
 
-        /** Update uniform buffer binding */
-        void UpdateUniform(std::shared_ptr<Device> const& DeviceModule, VkBuffer Buffer, VkDeviceSize Size) const;
+        /** Update a buffer binding */
+        void UpdateBuffer(std::shared_ptr<Device> const& DeviceModule,
+                          VkBuffer Buffer,
+                          VkDeviceSize Size,
+                          std::uint32_t Binding,
+                          VkDescriptorType Type) const;
 
-        /** Update combined image sampler binding */
-        void UpdateImage(std::shared_ptr<Device> const& DeviceModule, VkImageView View, VkSampler Sampler) const;
+        /** Update an image binding */
+        void UpdateImage(std::shared_ptr<Device> const& DeviceModule,
+                         VkImageView View,
+                         VkSampler Sampler,
+                         std::uint32_t Binding,
+                         VkDescriptorType Type) const;
 
         [[nodiscard]] constexpr VkDescriptorSetLayout const& GetLayout() const
         {

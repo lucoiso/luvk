@@ -238,22 +238,36 @@ void luvk::Renderer::SetupFrames()
     Sync->SetupFrames(m_DeviceModule, m_SwapChainModule, m_CommandPoolModule, m_ThreadPoolModule);
 }
 
-void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex)
+void luvk::Renderer::RecordComputePass(VkCommandBuffer Cmd)
+{
+    if (!m_MeshRegistryModule)
+    {
+        return;
+    }
+
+    auto const& Meshes = m_MeshRegistryModule->GetMeshes();
+    for (auto const& MeshIt : Meshes)
+    {
+        auto const& Mat = MeshIt.MaterialPtr;
+        if (!Mat || !Mat->GetPipeline())
+        {
+            continue;
+        }
+
+        if (Mat->GetPipeline()->GetType() != Pipeline::Type::Compute)
+        {
+            continue;
+        }
+
+        luvk::RecordMeshCommands(Cmd, MeshIt);
+    }
+}
+
+void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex)
 {
     auto* Swap = m_SwapChainModule.get();
     const auto* Registry = m_MeshRegistryModule.get();
     auto* Pool = m_ThreadPoolModule.get();
-
-    constexpr VkCommandBufferBeginInfo Begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                             .pNext = nullptr,
-                                             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-                                             .pInheritanceInfo = nullptr};
-
-    if (!LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin)))
-    {
-        throw std::runtime_error("Failed to begin command buffer.");
-    }
-
     auto* Sync = FindModule<luvk::Synchronization>();
 
     const VkExtent2D Extent = Swap->GetExtent();
@@ -265,6 +279,27 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, std
                                           .renderArea = {{0, 0}, {Extent.width, Extent.height}},
                                           .clearValueCount = 1,
                                           .pClearValues = &Clear};
+
+    // check for graphics meshes
+    bool HasGraphics = false;
+    for (auto const& MeshIt : Registry->GetMeshes())
+    {
+        auto const& Mat = MeshIt.MaterialPtr;
+        if (!Mat || !Mat->GetPipeline())
+        {
+            continue;
+        }
+        if (Mat->GetPipeline()->GetType() != Pipeline::Type::Compute)
+        {
+            HasGraphics = true;
+            break;
+        }
+    }
+
+    if (!HasGraphics)
+    {
+        return;
+    }
 
     vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
@@ -308,6 +343,16 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, std
             {
                 auto const& MeshIt = Meshes[MeshIndex];
 
+                auto const& Mat = MeshIt.MaterialPtr;
+                if (!Mat || !Mat->GetPipeline())
+                {
+                    continue;
+                }
+                if (Mat->GetPipeline()->GetType() == Pipeline::Type::Compute)
+                {
+                    continue;
+                }
+
                 luvk::RecordMeshCommands(SecCmd, MeshIt);
             }
 
@@ -323,6 +368,22 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, std
     }
 
     vkCmdEndRenderPass(Frame.CommandBuffer);
+}
+
+void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex)
+{
+    constexpr VkCommandBufferBeginInfo Begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                             .pNext = nullptr,
+                                             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+                                             .pInheritanceInfo = nullptr};
+
+    if (!LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin)))
+    {
+        throw std::runtime_error("Failed to begin command buffer.");
+    }
+
+    RecordComputePass(Frame.CommandBuffer);
+    RecordGraphicsPass(Frame, ImageIndex);
 }
 
 void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)

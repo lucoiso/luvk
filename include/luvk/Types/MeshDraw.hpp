@@ -67,12 +67,15 @@ namespace luvk
         {
             case Pipeline::Type::Compute:
             {
-                vkCmdDispatch(Command, 1, 1, 1);
+                vkCmdDispatch(Command, Entry.DispatchX, Entry.DispatchY, Entry.DispatchZ);
                 break;
             }
             case Pipeline::Type::Mesh:
             {
-                vkCmdDrawMeshTasksEXT(Command, Entry.IndexCount, 1, 1);
+                if (vkCmdDrawMeshTasksEXT)
+                {
+                    vkCmdDrawMeshTasksEXT(Command, Entry.DispatchX, Entry.DispatchY, Entry.DispatchZ);
+                }
                 break;
             }
             case Pipeline::Type::Graphics:
