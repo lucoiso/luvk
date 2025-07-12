@@ -14,7 +14,7 @@
 void luvk::Buffer::CreateBuffer(std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments)
 {
     m_MemoryModule = MemoryModule;
-    auto const* Memory = MemoryModule.get();
+    auto const Memory = MemoryModule;
     VmaAllocator const& Allocator = Memory->GetAllocator();
 
     m_Size = Arguments.Size;
@@ -38,12 +38,12 @@ void luvk::Buffer::CreateBuffer(std::shared_ptr<Memory> const& MemoryModule, Cre
 
 void luvk::Buffer::RecreateBuffer(CreationArguments const& Arguments)
 {
-    auto const* Memory = m_MemoryModule.get();
+    auto const Memory = m_MemoryModule;
     VmaAllocator const& Allocator = Memory->GetAllocator();
     auto const DeviceModule = Memory->GetDeviceModule();
-    const auto* Device = DeviceModule
-                             ? dynamic_cast<luvk::Device*>(DeviceModule.get())
-                             : nullptr;
+    const auto Device = DeviceModule
+                            ? std::dynamic_pointer_cast<luvk::Device>(DeviceModule)
+                            : nullptr;
 
     if (Device)
     {
@@ -62,7 +62,7 @@ void luvk::Buffer::RecreateBuffer(CreationArguments const& Arguments)
 
 void luvk::Buffer::Upload(const std::span<const std::byte> Data) const
 {
-    auto const* Memory = m_MemoryModule.get();
+    auto const Memory = m_MemoryModule;
     VmaAllocator const& Allocator = Memory->GetAllocator();
 
     void* Mapping = nullptr;
@@ -86,7 +86,7 @@ luvk::Buffer::~Buffer()
 {
     if (m_MemoryModule)
     {
-        auto const* Memory = m_MemoryModule.get();
+        auto const Memory = m_MemoryModule;
         VmaAllocator const& Allocator = Memory->GetAllocator();
         if (m_Buffer != VK_NULL_HANDLE)
         {

@@ -33,7 +33,7 @@ void luvk::Pipeline::CreateGraphicsPipeline(std::shared_ptr<Device> const& Devic
 {
     m_DeviceModule = DeviceModule;
     m_Type = Type::Graphics;
-    auto const* Device = DeviceModule.get();
+    auto const Device = DeviceModule;
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 
     VkShaderModule VertModule = CreateShader(LogicalDevice, Arguments.VertexShader);
@@ -123,6 +123,15 @@ void luvk::Pipeline::CreateGraphicsPipeline(std::shared_ptr<Device> const& Devic
         throw std::runtime_error("Failed to create pipeline layout.");
     }
 
+    constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState{.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+                                                                      .depthTestEnable = VK_TRUE,
+                                                                      .depthWriteEnable = VK_TRUE,
+                                                                      .depthCompareOp = VK_COMPARE_OP_LESS,
+                                                                      .depthBoundsTestEnable = VK_FALSE,
+                                                                      .stencilTestEnable = VK_FALSE,
+                                                                      .minDepthBounds = 0.0f,
+                                                                      .maxDepthBounds = 1.0f};
+
     const std::array Stages{VertStage, FragStage};
     VkGraphicsPipelineCreateInfo PipelineInfo{.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                               .pNext = nullptr,
@@ -135,17 +144,18 @@ void luvk::Pipeline::CreateGraphicsPipeline(std::shared_ptr<Device> const& Devic
                                               .pViewportState = &ViewportState,
                                               .pRasterizationState = &Rasterization,
                                               .pMultisampleState = &Multisample,
-                                              .pDepthStencilState = nullptr,
+                                              .pDepthStencilState = &DepthStencilState,
                                               .pColorBlendState = &ColorBlend,
                                               .pDynamicState = &Dynamic,
                                               .layout = m_PipelineLayout,
                                               .renderPass = Arguments.RenderPass,
                                               .subpass = Arguments.Subpass};
 
-    VkPipelineCache compCache = Arguments.Cache
-                                    ? Arguments.Cache->GetCompositeCache()
-                                    : VK_NULL_HANDLE;
-    if (!LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, compCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
+    VkPipelineCache CompositeCache = Arguments.Cache
+                                         ? Arguments.Cache->GetCompositeCache()
+                                         : VK_NULL_HANDLE;
+
+    if (!LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
     {
         vkDestroyShaderModule(LogicalDevice, FragModule, nullptr);
         vkDestroyShaderModule(LogicalDevice, VertModule, nullptr);
@@ -166,10 +176,10 @@ void luvk::Pipeline::CreateComputePipeline(std::shared_ptr<Device> const& Device
 {
     m_DeviceModule = DeviceModule;
     m_Type = Type::Compute;
-    auto const* Device = DeviceModule.get();
+    auto const Device = DeviceModule;
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 
-    VkShaderModule CompModule = CreateShader(LogicalDevice, Arguments.ComputeShader);
+    const VkShaderModule CompModule = CreateShader(LogicalDevice, Arguments.ComputeShader);
 
     VkPipelineShaderStageCreateInfo const CompStage{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                     .pNext = nullptr,
@@ -190,16 +200,17 @@ void luvk::Pipeline::CreateComputePipeline(std::shared_ptr<Device> const& Device
         throw std::runtime_error("Failed to create pipeline layout.");
     }
 
-    VkComputePipelineCreateInfo PipelineInfo{.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-                                             .pNext = nullptr,
-                                             .flags = Arguments.Flags,
-                                             .stage = CompStage,
-                                             .layout = m_PipelineLayout};
+    const VkComputePipelineCreateInfo PipelineInfo{.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+                                                   .pNext = nullptr,
+                                                   .flags = Arguments.Flags,
+                                                   .stage = CompStage,
+                                                   .layout = m_PipelineLayout};
 
-    VkPipelineCache compCache = Arguments.Cache
-                                    ? Arguments.Cache->GetCompositeCache()
-                                    : VK_NULL_HANDLE;
-    if (!LUVK_EXECUTE(vkCreateComputePipelines(LogicalDevice, compCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
+    const VkPipelineCache CompositeCache = Arguments.Cache
+                                               ? Arguments.Cache->GetCompositeCache()
+                                               : VK_NULL_HANDLE;
+
+    if (!LUVK_EXECUTE(vkCreateComputePipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
     {
         vkDestroyShaderModule(LogicalDevice, CompModule, nullptr);
         throw std::runtime_error("Failed to create compute pipeline.");
@@ -218,7 +229,7 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
 {
     m_DeviceModule = DeviceModule;
     m_Type = Type::Mesh;
-    auto const* Device = DeviceModule.get();
+    auto const Device = DeviceModule;
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 
     VkShaderModule MeshModule = CreateShader(LogicalDevice, Arguments.MeshShader);
@@ -328,6 +339,15 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
         throw std::runtime_error("Failed to create pipeline layout.");
     }
 
+    constexpr VkPipelineDepthStencilStateCreateInfo DepthStencilState{.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+                                                                      .depthTestEnable = VK_TRUE,
+                                                                      .depthWriteEnable = VK_TRUE,
+                                                                      .depthCompareOp = VK_COMPARE_OP_LESS,
+                                                                      .depthBoundsTestEnable = VK_FALSE,
+                                                                      .stencilTestEnable = VK_FALSE,
+                                                                      .minDepthBounds = 0.0f,
+                                                                      .maxDepthBounds = 1.0f};
+
     VkGraphicsPipelineCreateInfo PipelineInfo{.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                               .pNext = nullptr,
                                               .flags = Arguments.Flags,
@@ -339,17 +359,18 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
                                               .pViewportState = &ViewportState,
                                               .pRasterizationState = &Rasterization,
                                               .pMultisampleState = &Multisample,
-                                              .pDepthStencilState = nullptr,
+                                              .pDepthStencilState = &DepthStencilState,
                                               .pColorBlendState = &ColorBlend,
                                               .pDynamicState = &Dynamic,
                                               .layout = m_PipelineLayout,
                                               .renderPass = Arguments.RenderPass,
                                               .subpass = Arguments.Subpass};
 
-    VkPipelineCache compCache = Arguments.Cache
-                                    ? Arguments.Cache->GetCompositeCache()
-                                    : VK_NULL_HANDLE;
-    if (!LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, compCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
+    VkPipelineCache CompositeCache = Arguments.Cache
+                                         ? Arguments.Cache->GetCompositeCache()
+                                         : VK_NULL_HANDLE;
+
+    if (!LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
     {
         if (FragModule != VK_NULL_HANDLE)
         {
@@ -359,7 +380,9 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
         {
             vkDestroyShaderModule(LogicalDevice, TaskModule, nullptr);
         }
+
         vkDestroyShaderModule(LogicalDevice, MeshModule, nullptr);
+
         throw std::runtime_error("Failed to create mesh pipeline.");
     }
 
@@ -371,6 +394,7 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
     {
         vkDestroyShaderModule(LogicalDevice, TaskModule, nullptr);
     }
+
     vkDestroyShaderModule(LogicalDevice, MeshModule, nullptr);
 }
 
@@ -386,7 +410,7 @@ void luvk::Pipeline::ClearResources()
     {
         return;
     }
-    auto const* DeviceModule = m_DeviceModule.get();
+    auto const DeviceModule = m_DeviceModule;
     VkDevice const& LogicalDevice = DeviceModule->GetLogicalDevice();
 
     if (m_Pipeline != VK_NULL_HANDLE)

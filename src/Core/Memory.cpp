@@ -27,8 +27,8 @@ void luvk::Memory::InitializeAllocator(std::shared_ptr<IRenderModule> const& Mai
                                        VmaAllocatorCreateFlags const Flags)
 {
     m_DeviceModule = DeviceModule;
-    auto const CastRendererModule = dynamic_cast<luvk::Renderer*>(MainRenderer.get());
-    auto const CastDeviceModule = dynamic_cast<luvk::Device*>(DeviceModule.get());
+    auto const CastRendererModule = std::dynamic_pointer_cast<luvk::Renderer>(MainRenderer);
+    auto const CastDeviceModule = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
 
     VkPhysicalDeviceMemoryProperties MemProps{};
     vkGetPhysicalDeviceMemoryProperties(CastDeviceModule->GetPhysicalDevice(), &MemProps);
@@ -79,7 +79,7 @@ void luvk::Memory::QueryMemoryStats(const bool AbortOnCritical) const
         return;
     }
 
-    const auto* Device = dynamic_cast<luvk::Device*>(m_DeviceModule.get());
+    const auto Device = std::dynamic_pointer_cast<luvk::Device>(m_DeviceModule);
     VkPhysicalDeviceMemoryProperties MemProps{};
     vkGetPhysicalDeviceMemoryProperties(Device->GetPhysicalDevice(), &MemProps);
 

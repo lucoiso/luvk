@@ -16,10 +16,10 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
 {
     m_DeviceModule = DeviceModule;
     m_MemoryModule = MemoryModule;
-    auto const* Memory = MemoryModule.get();
+    auto const Memory = MemoryModule;
     VmaAllocator const& Allocator = Memory->GetAllocator();
 
-    auto const* DevMod = DeviceModule.get();
+    auto const DevMod = DeviceModule;
     VkFormatProperties Props{};
     vkGetPhysicalDeviceFormatProperties(DevMod->GetPhysicalDevice(), Arguments.Format, &Props);
 
@@ -57,7 +57,7 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
                                          .format = Arguments.Format,
                                          .subresourceRange = {Arguments.Aspect, 0, 1, 0, 1}};
 
-    auto const* Dev = DeviceModule.get();
+    auto const Dev = DeviceModule;
     VkDevice const& Device = Dev->GetLogicalDevice();
 
     if (!LUVK_EXECUTE(vkCreateImageView(Device, &ViewInfo, nullptr, &m_View)))
@@ -68,7 +68,7 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
 
 void luvk::Image::Upload(const std::span<const std::byte> Data) const
 {
-    auto const* Memory = m_MemoryModule.get();
+    auto const Memory = m_MemoryModule;
     VmaAllocator const& Allocator = Memory->GetAllocator();
     void* Mapping = nullptr;
     if (!LUVK_EXECUTE(vmaMapMemory(Allocator, m_Allocation, &Mapping)))
@@ -89,15 +89,16 @@ void luvk::Image::Destroy()
 {
     if (m_DeviceModule && m_MemoryModule)
     {
-        auto const* Memory = m_MemoryModule.get();
+        auto const Memory = m_MemoryModule;
         VmaAllocator const& Allocator = Memory->GetAllocator();
-        const VkDevice Device = m_DeviceModule.get()->GetLogicalDevice();
+        const VkDevice Device = m_DeviceModule->GetLogicalDevice();
 
         if (m_View != VK_NULL_HANDLE)
         {
             vkDestroyImageView(Device, m_View, nullptr);
             m_View = VK_NULL_HANDLE;
         }
+
         if (m_Image != VK_NULL_HANDLE)
         {
             vmaDestroyImage(Allocator, m_Image, m_Allocation);

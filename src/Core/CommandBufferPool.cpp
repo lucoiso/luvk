@@ -14,7 +14,7 @@ CommandBufferPool::~CommandBufferPool()
 void CommandBufferPool::Create(std::shared_ptr<Device> const& DeviceModule, const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
 {
     m_Device = DeviceModule;
-    const auto* DevicePtr = DeviceModule.get();
+    const auto DevicePtr = DeviceModule;
     const VkDevice DeviceHandle = DevicePtr->GetLogicalDevice();
 
     VkCommandPoolCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .pNext = nullptr, .flags = Flags, .queueFamilyIndex = QueueFamilyIndex};
@@ -28,7 +28,7 @@ void CommandBufferPool::Destroy()
 {
     if (m_Pool != VK_NULL_HANDLE && m_Device)
     {
-        const auto* DevicePtr = m_Device.get();
+        const auto DevicePtr = m_Device;
         const VkDevice DeviceHandle = DevicePtr->GetLogicalDevice();
 
         if (!std::empty(m_Buffers))
@@ -59,7 +59,7 @@ VkCommandBuffer CommandBufferPool::Acquire()
         return CommandBuffer;
     }
 
-    const auto* DevicePtr = m_Device.get();
+    const auto DevicePtr = m_Device;
     const VkDevice DeviceHandle = DevicePtr->GetLogicalDevice();
 
     const VkCommandBufferAllocateInfo AllocInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
@@ -83,7 +83,7 @@ void CommandBufferPool::Reset()
         return;
     }
 
-    const auto* DevicePtr = m_Device.get();
+    const auto DevicePtr = m_Device;
     const VkDevice DeviceHandle = DevicePtr->GetLogicalDevice();
 
     // Ensure all submitted command buffers finished execution before resetting

@@ -11,13 +11,13 @@
 #include "luvk/Core/SwapChain.hpp"
 #include "luvk/Core/MeshRegistry.hpp"
 #include "luvk/Core/Device.hpp"
+#include "luvk/Core/Memory.hpp"
 #include "luvk/Core/Synchronization.hpp"
 #include "luvk/Core/Extensions.hpp"
 
 #include <vector>
 #include <memory>
 #include <optional>
-#include <volk/volk.h>
 
 namespace luvk
 {
@@ -76,26 +76,11 @@ namespace luvk
 
         /** Find module from type */
         template <typename Type>
-        [[nodiscard]] constexpr Type* FindModule()
+        [[nodiscard]] constexpr std::shared_ptr<Type> FindModule() const
         {
             for (const std::shared_ptr<IRenderModule>& ModuleIt : m_RenderModules)
             {
-                if (Type* const CastTarget = dynamic_cast<Type*>(ModuleIt.get()))
-                {
-                    return CastTarget;
-                }
-            }
-
-            return nullptr;
-        }
-
-        /** Find module from type (const version) */
-        template <typename Type>
-        [[nodiscard]] constexpr Type const* FindModule() const
-        {
-            for (const std::shared_ptr<IRenderModule>& ModuleIt : m_RenderModules)
-            {
-                if (Type const* const CastTarget = dynamic_cast<Type const*>(ModuleIt.get()))
+                if (const std::shared_ptr<Type> CastTarget = std::dynamic_pointer_cast<Type>(ModuleIt))
                 {
                     return CastTarget;
                 }
@@ -151,7 +136,8 @@ namespace luvk
         /** Override rendering targets. Empty to restore swapchain rendering */
         void SetRenderTargets(RenderTargets Targets);
 
-    private: /** Indicates if rendering is paused */
+    private:
+        /** Indicates if rendering is paused */
         bool m_Paused{false};
 
         /** Device module used for resource creation */
@@ -159,6 +145,9 @@ namespace luvk
 
         /** Swapchain module managing presentation */
         std::shared_ptr<SwapChain> m_SwapChainModule{};
+
+        /** Memory module that will manage allocations */
+        std::shared_ptr<Memory> m_MemoryModule{};
 
         /** Command pool for frame submission */
         std::shared_ptr<CommandPool> m_CommandPoolModule{};

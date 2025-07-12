@@ -34,7 +34,8 @@ namespace luvk
         /** Device module used to create the image */
         std::shared_ptr<Device> m_DeviceModule{};
 
-    public: /** Default constructor */
+    public:
+        /** Default constructor */
         constexpr Image() = default;
 
         /** Release image resources */
@@ -76,7 +77,8 @@ namespace luvk
             return m_View;
         }
 
-    private: /** Destroy the image and view */
+    private:
+        /** Destroy the image and view */
         void Destroy();
     };
 } // namespace luvk

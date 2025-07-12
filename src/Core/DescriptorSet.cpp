@@ -14,7 +14,7 @@ void luvk::DescriptorSet::CreateLayout(std::shared_ptr<Device> const& DeviceModu
 {
     m_DeviceModule = DeviceModule;
     m_OwnsLayout = true;
-    auto const* Device = DeviceModule.get();
+    auto const Device = DeviceModule;
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 
     VkDescriptorSetLayoutCreateInfo const CreateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
@@ -43,8 +43,8 @@ void luvk::DescriptorSet::Allocate(std::shared_ptr<Device> const& DeviceModule,
     m_DeviceModule = DeviceModule;
     m_PoolModule = PoolModule;
     m_MemoryModule = MemoryModule;
-    auto const* Device = DeviceModule.get();
-    auto const* Pool = PoolModule.get();
+    auto const Device = DeviceModule;
+    auto const Pool = PoolModule;
 
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
     const VkDescriptorPool pool = Pool->GetHandle();
@@ -66,7 +66,7 @@ void luvk::DescriptorSet::UpdateBuffer(std::shared_ptr<Device> const& DeviceModu
                                        std::uint32_t const Binding,
                                        VkDescriptorType const Type) const
 {
-    auto const* Device = DeviceModule.get();
+    auto const Device = DeviceModule;
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 
     VkDescriptorBufferInfo const BufferInfo{.buffer = Buffer, .offset = 0, .range = Size};
@@ -87,7 +87,7 @@ void luvk::DescriptorSet::UpdateImage(std::shared_ptr<Device> const& DeviceModul
                                       std::uint32_t const Binding,
                                       VkDescriptorType const Type) const
 {
-    auto const* Device = DeviceModule.get();
+    auto const Device = DeviceModule;
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 
     VkDescriptorImageInfo const ImageInfo{.sampler = Sampler, .imageView = View, .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
@@ -114,7 +114,7 @@ void luvk::DescriptorSet::Destroy()
         const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
         if (m_Set != VK_NULL_HANDLE && m_PoolModule)
         {
-            auto const* Pool = m_PoolModule.get();
+            auto const Pool = m_PoolModule;
             vkFreeDescriptorSets(LogicalDevice, Pool->GetHandle(), 1, &m_Set);
             m_Set = VK_NULL_HANDLE;
         }

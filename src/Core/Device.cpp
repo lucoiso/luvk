@@ -89,7 +89,7 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
                 }
             }
 
-            if (auto const* Chain = Module->GetDeviceFeatureChain(shared_from_this()))
+            if (auto const Chain = Module->GetDeviceFeatureChain(shared_from_this()))
             {
                 auto* Base = const_cast<VkBaseOutStructure*>(static_cast<VkBaseOutStructure const*>(Chain));
 
@@ -162,7 +162,7 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
 
 void luvk::Device::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
-    m_Renderer = dynamic_cast<luvk::Renderer*>(MainRenderer.get());
+    m_Renderer = std::dynamic_pointer_cast<luvk::Renderer>(MainRenderer);
     m_Instance = m_Renderer->GetInstance();
     FetchAvailableDevices(m_Instance);
 }

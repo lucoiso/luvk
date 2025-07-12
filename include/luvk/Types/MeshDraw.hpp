@@ -54,23 +54,27 @@ namespace luvk
             vkCmdBindDescriptorSets(Command, BindPoint, Pipeline->GetPipelineLayout(), 0, 1, &Descriptor->GetHandle(), 0, nullptr);
         }
 
+        const Pipeline::Type PipelineType = Pipeline->GetType();
+
         if (!std::empty(Entry.UniformCache))
         {
-            VkShaderStageFlags const Stages = Pipeline->GetType() == Pipeline::Type::Compute
+            const VkShaderStageFlags Stages = PipelineType == Pipeline::Type::Compute
                                                   ? VK_SHADER_STAGE_COMPUTE_BIT
-                                                  : VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+                                                  : PipelineType == Pipeline::Type::Mesh
+                                                        ? VK_SHADER_STAGE_MESH_BIT_EXT
+                                                        : VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
             vkCmdPushConstants(Command, Pipeline->GetPipelineLayout(), Stages, 0, static_cast<std::uint32_t>(Entry.UniformCache.size()), Entry.UniformCache.data());
         }
 
-        switch (Pipeline->GetType())
+        switch (PipelineType)
         {
-            case Pipeline::Type::Compute:
+        case Pipeline::Type::Compute:
             {
                 vkCmdDispatch(Command, Entry.DispatchX, Entry.DispatchY, Entry.DispatchZ);
                 break;
             }
-            case Pipeline::Type::Mesh:
+        case Pipeline::Type::Mesh:
             {
                 if (vkCmdDrawMeshTasksEXT)
                 {
@@ -78,8 +82,8 @@ namespace luvk
                 }
                 break;
             }
-            case Pipeline::Type::Graphics:
-            default:
+        case Pipeline::Type::Graphics:
+        default:
             {
                 std::uint32_t const drawInstances = Entry.InstanceBuffer
                                                         ? Entry.InstanceCount

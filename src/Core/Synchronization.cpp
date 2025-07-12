@@ -16,7 +16,7 @@
 void luvk::Synchronization::Initialize(std::shared_ptr<IRenderModule> const& DeviceModule, const std::size_t FrameCount)
 {
     m_DeviceModule = DeviceModule;
-    const auto* Device = dynamic_cast<luvk::Device*>(DeviceModule.get());
+    auto const Device = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
     const VkDevice LogicalDevice = Device->GetLogicalDevice();
 
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
@@ -43,9 +43,9 @@ void luvk::Synchronization::SetupFrames(std::shared_ptr<IRenderModule> const& De
                                         std::shared_ptr<IRenderModule> const& CommandPoolModule,
                                         std::shared_ptr<IRenderModule> const& ThreadPoolModule)
 {
-    const auto* Dev = dynamic_cast<luvk::Device*>(DeviceModule.get());
-    auto* Pool = dynamic_cast<luvk::CommandPool*>(CommandPoolModule.get());
-    const auto* Swap = dynamic_cast<luvk::SwapChain*>(SwapChainModule.get());
+    const auto Dev = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
+    const auto Pool = std::dynamic_pointer_cast<luvk::CommandPool>(CommandPoolModule);
+    const auto Swap = std::dynamic_pointer_cast<luvk::SwapChain>(SwapChainModule);
 
     m_ThreadCount = std::max<std::size_t>(1, std::thread::hardware_concurrency());
     Dev->WaitIdle();
@@ -87,7 +87,8 @@ void luvk::Synchronization::ClearResources()
     {
         return;
     }
-    const auto* Device = dynamic_cast<luvk::Device*>(m_DeviceModule.get());
+
+    const auto Device = std::dynamic_pointer_cast<luvk::Device>(m_DeviceModule);
     const VkDevice LogicalDevice = Device->GetLogicalDevice();
 
     for (FrameData& Frame : m_Frames)

@@ -10,7 +10,7 @@
 void luvk::Sampler::CreateSampler(std::shared_ptr<Device> const& DeviceModule, CreationArguments const& Arguments)
 {
     m_DeviceModule = DeviceModule;
-    auto const* Device = DeviceModule.get();
+    auto const Device = DeviceModule;
     const VkDevice LogicalDevice = Device->GetLogicalDevice();
 
     VkSamplerCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,

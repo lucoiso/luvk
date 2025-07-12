@@ -40,7 +40,7 @@ std::vector<std::uint32_t> luvk::CompileGLSLToSPIRV(std::string_view const Sourc
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_4);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_6);
 
-    auto const* Resources = GetDefaultResources();
+    auto const Resources = GetDefaultResources();
     constexpr auto Messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
     if (!Shader.parse(Resources, 100, false, Messages))

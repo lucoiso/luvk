@@ -17,7 +17,7 @@ PipelineCache::~PipelineCache()
 void PipelineCache::Create(std::shared_ptr<Device> const& DeviceModule)
 {
     m_Device = DeviceModule;
-    const auto* Dev = DeviceModule.get();
+    const auto Dev = DeviceModule;
     const VkDevice Device = Dev->GetLogicalDevice();
 
     constexpr VkPipelineCacheCreateInfo info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
@@ -33,7 +33,7 @@ void PipelineCache::Destroy()
 {
     if (m_Device)
     {
-        const auto* Dev = m_Device.get();
+        const auto Dev = m_Device;
         const VkDevice Device = Dev->GetLogicalDevice();
         if (m_PreRaster != VK_NULL_HANDLE)
         {

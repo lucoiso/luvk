@@ -54,9 +54,6 @@ namespace luvk
             /** Formats of color attachments */
             std::span<VkFormat const> ColorFormats{};
 
-            /** Format of the depth attachment */
-            VkFormat DepthFormat{VK_FORMAT_UNDEFINED};
-
             /** Render pass used for pipeline creation */
             VkRenderPass RenderPass{VK_NULL_HANDLE};
 
@@ -124,9 +121,6 @@ namespace luvk
 
             /** Formats of color attachments */
             std::span<VkFormat const> ColorFormats{};
-
-            /** Format of the depth attachment */
-            VkFormat DepthFormat{VK_FORMAT_UNDEFINED};
 
             /** Render pass used for pipeline creation */
             VkRenderPass RenderPass{VK_NULL_HANDLE};

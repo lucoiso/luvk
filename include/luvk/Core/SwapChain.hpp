@@ -6,8 +6,7 @@
 
 #include "luvk/Module.hpp"
 #include "luvk/Core/IRenderModule.hpp"
-
-#include <volk/volk.h>
+#include "luvk/Core/Image.hpp"
 #include <vector>
 
 namespace luvk
@@ -35,6 +34,15 @@ namespace luvk
 
         /** Framebuffers for each swap chain image */
         std::vector<VkFramebuffer> m_Framebuffers{};
+
+        /** Depth images for each framebuffer */
+        std::vector<std::shared_ptr<luvk::Image>> m_DepthImages{};
+
+        /** Memory for each depth image */
+        std::vector<VkDeviceMemory> m_DepthMemories{};
+
+        /** Format used for depth images */
+        VkFormat m_DepthFormat{VK_FORMAT_UNDEFINED};
 
         /** Render pass used for presentation */
         VkRenderPass m_RenderPass{VK_NULL_HANDLE};
@@ -124,12 +132,16 @@ namespace luvk
         CreationArguments m_Arguments{};
 
         /** (Re) Create the Swap Chain */
-        void CreateSwapChain(std::shared_ptr<IRenderModule> const& DeviceModule, CreationArguments&& Arguments, void* const& pNext);
+        void CreateSwapChain(std::shared_ptr<IRenderModule> const& DeviceModule,
+                             std::shared_ptr<IRenderModule> const& MemoryModule,
+                             CreationArguments&& Arguments,
+                             void* const& pNext);
 
         /** Recreate using stored arguments and a new extent */
-        void Recreate(std::shared_ptr<IRenderModule> const& DeviceModule, VkExtent2D NewExtent, void* const& pNext);
+        void Recreate(std::shared_ptr<IRenderModule> const& DeviceModule, std::shared_ptr<IRenderModule> const& MemoryModule, VkExtent2D NewExtent, void* const& pNext);
 
-    private: /** Initialize the dependencies of this module */
+    private:
+        /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
 
         /** Clear the resources of this module */
@@ -153,5 +165,11 @@ namespace luvk
 
         /** Destroy existing framebuffers */
         void DestroyFramebuffers(VkDevice const& LogicalDevice);
+
+        /** Create depth images and views */
+        void CreateDepthResources(std::shared_ptr<Device> const& DeviceModule, std::shared_ptr<Memory> const& MemoryModule);
+
+        /** Destroy depth images and views */
+        void DestroyDepthResources(VkDevice const& LogicalDevice);
     };
 } // namespace luvk

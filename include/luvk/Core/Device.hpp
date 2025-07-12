@@ -70,7 +70,7 @@ namespace luvk
         VkInstance m_Instance{VK_NULL_HANDLE};
 
         /** Owning renderer */
-        Renderer* m_Renderer{nullptr};
+        std::shared_ptr<Renderer> m_Renderer{nullptr};
 
     public:
         constexpr Device() = default;

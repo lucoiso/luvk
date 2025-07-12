@@ -14,7 +14,7 @@ void luvk::DescriptorPool::CreateDescriptorPool(std::shared_ptr<IRenderModule> c
                                                 VkDescriptorPoolCreateFlags const Flags)
 {
     m_DeviceModule = DeviceModule;
-    auto const* Device = dynamic_cast<luvk::Device*>(DeviceModule.get());
+    auto const Device = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 
     VkDescriptorPoolCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -40,7 +40,7 @@ void luvk::DescriptorPool::ClearResources()
     {
         return;
     }
-    auto const* Device = dynamic_cast<luvk::Device*>(m_DeviceModule.get());
+    auto const Device = std::dynamic_pointer_cast<luvk::Device>(m_DeviceModule);
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 
     if (m_Pool != VK_NULL_HANDLE)
