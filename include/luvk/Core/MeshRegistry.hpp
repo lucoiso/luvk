@@ -61,7 +61,8 @@ namespace luvk
                                                std::shared_ptr<Buffer> const& UniformBuffer,
                                                std::span<InstanceInfo const> Instances,
                                                std::shared_ptr<Pipeline> const& PipelineModule,
-                                               std::shared_ptr<Device> const& DeviceModule);
+                                               std::shared_ptr<Device> const& DeviceModule,
+                                               std::uint32_t TaskCount = 1);
 
         /** Remove a mesh from the registry */
         bool RemoveMesh(std::size_t MeshIndex);

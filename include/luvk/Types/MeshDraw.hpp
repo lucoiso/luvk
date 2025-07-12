@@ -24,9 +24,13 @@ namespace luvk
         auto const& Pipeline = Material->GetPipeline();
         VkPipelineBindPoint const BindPoint = Pipeline->GetBindPoint();
 
-        if (BindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS)
+        if (BindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS && Pipeline->GetType() == Pipeline::Type::Graphics)
         {
-            std::array<VkBuffer, 2> Buffers{Entry.VertexBuffer->GetHandle(), VK_NULL_HANDLE};
+            std::array<VkBuffer, 2> Buffers{VK_NULL_HANDLE, VK_NULL_HANDLE};
+            if (Entry.VertexBuffer)
+            {
+                Buffers[0] = Entry.VertexBuffer->GetHandle();
+            }
             constexpr std::array<VkDeviceSize, 2> Offsets{0, 0};
             std::uint32_t bindingCount = 1U;
 
@@ -37,7 +41,10 @@ namespace luvk
             }
 
             vkCmdBindVertexBuffers(Command, 0, bindingCount, Buffers.data(), Offsets.data());
-            vkCmdBindIndexBuffer(Command, Entry.IndexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
+            if (Entry.IndexBuffer)
+            {
+                vkCmdBindIndexBuffer(Command, Entry.IndexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
+            }
         }
 
         vkCmdBindPipeline(Command, BindPoint, Pipeline->GetPipeline());
