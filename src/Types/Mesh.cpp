@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Types/Mesh.hpp"
-#include "luvk/Types/Material.hpp"
 #include "luvk/Types/MeshDraw.hpp"
 
 inline void luvk::Mesh::Draw(const VkCommandBuffer CommandBuffer) const

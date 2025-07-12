@@ -64,15 +64,15 @@ namespace luvk
 
     /** Wrapper that logs Vulkan errors */
     template <typename Result>
-    inline bool ExecuteVulkanFunc(Result ResultValue, const char* Name)
+    inline bool ExecuteVulkanFunc(Result ResultValue, const char* Name, const char* File, const std::uint32_t Line)
     {
         if (ResultValue != VK_SUCCESS)
         {
-            std::fprintf(stderr, "%s returned %s (%d)\n", Name, ResultToString(ResultValue), ResultValue);
+            std::fprintf(stderr, "%s returned %s (%d) - %s:%d\n", Name, ResultToString(ResultValue), ResultValue, File, Line);
             return false;
         }
         return true;
     }
 } // namespace luvk
 
-#define LUVK_EXECUTE(expr) luvk::ExecuteVulkanFunc((expr), #expr)
+#define LUVK_EXECUTE(expr) luvk::ExecuteVulkanFunc((expr), #expr, __FILE__, __LINE__)

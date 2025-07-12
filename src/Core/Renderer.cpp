@@ -10,7 +10,6 @@
 #include "luvk/Core/ThreadPool.hpp"
 #include "luvk/Types/MeshDraw.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
-#include "luvk/Types/Material.hpp"
 #include <execution>
 #include <algorithm>
 #include <limits>

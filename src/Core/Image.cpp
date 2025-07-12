@@ -9,7 +9,6 @@
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include <iterator>
 #include <span>
-#include <cstring>
 #include <cstddef>
 
 void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments)
