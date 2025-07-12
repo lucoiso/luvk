@@ -172,11 +172,11 @@ void luvk::Pipeline::CreateComputePipeline(std::shared_ptr<Device> const& Device
     VkShaderModule CompModule = CreateShader(LogicalDevice, Arguments.ComputeShader);
 
     VkPipelineShaderStageCreateInfo const CompStage{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                   .pNext = nullptr,
-                                                   .flags = 0,
-                                                   .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-                                                   .module = CompModule,
-                                                   .pName = "main"};
+                                                    .pNext = nullptr,
+                                                    .flags = 0,
+                                                    .stage = VK_SHADER_STAGE_COMPUTE_BIT,
+                                                    .module = CompModule,
+                                                    .pName = "main"};
 
     VkPipelineLayoutCreateInfo const LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),
@@ -196,7 +196,9 @@ void luvk::Pipeline::CreateComputePipeline(std::shared_ptr<Device> const& Device
                                              .stage = CompStage,
                                              .layout = m_PipelineLayout};
 
-    VkPipelineCache compCache = Arguments.Cache ? Arguments.Cache->GetCompositeCache() : VK_NULL_HANDLE;
+    VkPipelineCache compCache = Arguments.Cache
+                                    ? Arguments.Cache->GetCompositeCache()
+                                    : VK_NULL_HANDLE;
     if (!LUVK_EXECUTE(vkCreateComputePipelines(LogicalDevice, compCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
     {
         vkDestroyShaderModule(LogicalDevice, CompModule, nullptr);
@@ -292,7 +294,7 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
                                                                        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                                                                        .alphaBlendOp = VK_BLEND_OP_ADD,
                                                                        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
-                                                                                          VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
+                                                                       VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
 
     const VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
                                                          .attachmentCount = 1,
@@ -344,7 +346,9 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
                                               .renderPass = Arguments.RenderPass,
                                               .subpass = Arguments.Subpass};
 
-    VkPipelineCache compCache = Arguments.Cache ? Arguments.Cache->GetCompositeCache() : VK_NULL_HANDLE;
+    VkPipelineCache compCache = Arguments.Cache
+                                    ? Arguments.Cache->GetCompositeCache()
+                                    : VK_NULL_HANDLE;
     if (!LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, compCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
     {
         if (FragModule != VK_NULL_HANDLE)

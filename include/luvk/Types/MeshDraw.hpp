@@ -50,8 +50,8 @@ namespace luvk
         if (!std::empty(Entry.UniformCache))
         {
             VkShaderStageFlags const Stages = Pipeline->GetType() == Pipeline::Type::Compute
-                                                   ? VK_SHADER_STAGE_COMPUTE_BIT
-                                                   : VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+                                                  ? VK_SHADER_STAGE_COMPUTE_BIT
+                                                  : VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
             vkCmdPushConstants(Command, Pipeline->GetPipelineLayout(), Stages, 0, static_cast<std::uint32_t>(Entry.UniformCache.size()), Entry.UniformCache.data());
         }
@@ -71,7 +71,9 @@ namespace luvk
             case Pipeline::Type::Graphics:
             default:
             {
-                std::uint32_t const drawInstances = Entry.InstanceBuffer ? Entry.InstanceCount : 1U;
+                std::uint32_t const drawInstances = Entry.InstanceBuffer
+                                                        ? Entry.InstanceCount
+                                                        : 1U;
                 vkCmdDrawIndexed(Command, Entry.IndexCount, drawInstances, 0, 0, 0);
                 break;
             }
