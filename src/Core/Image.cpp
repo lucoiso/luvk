@@ -10,6 +10,7 @@
 #include <iterator>
 #include <span>
 #include <cstddef>
+#include <cstring>
 
 void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments)
 {

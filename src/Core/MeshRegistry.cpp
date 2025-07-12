@@ -30,19 +30,30 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
                                              std::shared_ptr<Buffer> const& UniformBuffer,
                                              const std::span<InstanceInfo const> Instances,
                                              std::shared_ptr<Pipeline> const& PipelineModule,
-                                             std::shared_ptr<Device> const& DeviceModule)
+                                             std::shared_ptr<Device> const& DeviceModule,
+                                             const std::uint32_t TaskCount)
 {
     constexpr VkBufferUsageFlags VertexUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     constexpr VkBufferUsageFlags IndexUsage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     MeshEntry Entry{};
-    Entry.VertexBuffer = std::make_shared<Buffer>();
-    Entry.VertexBuffer->CreateBuffer(m_MemoryModule, {.Usage = VertexUsage, .Size = std::size(Vertices), .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
-    Entry.VertexBuffer->Upload(Vertices);
 
-    Entry.IndexBuffer = std::make_shared<Buffer>();
-    Entry.IndexBuffer->CreateBuffer(m_MemoryModule, {.Usage = IndexUsage, .Size = std::size(Indices), .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
-    Entry.IndexBuffer->Upload(Indices);
+    // Create vertex/index buffers only when data is provided
+    if (!Vertices.empty())
+    {
+        Entry.VertexBuffer = std::make_shared<Buffer>();
+        Entry.VertexBuffer->CreateBuffer(m_MemoryModule,
+                                         {.Usage = VertexUsage, .Size = std::size(Vertices), .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+        Entry.VertexBuffer->Upload(Vertices);
+    }
+
+    if (!Indices.empty())
+    {
+        Entry.IndexBuffer = std::make_shared<Buffer>();
+        Entry.IndexBuffer->CreateBuffer(m_MemoryModule,
+                                        {.Usage = IndexUsage, .Size = std::size(Indices), .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+        Entry.IndexBuffer->Upload(Indices);
+    }
 
     Entry.MaterialPtr = std::make_shared<Material>();
     Entry.UniformBuffer = UniformBuffer;
@@ -52,8 +63,16 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
         Entry.UniformCache.resize(UniformBuffer->GetSize());
     }
 
-    Entry.IndexCount = static_cast<std::uint32_t>(std::size(Indices) / sizeof(std::uint16_t));
     Entry.InstanceCount = static_cast<std::uint32_t>(std::size(Instances));
+
+    if (PipelineModule && PipelineModule->GetType() != Pipeline::Type::Mesh)
+    {
+        Entry.IndexCount = static_cast<std::uint32_t>(std::size(Indices) / sizeof(std::uint16_t));
+    }
+    else
+    {
+        Entry.IndexCount = TaskCount;
+    }
     Entry.MaterialPtr->SetPipeline(PipelineModule);
 
     if (!std::empty(Instances))

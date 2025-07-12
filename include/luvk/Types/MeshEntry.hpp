@@ -25,14 +25,20 @@ namespace luvk
     /** Internal data for a renderable mesh */
     struct LUVKMODULE_API MeshEntry
     {
-        std::shared_ptr<Buffer> VertexBuffer{};  //!< Vertex buffer handle
-        std::shared_ptr<Buffer> IndexBuffer{};   //!< Index buffer handle
+        /** Optional vertex buffer */
+        std::shared_ptr<Buffer> VertexBuffer{};
+
+        /** Optional index buffer */
+        std::shared_ptr<Buffer> IndexBuffer{};
         std::shared_ptr<Material> MaterialPtr{}; //!< Material information
         std::shared_ptr<Buffer> UniformBuffer{}; //!< Per-object uniform buffer
         /** Cached uniform contents for push constants */
         std::vector<std::byte> UniformCache{};
         std::shared_ptr<Buffer> InstanceBuffer{}; //!< Per-instance buffer
-        std::uint32_t IndexCount{};               //!< Number of indices
+        /** Index count or mesh task group count */
+        std::uint32_t IndexCount{};
+
+        /** Number of instances */
         std::uint32_t InstanceCount{};            //!< Number of instances
     };
 } // namespace luvk
