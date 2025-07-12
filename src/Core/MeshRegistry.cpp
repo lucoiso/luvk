@@ -65,13 +65,17 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
 
     Entry.InstanceCount = static_cast<std::uint32_t>(std::size(Instances));
 
-    if (PipelineModule && PipelineModule->GetType() != Pipeline::Type::Mesh)
+    Entry.DispatchX = TaskCount;
+    Entry.DispatchY = 1;
+    Entry.DispatchZ = 1;
+
+    if (PipelineModule && PipelineModule->GetType() == Pipeline::Type::Graphics)
     {
         Entry.IndexCount = static_cast<std::uint32_t>(std::size(Indices) / sizeof(std::uint16_t));
     }
     else
     {
-        Entry.IndexCount = TaskCount;
+        Entry.IndexCount = 0;
     }
     Entry.MaterialPtr->SetPipeline(PipelineModule);
 
@@ -88,14 +92,22 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
 
         if (UniformBuffer)
         {
-            Descriptor->UpdateUniform(DeviceModule, UniformBuffer->GetHandle(), UniformBuffer->GetSize());
+            Descriptor->UpdateBuffer(DeviceModule,
+                                     UniformBuffer->GetHandle(),
+                                     UniformBuffer->GetSize(),
+                                     0,
+                                     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
         }
         else if (TexImage)
         {
             const VkSampler SamplerHandle = TexSampler
                                                 ? TexSampler->GetHandle()
                                                 : VK_NULL_HANDLE;
-            Descriptor->UpdateImage(DeviceModule, TexImage->GetView(), SamplerHandle);
+            Descriptor->UpdateImage(DeviceModule,
+                                    TexImage->GetView(),
+                                    SamplerHandle,
+                                    0,
+                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         }
 
         Entry.MaterialPtr->SetDescriptor(std::move(Descriptor));

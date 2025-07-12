@@ -35,10 +35,15 @@ namespace luvk
         /** Cached uniform contents for push constants */
         std::vector<std::byte> UniformCache{};
         std::shared_ptr<Buffer> InstanceBuffer{}; //!< Per-instance buffer
-        /** Index count or mesh task group count */
+        /** Index count for indexed draws */
         std::uint32_t IndexCount{};
 
+        /** Dispatch group counts used for compute and mesh shaders */
+        std::uint32_t DispatchX{1};
+        std::uint32_t DispatchY{1};
+        std::uint32_t DispatchZ{1};
+
         /** Number of instances */
-        std::uint32_t InstanceCount{};            //!< Number of instances
+        std::uint32_t InstanceCount{}; //!< Number of instances
     };
 } // namespace luvk

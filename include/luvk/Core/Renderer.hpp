@@ -17,6 +17,7 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <volk/volk.h>
 
 namespace luvk
 {
@@ -180,6 +181,12 @@ namespace luvk
 
         /** Prepare per-frame resources */
         void SetupFrames();
+
+        /** Record compute pass commands */
+        void RecordComputePass(VkCommandBuffer Cmd);
+
+        /** Record graphics and mesh pass commands */
+        void RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
 
         /** Record rendering commands into command buffers */
         void RecordCommands(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex);

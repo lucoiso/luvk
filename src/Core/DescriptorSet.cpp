@@ -60,7 +60,11 @@ void luvk::DescriptorSet::Allocate(std::shared_ptr<Device> const& DeviceModule,
     }
 }
 
-void luvk::DescriptorSet::UpdateUniform(std::shared_ptr<Device> const& DeviceModule, VkBuffer const Buffer, VkDeviceSize const Size) const
+void luvk::DescriptorSet::UpdateBuffer(std::shared_ptr<Device> const& DeviceModule,
+                                       VkBuffer const Buffer,
+                                       VkDeviceSize const Size,
+                                       std::uint32_t const Binding,
+                                       VkDescriptorType const Type) const
 {
     auto const* Device = DeviceModule.get();
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
@@ -69,15 +73,19 @@ void luvk::DescriptorSet::UpdateUniform(std::shared_ptr<Device> const& DeviceMod
 
     VkWriteDescriptorSet const Write{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                      .dstSet = m_Set,
-                                     .dstBinding = 0,
+                                     .dstBinding = Binding,
                                      .descriptorCount = 1,
-                                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                     .descriptorType = Type,
                                      .pBufferInfo = &BufferInfo};
 
     vkUpdateDescriptorSets(LogicalDevice, 1, &Write, 0, nullptr);
 }
 
-void luvk::DescriptorSet::UpdateImage(std::shared_ptr<Device> const& DeviceModule, VkImageView const View, VkSampler const Sampler) const
+void luvk::DescriptorSet::UpdateImage(std::shared_ptr<Device> const& DeviceModule,
+                                      VkImageView const View,
+                                      VkSampler const Sampler,
+                                      std::uint32_t const Binding,
+                                      VkDescriptorType const Type) const
 {
     auto const* Device = DeviceModule.get();
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
@@ -86,9 +94,9 @@ void luvk::DescriptorSet::UpdateImage(std::shared_ptr<Device> const& DeviceModul
 
     VkWriteDescriptorSet const Write{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                      .dstSet = m_Set,
-                                     .dstBinding = 0,
+                                     .dstBinding = Binding,
                                      .descriptorCount = 1,
-                                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                     .descriptorType = Type,
                                      .pImageInfo = &ImageInfo};
 
     vkUpdateDescriptorSets(LogicalDevice, 1, &Write, 0, nullptr);
