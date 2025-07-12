@@ -44,6 +44,6 @@ namespace luvk
         std::uint32_t DispatchZ{1};
 
         /** Number of instances */
-        std::uint32_t InstanceCount{};            //!< Number of instances
+        std::uint32_t InstanceCount{}; //!< Number of instances
     };
 } // namespace luvk

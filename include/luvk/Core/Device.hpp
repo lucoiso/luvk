@@ -54,7 +54,6 @@ namespace luvk
         VkPhysicalDeviceVulkan13Features m_Vulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
         VkPhysicalDeviceVulkan14Features m_Vulkan14Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
 
-
         /** Queried properties of the physical device */
         VkPhysicalDeviceProperties m_DeviceProperties{};
 
@@ -156,7 +155,6 @@ namespace luvk
         {
             return m_Vulkan14Features;
         }
-
 
         /** Check if the API version is at least the specified one */
         [[nodiscard]] constexpr inline bool IsVersionAtLeast(const std::uint32_t Major, const std::uint32_t Minor) const noexcept

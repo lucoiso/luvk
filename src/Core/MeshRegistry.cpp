@@ -93,19 +93,21 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
         if (UniformBuffer)
         {
             Descriptor->UpdateBuffer(DeviceModule,
-                                    UniformBuffer->GetHandle(),
-                                    UniformBuffer->GetSize(),
-                                    0,
-                                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
+                                     UniformBuffer->GetHandle(),
+                                     UniformBuffer->GetSize(),
+                                     0,
+                                     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER);
         }
         else if (TexImage)
         {
-            const VkSampler SamplerHandle = TexSampler ? TexSampler->GetHandle() : VK_NULL_HANDLE;
+            const VkSampler SamplerHandle = TexSampler
+                                                ? TexSampler->GetHandle()
+                                                : VK_NULL_HANDLE;
             Descriptor->UpdateImage(DeviceModule,
-                                   TexImage->GetView(),
-                                   SamplerHandle,
-                                   0,
-                                   VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+                                    TexImage->GetView(),
+                                    SamplerHandle,
+                                    0,
+                                    VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
         }
 
         Entry.MaterialPtr->SetDescriptor(std::move(Descriptor));
