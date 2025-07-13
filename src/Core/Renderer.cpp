@@ -126,6 +126,12 @@ void luvk::Renderer::ClearResources()
         vkDeviceWaitIdle(LogicalDevice);
     }
 
+    for (auto& Destructor : m_ExternalDestructors)
+    {
+        Destructor();
+    }
+    m_ExternalDestructors.clear();
+
     std::for_each(std::execution::seq,
                   std::rbegin(m_RenderModules),
                   std::rend(m_RenderModules),
@@ -202,8 +208,10 @@ void luvk::Renderer::DrawFrame()
         throw std::runtime_error("Failed to reset command buffer.");
     }
 
+    BeginExternalFrame();
     RecordCommands(Frame, ImageIndex);
     SubmitFrame(Frame, ImageIndex);
+    EndExternalFrame();
 }
 
 void luvk::Renderer::SetPaused(const bool Paused)
@@ -231,6 +239,97 @@ void luvk::Renderer::SetRenderTargets(RenderTargets Targets)
     {
         m_CustomTargets = std::move(Targets);
     }
+}
+
+void luvk::Renderer::EnqueueCommand(std::function<void(VkCommandBuffer)> Cmd)
+{
+    m_PostRenderCommands.emplace_back(std::move(Cmd));
+}
+
+void luvk::Renderer::EnqueueDestructor(std::function<void()> Destructor)
+{
+    m_ExternalDestructors.emplace_back(std::move(Destructor));
+}
+
+VkDescriptorPool luvk::Renderer::CreateExternalDescriptorPool(
+    std::uint32_t const MaxSets,
+    std::span<VkDescriptorPoolSize const> PoolSizes,
+    VkDescriptorPoolCreateFlags const Flags)
+{
+    auto const Device = m_DeviceModule;
+    VkDevice const LogicalDevice = Device->GetLogicalDevice();
+
+    VkDescriptorPool Pool{VK_NULL_HANDLE};
+    VkDescriptorPoolCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                          .pNext = nullptr,
+                                          .flags = Flags,
+                                          .maxSets = MaxSets,
+                                          .poolSizeCount = static_cast<std::uint32_t>(std::size(PoolSizes)),
+                                          .pPoolSizes = std::data(PoolSizes)};
+
+    if (!LUVK_EXECUTE(vkCreateDescriptorPool(LogicalDevice, &Info, nullptr, &Pool)))
+    {
+        throw std::runtime_error("Failed to create descriptor pool.");
+    }
+
+    EnqueueDestructor([LogicalDevice, Pool]() { vkDestroyDescriptorPool(LogicalDevice, Pool, nullptr); });
+
+    return Pool;
+}
+
+void luvk::Renderer::DestroyExternalDescriptorPool(VkDescriptorPool& Pool)
+{
+    if (Pool == VK_NULL_HANDLE)
+    {
+        return;
+    }
+
+    auto const Device = m_DeviceModule;
+    VkDevice const LogicalDevice = Device->GetLogicalDevice();
+
+    vkDestroyDescriptorPool(LogicalDevice, Pool, nullptr);
+    Pool = VK_NULL_HANDLE;
+}
+
+VkDevice luvk::Renderer::GetLogicalDevice() const
+{
+    return m_DeviceModule ? m_DeviceModule->GetLogicalDevice() : VK_NULL_HANDLE;
+}
+
+VkPhysicalDevice luvk::Renderer::GetPhysicalDevice() const
+{
+    return m_DeviceModule ? m_DeviceModule->GetPhysicalDevice() : VK_NULL_HANDLE;
+}
+
+VkQueue luvk::Renderer::GetGraphicsQueue() const
+{
+    if (!m_DeviceModule)
+    {
+        return VK_NULL_HANDLE;
+    }
+
+    auto const GraphicsFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
+    return m_DeviceModule->GetQueue(GraphicsFamily);
+}
+
+std::size_t luvk::Renderer::GetSwapChainImageCount() const
+{
+    return m_SwapChainModule ? std::size(m_SwapChainModule->GetImages()) : 0ULL;
+}
+
+VkRenderPass luvk::Renderer::GetRenderPass() const
+{
+    return m_SwapChainModule ? m_SwapChainModule->GetRenderPass() : VK_NULL_HANDLE;
+}
+
+void luvk::Renderer::BeginExternalFrame()
+{
+    // Intentionally left blank for user hooks
+}
+
+void luvk::Renderer::EndExternalFrame()
+{
+    // Intentionally left blank for user hooks
 }
 
 void luvk::Renderer::SetupFrames()
@@ -384,6 +483,12 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, std
 
     RecordComputePass(Frame.CommandBuffer);
     RecordGraphicsPass(Frame, ImageIndex);
+
+    for (auto& Cmd : m_PostRenderCommands)
+    {
+        Cmd(Frame.CommandBuffer);
+    }
+    m_PostRenderCommands.clear();
 }
 
 void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)

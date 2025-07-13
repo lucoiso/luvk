@@ -18,6 +18,8 @@
 #include <vector>
 #include <memory>
 #include <optional>
+#include <functional>
+#include <span>
 
 namespace luvk
 {
@@ -136,6 +138,42 @@ namespace luvk
         /** Override rendering targets. Empty to restore swapchain rendering */
         void SetRenderTargets(RenderTargets Targets);
 
+        /** Enqueue a command to be executed after the graphics pass */
+        void EnqueueCommand(std::function<void(VkCommandBuffer)> Cmd);
+
+        /** Enqueue a destructor for external resources */
+        void EnqueueDestructor(std::function<void()> Destructor);
+
+        /** Create an external descriptor pool */
+        [[nodiscard]] VkDescriptorPool CreateExternalDescriptorPool(
+            std::uint32_t MaxSets,
+            std::span<VkDescriptorPoolSize const> PoolSizes,
+            VkDescriptorPoolCreateFlags Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+
+        /** Destroy a previously created external descriptor pool */
+        void DestroyExternalDescriptorPool(VkDescriptorPool& Pool);
+
+        /** Access underlying logical device */
+        [[nodiscard]] VkDevice GetLogicalDevice() const;
+
+        /** Access the selected physical device */
+        [[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const;
+
+        /** Retrieve the graphics queue */
+        [[nodiscard]] VkQueue GetGraphicsQueue() const;
+
+        /** Get the number of images in the swap chain */
+        [[nodiscard]] std::size_t GetSwapChainImageCount() const;
+
+        /** Retrieve the render pass used for presentation */
+        [[nodiscard]] VkRenderPass GetRenderPass() const;
+
+        /** Called before recording external commands */
+        void BeginExternalFrame();
+
+        /** Called after submitting external commands */
+        void EndExternalFrame();
+
     private:
         /** Indicates if rendering is paused */
         bool m_Paused{false};
@@ -160,6 +198,12 @@ namespace luvk
 
         /** Custom render targets used instead of the swapchain */
         std::optional<RenderTargets> m_CustomTargets{};
+
+        /** Queue of commands to execute after the graphics pass */
+        std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
+
+        /** Destructors for external resources */
+        std::vector<std::function<void()>> m_ExternalDestructors{};
 
         /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
