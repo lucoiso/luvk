@@ -293,7 +293,7 @@ void luvk::Renderer::SetupFrames() const
     SyncModule->SetupFrames(DeviceModule, SwapChainModule, CommandPoolModule);
 }
 
-void luvk::Renderer::RecordComputePass(const VkCommandBuffer Cmd) const
+void luvk::Renderer::RecordComputePass(const VkCommandBuffer& Cmd) const
 {
     const auto MeshRegistryModule = FindModule<luvk::MeshRegistry>();
 
@@ -455,7 +455,8 @@ void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const 
     }
 
     std::array const WaitSemaphores{Frame.ImageAvailable};
-    std::array<VkPipelineStageFlags, 1> const WaitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    constexpr std::array<VkPipelineStageFlags, 1> WaitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+
     const VkSubmitInfo Submit{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                               .pNext = nullptr,
                               .waitSemaphoreCount = 1,

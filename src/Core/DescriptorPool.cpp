@@ -40,6 +40,7 @@ void luvk::DescriptorPool::ClearResources()
     {
         return;
     }
+
     auto const Device = std::dynamic_pointer_cast<luvk::Device>(m_DeviceModule);
     VkDevice const& LogicalDevice = Device->GetLogicalDevice();
 

@@ -165,7 +165,7 @@ namespace luvk
         void SetupFrames() const;
 
         /** Record compute pass commands */
-        void RecordComputePass(VkCommandBuffer Cmd) const;
+        void RecordComputePass(const VkCommandBuffer& Cmd) const;
 
         /** Record graphics and mesh pass commands */
         void RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const;
