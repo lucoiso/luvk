@@ -95,7 +95,7 @@ namespace luvk
         void PreInitializeRenderer();
 
         /** Register render modules before initialization */
-        void RegisterModules(std::vector<std::shared_ptr<IRenderModule>> Modules);
+        void RegisterModules(std::vector<std::shared_ptr<IRenderModule>>&& Modules);
 
         /** Arguments to create the vulkan instance */
         struct InstanceCreationArguments
@@ -126,7 +126,7 @@ namespace luvk
         void SetPaused(bool Paused);
 
         /** Recreate swap chain resources with new extent */
-        void Refresh(VkExtent2D Extent);
+        void Refresh(const VkExtent2D& Extent) const;
 
         struct RenderTargets
         {
@@ -136,22 +136,21 @@ namespace luvk
         };
 
         /** Override rendering targets. Empty to restore swapchain rendering */
-        void SetRenderTargets(RenderTargets Targets);
+        void SetRenderTargets(RenderTargets&& Targets);
 
         /** Enqueue a command to be executed after the graphics pass */
-        void EnqueueCommand(std::function<void(VkCommandBuffer)> Cmd);
+        void EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd);
 
         /** Enqueue a destructor for external resources */
-        void EnqueueDestructor(std::function<void()> Destructor);
+        void EnqueueDestructor(std::function<void()>&& Destructor);
 
         /** Create an external descriptor pool */
-        [[nodiscard]] VkDescriptorPool CreateExternalDescriptorPool(
-            std::uint32_t MaxSets,
-            std::span<VkDescriptorPoolSize const> PoolSizes,
-            VkDescriptorPoolCreateFlags Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+        [[nodiscard]] VkDescriptorPool CreateExternalDescriptorPool(std::uint32_t MaxSets,
+                                                                    std::span<VkDescriptorPoolSize const> PoolSizes,
+                                                                    VkDescriptorPoolCreateFlags Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
         /** Destroy a previously created external descriptor pool */
-        void DestroyExternalDescriptorPool(VkDescriptorPool& Pool);
+        void DestroyExternalDescriptorPool(VkDescriptorPool& Pool) const;
 
         /** Access underlying logical device */
         [[nodiscard]] VkDevice GetLogicalDevice() const;
@@ -213,18 +212,18 @@ namespace luvk
         //~ End of IRenderModule interface
 
         /** Prepare per-frame resources */
-        void SetupFrames();
+        void SetupFrames() const;
 
         /** Record compute pass commands */
-        void RecordComputePass(VkCommandBuffer Cmd);
+        void RecordComputePass(VkCommandBuffer Cmd) const;
 
         /** Record graphics and mesh pass commands */
-        void RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
+        void RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const;
 
         /** Record rendering commands into command buffers */
         void RecordCommands(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
 
         /** Submit recorded commands to the graphics queue */
-        void SubmitFrame(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
+        void SubmitFrame(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const;
     };
 } // namespace luvk

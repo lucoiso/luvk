@@ -35,7 +35,7 @@ void luvk::Renderer::PreInitializeRenderer()
     m_Extensions.FillExtensionsContainer();
 }
 
-void luvk::Renderer::RegisterModules(std::vector<std::shared_ptr<IRenderModule>> Modules)
+void luvk::Renderer::RegisterModules(std::vector<std::shared_ptr<IRenderModule>>&& Modules)
 {
     m_RenderModules = std::move(Modules);
 }
@@ -189,7 +189,12 @@ void luvk::Renderer::DrawFrame()
 
     constexpr std::uint64_t AcquireTimeout = 0;
     std::uint32_t ImageIndex = 0;
-    const VkResult AcquireResult = vkAcquireNextImageKHR(LogicalDevice, m_SwapChainModule->GetHandle(), AcquireTimeout, Frame.ImageAvailable, VK_NULL_HANDLE, &ImageIndex);
+    const VkResult AcquireResult = vkAcquireNextImageKHR(LogicalDevice,
+                                                         m_SwapChainModule->GetHandle(),
+                                                         AcquireTimeout,
+                                                         Frame.ImageAvailable,
+                                                         VK_NULL_HANDLE,
+                                                         &ImageIndex);
 
     if (AcquireResult == VK_NOT_READY || AcquireResult == VK_TIMEOUT || AcquireResult == VK_ERROR_OUT_OF_DATE_KHR || AcquireResult == VK_SUBOPTIMAL_KHR)
     {
@@ -217,17 +222,14 @@ void luvk::Renderer::SetPaused(const bool Paused)
     m_Paused = Paused;
 }
 
-void luvk::Renderer::Refresh(const VkExtent2D Extent)
+void luvk::Renderer::Refresh(const VkExtent2D& Extent) const
 {
-    const auto Swap = m_SwapChainModule;
-    const auto DevMod = m_DeviceModule;
-
-    DevMod->WaitIdle();
-    Swap->Recreate(m_DeviceModule, m_MemoryModule, Extent, nullptr);
+    m_DeviceModule->WaitIdle();
+    m_SwapChainModule->Recreate(m_DeviceModule, m_MemoryModule, Extent, nullptr);
     SetupFrames();
 }
 
-void luvk::Renderer::SetRenderTargets(RenderTargets Targets)
+void luvk::Renderer::SetRenderTargets(RenderTargets&& Targets)
 {
     if (std::empty(Targets.ColorViews))
     {
@@ -239,20 +241,19 @@ void luvk::Renderer::SetRenderTargets(RenderTargets Targets)
     }
 }
 
-void luvk::Renderer::EnqueueCommand(std::function<void(VkCommandBuffer)> Cmd)
+void luvk::Renderer::EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd)
 {
     m_PostRenderCommands.emplace_back(std::move(Cmd));
 }
 
-void luvk::Renderer::EnqueueDestructor(std::function<void()> Destructor)
+void luvk::Renderer::EnqueueDestructor(std::function<void()>&& Destructor)
 {
     m_ExternalDestructors.emplace_back(std::move(Destructor));
 }
 
-VkDescriptorPool luvk::Renderer::CreateExternalDescriptorPool(
-    std::uint32_t const MaxSets,
-    std::span<VkDescriptorPoolSize const> PoolSizes,
-    VkDescriptorPoolCreateFlags const Flags)
+VkDescriptorPool luvk::Renderer::CreateExternalDescriptorPool(std::uint32_t const MaxSets,
+                                                              std::span<VkDescriptorPoolSize const> PoolSizes,
+                                                              VkDescriptorPoolCreateFlags const Flags)
 {
     VkDevice const LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
@@ -277,7 +278,7 @@ VkDescriptorPool luvk::Renderer::CreateExternalDescriptorPool(
     return Pool;
 }
 
-void luvk::Renderer::DestroyExternalDescriptorPool(VkDescriptorPool& Pool)
+void luvk::Renderer::DestroyExternalDescriptorPool(VkDescriptorPool& Pool) const
 {
     if (Pool == VK_NULL_HANDLE)
     {
@@ -329,21 +330,17 @@ VkRenderPass luvk::Renderer::GetRenderPass() const
                : VK_NULL_HANDLE;
 }
 
-void luvk::Renderer::BeginExternalFrame()
-{
-}
+void luvk::Renderer::BeginExternalFrame() {}
 
-void luvk::Renderer::EndExternalFrame()
-{
-}
+void luvk::Renderer::EndExternalFrame() {}
 
-void luvk::Renderer::SetupFrames()
+void luvk::Renderer::SetupFrames() const
 {
     const auto Sync = FindModule<luvk::Synchronization>();
     Sync->SetupFrames(m_DeviceModule, m_SwapChainModule, m_CommandPoolModule, m_ThreadPoolModule);
 }
 
-void luvk::Renderer::RecordComputePass(const VkCommandBuffer Cmd)
+void luvk::Renderer::RecordComputePass(const VkCommandBuffer Cmd) const
 {
     if (!m_MeshRegistryModule)
     {
@@ -368,7 +365,7 @@ void luvk::Renderer::RecordComputePass(const VkCommandBuffer Cmd)
     }
 }
 
-void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex)
+void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const
 {
     const auto Sync = FindModule<luvk::Synchronization>();
     const VkExtent2D Extent = m_SwapChainModule->GetExtent();
@@ -422,7 +419,7 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
         std::size_t StartIndex = BatchIndex * BatchSize;
         std::size_t EndIndex = std::min(MeshCount, StartIndex + BatchSize);
 
-        m_ThreadPoolModule->Submit([SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, m_SwapChainModule, ImageIndex]()
+        m_ThreadPoolModule->Submit([this, SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, ImageIndex]()
         {
             VkCommandBufferInheritanceInfo const Inherit{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
                                                          .renderPass = m_SwapChainModule->GetRenderPass(),
@@ -492,7 +489,7 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, con
     m_PostRenderCommands.clear();
 }
 
-void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)
+void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const std::uint32_t ImageIndex) const
 {
     const auto Sync = FindModule<luvk::Synchronization>();
 
