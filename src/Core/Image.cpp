@@ -16,12 +16,11 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
 {
     m_DeviceModule = DeviceModule;
     m_MemoryModule = MemoryModule;
-    auto const Memory = MemoryModule;
-    VmaAllocator const& Allocator = Memory->GetAllocator();
 
-    auto const DevMod = DeviceModule;
+    VmaAllocator const& Allocator = m_MemoryModule->GetAllocator();
+
     VkFormatProperties Props{};
-    vkGetPhysicalDeviceFormatProperties(DevMod->GetPhysicalDevice(), Arguments.Format, &Props);
+    vkGetPhysicalDeviceFormatProperties(m_DeviceModule->GetPhysicalDevice(), Arguments.Format, &Props);
 
     VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
     if (Arguments.MemoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU && Props.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)

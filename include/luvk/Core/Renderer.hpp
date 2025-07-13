@@ -113,11 +113,7 @@ namespace luvk
         void PostInitializeRenderer();
 
         /** Initialize per-frame rendering resources */
-        void InitializeRenderLoop(std::shared_ptr<Device> const& Device,
-                                  std::shared_ptr<SwapChain> const& SwapChain,
-                                  std::shared_ptr<CommandPool> const& CommandPool,
-                                  std::shared_ptr<MeshRegistry> const& MeshRegistry,
-                                  std::shared_ptr<ThreadPool> const& ThreadPool);
+        void InitializeRenderLoop();
 
         /** Draw a single frame */
         void DrawFrame();
@@ -127,16 +123,6 @@ namespace luvk
 
         /** Recreate swap chain resources with new extent */
         void Refresh(const VkExtent2D& Extent) const;
-
-        struct RenderTargets
-        {
-            std::vector<VkImageView> ColorViews{};
-            std::vector<VkFormat> ColorFormats{};
-            VkExtent2D Extent{0, 0};
-        };
-
-        /** Override rendering targets. Empty to restore swapchain rendering */
-        void SetRenderTargets(RenderTargets&& Targets);
 
         /** Enqueue a command to be executed after the graphics pass */
         void EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd);
@@ -152,21 +138,6 @@ namespace luvk
         /** Destroy a previously created external descriptor pool */
         void DestroyExternalDescriptorPool(VkDescriptorPool& Pool) const;
 
-        /** Access underlying logical device */
-        [[nodiscard]] VkDevice GetLogicalDevice() const;
-
-        /** Access the selected physical device */
-        [[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const;
-
-        /** Retrieve the graphics queue */
-        [[nodiscard]] VkQueue GetGraphicsQueue() const;
-
-        /** Get the number of images in the swap chain */
-        [[nodiscard]] std::size_t GetSwapChainImageCount() const;
-
-        /** Retrieve the render pass used for presentation */
-        [[nodiscard]] VkRenderPass GetRenderPass() const;
-
         /** Called before recording external commands */
         void BeginExternalFrame();
 
@@ -176,27 +147,6 @@ namespace luvk
     private:
         /** Indicates if rendering is paused */
         bool m_Paused{false};
-
-        /** Device module used for resource creation */
-        std::shared_ptr<Device> m_DeviceModule{};
-
-        /** Swapchain module managing presentation */
-        std::shared_ptr<SwapChain> m_SwapChainModule{};
-
-        /** Memory module that will manage allocations */
-        std::shared_ptr<Memory> m_MemoryModule{};
-
-        /** Command pool for frame submission */
-        std::shared_ptr<CommandPool> m_CommandPoolModule{};
-
-        /** Registry of loaded meshes */
-        std::shared_ptr<MeshRegistry> m_MeshRegistryModule{};
-
-        /** Thread pool used for asynchronous tasks */
-        std::shared_ptr<ThreadPool> m_ThreadPoolModule{};
-
-        /** Custom render targets used instead of the swapchain */
-        std::optional<RenderTargets> m_CustomTargets{};
 
         /** Queue of commands to execute after the graphics pass */
         std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};

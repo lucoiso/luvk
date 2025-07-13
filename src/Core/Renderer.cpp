@@ -153,18 +153,8 @@ void luvk::Renderer::ClearResources()
     }
 }
 
-void luvk::Renderer::InitializeRenderLoop(std::shared_ptr<Device> const& Device,
-                                          std::shared_ptr<SwapChain> const& Swap,
-                                          std::shared_ptr<CommandPool> const& Pool,
-                                          std::shared_ptr<MeshRegistry> const& Registry,
-                                          std::shared_ptr<ThreadPool> const& ThreadPoolMod)
+void luvk::Renderer::InitializeRenderLoop()
 {
-    m_DeviceModule = Device;
-    m_SwapChainModule = Swap;
-    m_CommandPoolModule = Pool;
-    m_MeshRegistryModule = Registry;
-    m_ThreadPoolModule = ThreadPoolMod;
-
     SetupFrames();
     GetEventSystem().Execute(RendererEvents::OnRenderLoopInitialized);
 }
@@ -176,21 +166,24 @@ void luvk::Renderer::DrawFrame()
         return;
     }
 
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const auto DeviceModule = FindModule<luvk::Device>();
+    const auto SwapChainModule = FindModule<luvk::SwapChain>();
+
+    const VkDevice LogicalDevice = DeviceModule->GetLogicalDevice();
 
     const auto Sync = FindModule<luvk::Synchronization>();
     auto& Frame = Sync->GetFrame(Sync->GetCurrentFrame());
 
     if (Frame.Submitted)
     {
-        m_DeviceModule->Wait(Frame.InFlight, VK_TRUE, std::numeric_limits<std::uint64_t>::max());
+        DeviceModule->Wait(Frame.InFlight, VK_TRUE, std::numeric_limits<std::uint64_t>::max());
         vkResetFences(LogicalDevice, 1, &Frame.InFlight);
     }
 
     constexpr std::uint64_t AcquireTimeout = 0;
     std::uint32_t ImageIndex = 0;
     const VkResult AcquireResult = vkAcquireNextImageKHR(LogicalDevice,
-                                                         m_SwapChainModule->GetHandle(),
+                                                         SwapChainModule->GetHandle(),
                                                          AcquireTimeout,
                                                          Frame.ImageAvailable,
                                                          VK_NULL_HANDLE,
@@ -224,21 +217,14 @@ void luvk::Renderer::SetPaused(const bool Paused)
 
 void luvk::Renderer::Refresh(const VkExtent2D& Extent) const
 {
-    m_DeviceModule->WaitIdle();
-    m_SwapChainModule->Recreate(m_DeviceModule, m_MemoryModule, Extent, nullptr);
-    SetupFrames();
-}
+    const auto DeviceModule = FindModule<luvk::Device>();
+    const auto SwapChainModule = FindModule<luvk::SwapChain>();
+    const auto MemoryModule = FindModule<luvk::Memory>();
 
-void luvk::Renderer::SetRenderTargets(RenderTargets&& Targets)
-{
-    if (std::empty(Targets.ColorViews))
-    {
-        m_CustomTargets.reset();
-    }
-    else
-    {
-        m_CustomTargets = std::move(Targets);
-    }
+    DeviceModule->WaitIdle();
+    SwapChainModule->Recreate(DeviceModule, MemoryModule, Extent, nullptr);
+
+    SetupFrames();
 }
 
 void luvk::Renderer::EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd)
@@ -255,7 +241,8 @@ VkDescriptorPool luvk::Renderer::CreateExternalDescriptorPool(std::uint32_t cons
                                                               std::span<VkDescriptorPoolSize const> PoolSizes,
                                                               VkDescriptorPoolCreateFlags const Flags)
 {
-    VkDevice const LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const auto DeviceModule = FindModule<luvk::Device>();
+    VkDevice const LogicalDevice = DeviceModule->GetLogicalDevice();
 
     VkDescriptorPool Pool{VK_NULL_HANDLE};
     VkDescriptorPoolCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
@@ -285,49 +272,11 @@ void luvk::Renderer::DestroyExternalDescriptorPool(VkDescriptorPool& Pool) const
         return;
     }
 
-    VkDevice const LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const auto DeviceModule = FindModule<luvk::Device>();
+    VkDevice const LogicalDevice = DeviceModule->GetLogicalDevice();
 
     vkDestroyDescriptorPool(LogicalDevice, Pool, nullptr);
     Pool = VK_NULL_HANDLE;
-}
-
-VkDevice luvk::Renderer::GetLogicalDevice() const
-{
-    return m_DeviceModule
-               ? m_DeviceModule->GetLogicalDevice()
-               : VK_NULL_HANDLE;
-}
-
-VkPhysicalDevice luvk::Renderer::GetPhysicalDevice() const
-{
-    return m_DeviceModule
-               ? m_DeviceModule->GetPhysicalDevice()
-               : VK_NULL_HANDLE;
-}
-
-VkQueue luvk::Renderer::GetGraphicsQueue() const
-{
-    if (!m_DeviceModule)
-    {
-        return VK_NULL_HANDLE;
-    }
-
-    auto const GraphicsFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
-    return m_DeviceModule->GetQueue(GraphicsFamily);
-}
-
-std::size_t luvk::Renderer::GetSwapChainImageCount() const
-{
-    return m_SwapChainModule
-               ? std::size(m_SwapChainModule->GetImages())
-               : 0ULL;
-}
-
-VkRenderPass luvk::Renderer::GetRenderPass() const
-{
-    return m_SwapChainModule
-               ? m_SwapChainModule->GetRenderPass()
-               : VK_NULL_HANDLE;
 }
 
 void luvk::Renderer::BeginExternalFrame() {}
@@ -336,18 +285,19 @@ void luvk::Renderer::EndExternalFrame() {}
 
 void luvk::Renderer::SetupFrames() const
 {
-    const auto Sync = FindModule<luvk::Synchronization>();
-    Sync->SetupFrames(m_DeviceModule, m_SwapChainModule, m_CommandPoolModule, m_ThreadPoolModule);
+    const auto SyncModule = FindModule<luvk::Synchronization>();
+    const auto DeviceModule = FindModule<luvk::Device>();
+    const auto SwapChainModule = FindModule<luvk::SwapChain>();
+    const auto CommandPoolModule = FindModule<luvk::CommandPool>();
+
+    SyncModule->SetupFrames(DeviceModule, SwapChainModule, CommandPoolModule);
 }
 
 void luvk::Renderer::RecordComputePass(const VkCommandBuffer Cmd) const
 {
-    if (!m_MeshRegistryModule)
-    {
-        return;
-    }
+    const auto MeshRegistryModule = FindModule<luvk::MeshRegistry>();
 
-    for (auto const& Meshes = m_MeshRegistryModule->GetMeshes();
+    for (auto const& Meshes = MeshRegistryModule->GetMeshes();
          auto const& MeshIt : Meshes)
     {
         auto const& Mat = MeshIt.MaterialPtr;
@@ -367,19 +317,23 @@ void luvk::Renderer::RecordComputePass(const VkCommandBuffer Cmd) const
 
 void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const
 {
-    const auto Sync = FindModule<luvk::Synchronization>();
-    const VkExtent2D Extent = m_SwapChainModule->GetExtent();
+    const auto SwapChainModule = FindModule<luvk::SwapChain>();
+    const auto SyncModule = FindModule<luvk::Synchronization>();
+    const auto MeshRegistryModule = FindModule<luvk::MeshRegistry>();
+    const auto ThreadPoolModule = FindModule<luvk::ThreadPool>();
+
+    const VkExtent2D Extent = SwapChainModule->GetExtent();
 
     constexpr std::array Clear{VkClearValue{.color = {0.F, 0.F, 0.F, 1.F}}, VkClearValue{.depthStencil = {1.F, 0}}};
     const VkRenderPassBeginInfo BeginInfo{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                          .renderPass = m_SwapChainModule->GetRenderPass(),
-                                          .framebuffer = m_SwapChainModule->GetFramebuffer(ImageIndex),
+                                          .renderPass = SwapChainModule->GetRenderPass(),
+                                          .framebuffer = SwapChainModule->GetFramebuffer(ImageIndex),
                                           .renderArea = {{0, 0}, {Extent.width, Extent.height}},
                                           .clearValueCount = static_cast<std::uint32_t>(std::size(Clear)),
                                           .pClearValues = std::data(Clear)};
 
     bool HasGraphics = false;
-    for (auto const& MeshIt : m_MeshRegistryModule->GetMeshes())
+    for (auto const& MeshIt : MeshRegistryModule->GetMeshes())
     {
         auto const& Mat = MeshIt.MaterialPtr;
         if (!Mat || !Mat->GetPipeline())
@@ -403,13 +357,13 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
     const VkViewport Viewport{0.F, 0.F, static_cast<float>(Extent.width), static_cast<float>(Extent.height), 0.F, 1.F};
     const VkRect2D Scissor{{0, 0}, Extent};
 
-    auto const& Meshes = m_MeshRegistryModule->GetMeshes();
+    auto const& Meshes = MeshRegistryModule->GetMeshes();
     constexpr std::size_t BatchSize = 10;
     const std::size_t MeshCount = std::size(Meshes);
     const std::size_t BatchCount = (MeshCount + BatchSize - 1) / BatchSize;
 
     Frame.SecondaryBuffers.resize(BatchCount);
-    auto& SecPool = Sync->GetSecondaryPool();
+    auto& SecPool = SyncModule->GetSecondaryPool();
     SecPool.Reset();
 
     for (std::size_t BatchIndex = 0; BatchIndex < BatchCount; ++BatchIndex)
@@ -419,12 +373,12 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
         std::size_t StartIndex = BatchIndex * BatchSize;
         std::size_t EndIndex = std::min(MeshCount, StartIndex + BatchSize);
 
-        m_ThreadPoolModule->Submit([this, SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, ImageIndex]()
+        ThreadPoolModule->Submit([this, SwapChainModule, SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, ImageIndex]()
         {
             VkCommandBufferInheritanceInfo const Inherit{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-                                                         .renderPass = m_SwapChainModule->GetRenderPass(),
+                                                         .renderPass = SwapChainModule->GetRenderPass(),
                                                          .subpass = 0,
-                                                         .framebuffer = m_SwapChainModule->GetFramebuffer(ImageIndex)};
+                                                         .framebuffer = SwapChainModule->GetFramebuffer(ImageIndex)};
 
             VkCommandBufferBeginInfo const BeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                                                      .pNext = nullptr,
@@ -457,7 +411,7 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
         });
     }
 
-    m_ThreadPoolModule->WaitIdle();
+    ThreadPoolModule->WaitIdle();
 
     if (!std::empty(Frame.SecondaryBuffers))
     {
@@ -491,7 +445,9 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, con
 
 void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const std::uint32_t ImageIndex) const
 {
-    const auto Sync = FindModule<luvk::Synchronization>();
+    const auto SyncModule = FindModule<luvk::Synchronization>();
+    const auto DeviceModule = FindModule<luvk::Device>();
+    const auto SwapChainModule = FindModule<luvk::SwapChain>();
 
     if (!LUVK_EXECUTE(vkEndCommandBuffer(Frame.CommandBuffer)))
     {
@@ -508,10 +464,10 @@ void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const 
                               .commandBufferCount = 1,
                               .pCommandBuffers = &Frame.CommandBuffer,
                               .signalSemaphoreCount = 1,
-                              .pSignalSemaphores = &Sync->GetRenderFinished(ImageIndex)};
+                              .pSignalSemaphores = &SyncModule->GetRenderFinished(ImageIndex)};
 
-    const std::uint32_t GraphicsFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
-    const VkQueue GraphicsQueue = m_DeviceModule->GetQueue(GraphicsFamily);
+    const std::uint32_t GraphicsFamily = DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
+    const VkQueue GraphicsQueue = DeviceModule->GetQueue(GraphicsFamily);
 
     if (!LUVK_EXECUTE(vkQueueSubmit(GraphicsQueue, 1, &Submit, VK_NULL_HANDLE)))
     {
@@ -520,11 +476,11 @@ void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const 
 
     // Frame.Submitted = true;
 
-    const VkSwapchainKHR Handle = m_SwapChainModule->GetHandle();
+    const VkSwapchainKHR Handle = SwapChainModule->GetHandle();
     VkPresentInfoKHR const Present{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
                                    .pNext = nullptr,
                                    .waitSemaphoreCount = 1,
-                                   .pWaitSemaphores = &Sync->GetRenderFinished(ImageIndex),
+                                   .pWaitSemaphores = &SyncModule->GetRenderFinished(ImageIndex),
                                    .swapchainCount = 1,
                                    .pSwapchains = &Handle,
                                    .pImageIndices = &ImageIndex,
@@ -541,5 +497,5 @@ void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const 
         throw std::runtime_error("Failed to present swapchain image.");
     }
 
-    Sync->AdvanceFrame();
+    SyncModule->AdvanceFrame();
 }

@@ -40,8 +40,7 @@ void luvk::Synchronization::Initialize(std::shared_ptr<IRenderModule> const& Dev
 
 void luvk::Synchronization::SetupFrames(std::shared_ptr<IRenderModule> const& DeviceModule,
                                         std::shared_ptr<IRenderModule> const& SwapChainModule,
-                                        std::shared_ptr<IRenderModule> const& CommandPoolModule,
-                                        std::shared_ptr<IRenderModule> const& ThreadPoolModule)
+                                        std::shared_ptr<IRenderModule> const& CommandPoolModule)
 {
     const auto Dev = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
     const auto Pool = std::dynamic_pointer_cast<luvk::CommandPool>(CommandPoolModule);

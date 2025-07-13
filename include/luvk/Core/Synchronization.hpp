@@ -58,8 +58,7 @@ namespace luvk
         /** Setup per-frame resources */
         void SetupFrames(std::shared_ptr<IRenderModule> const& DeviceModule,
                          std::shared_ptr<IRenderModule> const& SwapChainModule,
-                         std::shared_ptr<IRenderModule> const& CommandPoolModule,
-                         std::shared_ptr<IRenderModule> const& ThreadPoolModule);
+                         std::shared_ptr<IRenderModule> const& CommandPoolModule);
 
         [[nodiscard]] inline std::size_t GetFrameCount() const
         {
