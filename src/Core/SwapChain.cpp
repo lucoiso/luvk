@@ -268,18 +268,25 @@ void luvk::SwapChain::CreateDepthResources(std::shared_ptr<Device> const& Device
                                            std::shared_ptr<Memory> const& MemoryModule)
 {
     m_DepthFormat = SelectDepthFormat(DeviceModule);
+    bool const HasStencil = m_DepthFormat == VK_FORMAT_D24_UNORM_S8_UINT ||
+                            m_DepthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+                            m_DepthFormat == VK_FORMAT_D16_UNORM_S8_UINT;
     m_DepthImages.reserve(m_Images.size());
 
     for (std::size_t Index = 0; Index < m_Images.size(); ++Index)
     {
         const auto& DepthImage = m_DepthImages.emplace_back(std::make_shared<luvk::Image>());
 
+        VkImageAspectFlags const Aspect = HasStencil ?
+                                              static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT) :
+                                              static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT);
+
         DepthImage->CreateImage(DeviceModule,
                                 MemoryModule,
                                 {.Extent = {m_Extent.width, m_Extent.height, 1},
                                  .Format = m_DepthFormat,
                                  .Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                 .Aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
+                                 .Aspect = Aspect,
                                  .MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY});
     }
 }
@@ -301,7 +308,10 @@ void luvk::SwapChain::DestroyDepthResources(VkDevice const& LogicalDevice)
 
 VkFormat luvk::SwapChain::SelectDepthFormat(std::shared_ptr<Device> const& DeviceModule)
 {
-    std::array const Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D16_UNORM};
+    std::array const Candidates{VK_FORMAT_D24_UNORM_S8_UINT,
+                                VK_FORMAT_D32_SFLOAT_S8_UINT,
+                                VK_FORMAT_D32_SFLOAT,
+                                VK_FORMAT_D16_UNORM};
 
     for (VkFormat Format : Candidates)
     {
