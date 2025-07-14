@@ -148,8 +148,8 @@ namespace luvk
         /** Indicates if rendering is paused */
         bool m_Paused{false};
 
-        /** Queue of commands to execute after the graphics pass */
-        std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
+        /** Queue of commands to execute while the render pass is active */
+        mutable std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
 
         /** Destructors for external resources */
         std::vector<std::function<void()>> m_ExternalDestructors{};

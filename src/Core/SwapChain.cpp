@@ -9,6 +9,7 @@
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include <algorithm>
 #include <iterator>
+#include <array>
 
 void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& DeviceModule,
                                       std::shared_ptr<IRenderModule> const& MemoryModule,
@@ -205,10 +206,13 @@ void luvk::SwapChain::CreateRenderPass(VkDevice const& LogicalDevice)
 
     VkSubpassDependency SubpassDependency{.srcSubpass = VK_SUBPASS_EXTERNAL,
                                           .dstSubpass = 0,
-                                          .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-                                          .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                          .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                                          .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
+                                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
                                           .srcAccessMask = 0,
-                                          .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT};
+                                          .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
+                                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
 
     const VkRenderPassCreateInfo Info{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
                                       .attachmentCount = static_cast<std::int32_t>(std::size(Attachments)),
@@ -266,19 +270,26 @@ void luvk::SwapChain::DestroyFramebuffers(VkDevice const& LogicalDevice)
 void luvk::SwapChain::CreateDepthResources(std::shared_ptr<Device> const& DeviceModule,
                                            std::shared_ptr<Memory> const& MemoryModule)
 {
-    m_DepthFormat = VK_FORMAT_D32_SFLOAT;
+    m_DepthFormat = SelectDepthFormat(DeviceModule);
+    bool const HasStencil = m_DepthFormat == VK_FORMAT_D24_UNORM_S8_UINT ||
+            m_DepthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+            m_DepthFormat == VK_FORMAT_D16_UNORM_S8_UINT;
     m_DepthImages.reserve(m_Images.size());
 
     for (std::size_t Index = 0; Index < m_Images.size(); ++Index)
     {
         const auto& DepthImage = m_DepthImages.emplace_back(std::make_shared<luvk::Image>());
 
+        VkImageAspectFlags const Aspect = HasStencil
+                                              ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
+                                              : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT);
+
         DepthImage->CreateImage(DeviceModule,
                                 MemoryModule,
                                 {.Extent = {m_Extent.width, m_Extent.height, 1},
                                  .Format = m_DepthFormat,
                                  .Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                 .Aspect = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                 .Aspect = Aspect,
                                  .MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY});
     }
 }
@@ -296,4 +307,22 @@ void luvk::SwapChain::DestroyDepthResources(VkDevice const& LogicalDevice)
 
     m_DepthMemories.clear();
     m_DepthImages.clear();
+}
+
+VkFormat luvk::SwapChain::SelectDepthFormat(std::shared_ptr<Device> const& DeviceModule)
+{
+    constexpr std::array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
+
+    for (const VkFormat Format : Candidates)
+    {
+        VkFormatProperties Props{};
+        vkGetPhysicalDeviceFormatProperties(DeviceModule->GetPhysicalDevice(), Format, &Props);
+
+        if (Props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+            return Format;
+        }
+    }
+
+    return VK_FORMAT_D16_UNORM;
 }

@@ -28,7 +28,7 @@ void luvk::Sampler::CreateSampler(std::shared_ptr<Device> const& DeviceModule, C
                                    .compareEnable = VK_FALSE,
                                    .compareOp = VK_COMPARE_OP_ALWAYS,
                                    .minLod = 0.F,
-                                   .maxLod = 0.F,
+                                   .maxLod = VK_LOD_CLAMP_NONE,
                                    .borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK,
                                    .unnormalizedCoordinates = VK_FALSE};
 
