@@ -60,7 +60,7 @@ namespace luvk
                          std::shared_ptr<IRenderModule> const& SwapChainModule,
                          std::shared_ptr<IRenderModule> const& CommandPoolModule);
 
-        [[nodiscard]] inline std::size_t GetFrameCount() const
+        [[nodiscard]] std::size_t GetFrameCount() const
         {
             return std::size(m_Frames);
         }
@@ -68,22 +68,22 @@ namespace luvk
         /** Retrieve frame data at the specified index */
         [[nodiscard]] FrameData& GetFrame(std::size_t Index);
 
-        [[nodiscard]] inline VkSemaphore& GetRenderFinished(const std::size_t Index)
+        [[nodiscard]] VkSemaphore& GetRenderFinished(const std::size_t Index)
         {
             return m_RenderFinished.at(Index);
         }
 
-        [[nodiscard]] inline std::size_t GetCurrentFrame() const
+        [[nodiscard]] std::size_t GetCurrentFrame() const
         {
             return m_CurrentFrame;
         }
 
-        [[nodiscard]] inline std::size_t GetThreadCount() const
+        [[nodiscard]] std::size_t GetThreadCount() const
         {
             return m_ThreadCount;
         }
 
-        [[nodiscard]] inline CommandBufferPool& GetSecondaryPool()
+        [[nodiscard]] CommandBufferPool& GetSecondaryPool()
         {
             return m_SecondaryPool;
         }

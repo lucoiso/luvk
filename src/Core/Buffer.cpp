@@ -9,13 +9,11 @@
 
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include <iterator>
-#include <cstring>
 
 void luvk::Buffer::CreateBuffer(std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments)
 {
     m_MemoryModule = MemoryModule;
-    auto const Memory = MemoryModule;
-    VmaAllocator const& Allocator = Memory->GetAllocator();
+    VmaAllocator const& Allocator = m_MemoryModule->GetAllocator();
 
     m_Size = Arguments.Size;
     VkBufferCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,

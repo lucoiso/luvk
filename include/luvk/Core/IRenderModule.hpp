@@ -38,7 +38,7 @@ namespace luvk
         virtual ~IRenderModule() = default;
 
         /** Get the event management system */
-        [[nodiscard]] inline EventGraph& GetEventSystem()
+        [[nodiscard]] EventGraph& GetEventSystem()
         {
             return m_EventGraph;
         }

@@ -30,7 +30,6 @@ namespace luvk
 
     class LUVKMODULE_API MeshRegistry : public IRenderModule
     {
-    public:
     private: /** Stored mesh entries */
         std::vector<MeshEntry> m_Meshes{};
 

@@ -8,7 +8,7 @@
 namespace luvk
 {
     /** Record draw commands for a mesh Entry */
-    static inline void RecordMeshCommands(const VkCommandBuffer Command, MeshEntry const& Entry)
+    static inline void RecordMeshCommands(const VkCommandBuffer& Command, MeshEntry const& Entry)
     {
         if (Entry.InstanceCount == 0 && !Entry.UniformBuffer)
         {
@@ -26,21 +26,27 @@ namespace luvk
 
         if (BindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS && Pipeline->GetType() == Pipeline::Type::Graphics)
         {
-            std::array<VkBuffer, 2> Buffers{VK_NULL_HANDLE, VK_NULL_HANDLE};
+            std::vector<VkBuffer> Buffers{};
+            Buffers.reserve(2U);
+
             if (Entry.VertexBuffer)
             {
-                Buffers[0] = Entry.VertexBuffer->GetHandle();
+                Buffers.push_back(Entry.VertexBuffer->GetHandle());
             }
-            constexpr std::array<VkDeviceSize, 2> Offsets{0, 0};
-            std::uint32_t bindingCount = 1U;
 
             if (Entry.InstanceBuffer)
             {
-                Buffers[1] = Entry.InstanceBuffer->GetHandle();
-                bindingCount = 2U;
+                Buffers.push_back(Entry.InstanceBuffer->GetHandle());
             }
 
-            vkCmdBindVertexBuffers(Command, 0, bindingCount, Buffers.data(), Offsets.data());
+            if (std::empty(Buffers))
+            {
+                return;
+            }
+
+            const std::vector<VkDeviceSize> Offsets(std::size(Buffers), 0);
+
+            vkCmdBindVertexBuffers(Command, 0, static_cast<std::int32_t>(std::size(Buffers)), std::data(Buffers), std::data(Offsets));
             if (Entry.IndexBuffer)
             {
                 vkCmdBindIndexBuffer(Command, Entry.IndexBuffer->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
@@ -64,7 +70,12 @@ namespace luvk
                                                         ? VK_SHADER_STAGE_MESH_BIT_EXT
                                                         : VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
-            vkCmdPushConstants(Command, Pipeline->GetPipelineLayout(), Stages, 0, static_cast<std::uint32_t>(Entry.UniformCache.size()), Entry.UniformCache.data());
+            vkCmdPushConstants(Command,
+                               Pipeline->GetPipelineLayout(),
+                               Stages,
+                               0,
+                               static_cast<std::uint32_t>(std::size(Entry.UniformCache)),
+                               std::data(Entry.UniformCache));
         }
 
         switch (PipelineType)

@@ -6,18 +6,12 @@
 
 #include "luvk/Module.hpp"
 #include "luvk/Core/IRenderModule.hpp"
-#include "luvk/Core/ThreadPool.hpp"
-#include "luvk/Core/CommandPool.hpp"
-#include "luvk/Core/SwapChain.hpp"
-#include "luvk/Core/MeshRegistry.hpp"
-#include "luvk/Core/Device.hpp"
 #include "luvk/Core/Memory.hpp"
 #include "luvk/Core/Synchronization.hpp"
 #include "luvk/Core/Extensions.hpp"
 
 #include <vector>
 #include <memory>
-#include <optional>
 #include <functional>
 #include <span>
 
@@ -49,19 +43,19 @@ namespace luvk
         ~Renderer() override;
 
         /** Get associated vulkan instance */
-        [[nodiscard]] inline VkInstance const& GetInstance() const
+        [[nodiscard]] VkInstance const& GetInstance() const
         {
             return m_Instance;
         }
 
         /** Get the available instance layers and extensions */
-        [[nodiscard]] inline InstanceExtensions& GetExtensions()
+        [[nodiscard]] InstanceExtensions& GetExtensions()
         {
             return m_Extensions;
         }
 
         /** Get the render modules */
-        [[nodiscard]] inline std::vector<std::shared_ptr<IRenderModule>> const& GetModules() const
+        [[nodiscard]] std::vector<std::shared_ptr<IRenderModule>> const& GetModules() const
         {
             return m_RenderModules;
         }
@@ -149,7 +143,7 @@ namespace luvk
         bool m_Paused{false};
 
         /** Queue of commands to execute while the render pass is active */
-        mutable std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
+        std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
 
         /** Destructors for external resources */
         std::vector<std::function<void()>> m_ExternalDestructors{};
@@ -168,7 +162,7 @@ namespace luvk
         void RecordComputePass(const VkCommandBuffer& Cmd) const;
 
         /** Record graphics and mesh pass commands */
-        void RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const;
+        void RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
 
         /** Record rendering commands into command buffers */
         void RecordCommands(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex);

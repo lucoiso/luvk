@@ -274,9 +274,9 @@ void luvk::SwapChain::CreateDepthResources(std::shared_ptr<Device> const& Device
     bool const HasStencil = m_DepthFormat == VK_FORMAT_D24_UNORM_S8_UINT ||
             m_DepthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT ||
             m_DepthFormat == VK_FORMAT_D16_UNORM_S8_UINT;
-    m_DepthImages.reserve(m_Images.size());
+    m_DepthImages.reserve(std::size(m_Images));
 
-    for (std::size_t Index = 0; Index < m_Images.size(); ++Index)
+    for (std::size_t Index = 0; Index < std::size(m_Images); ++Index)
     {
         const auto& DepthImage = m_DepthImages.emplace_back(std::make_shared<luvk::Image>());
 
@@ -311,9 +311,8 @@ void luvk::SwapChain::DestroyDepthResources(VkDevice const& LogicalDevice)
 
 VkFormat luvk::SwapChain::SelectDepthFormat(std::shared_ptr<Device> const& DeviceModule)
 {
-    constexpr std::array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
-
-    for (const VkFormat Format : Candidates)
+    for (constexpr std::array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
+         const VkFormat Format : Candidates)
     {
         VkFormatProperties Props{};
         vkGetPhysicalDeviceFormatProperties(DeviceModule->GetPhysicalDevice(), Format, &Props);

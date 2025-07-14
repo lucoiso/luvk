@@ -91,73 +91,73 @@ namespace luvk
         void CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, void const* pNext);
 
         /** Get the current associated logical device */
-        [[nodiscard]] constexpr inline VkDevice const& GetLogicalDevice() const
+        [[nodiscard]] constexpr VkDevice const& GetLogicalDevice() const
         {
             return m_LogicalDevice;
         }
 
         /** Get the current associated physical device */
-        [[nodiscard]] constexpr inline VkPhysicalDevice const& GetPhysicalDevice() const
+        [[nodiscard]] constexpr VkPhysicalDevice const& GetPhysicalDevice() const
         {
             return m_PhysicalDevice;
         }
 
         /** Get the current associated surface */
-        [[nodiscard]] constexpr inline VkSurfaceKHR const& GetSurface() const
+        [[nodiscard]] constexpr VkSurfaceKHR const& GetSurface() const
         {
             return m_Surface;
         }
 
         /** Get the supported formats for the associated surface */
-        [[nodiscard]] constexpr inline std::vector<VkSurfaceFormatKHR> const& GetSurfaceFormat() const
+        [[nodiscard]] constexpr std::vector<VkSurfaceFormatKHR> const& GetSurfaceFormat() const
         {
             return m_SurfaceFormat;
         }
 
         /** Get the properties of the associated device */
-        [[nodiscard]] constexpr inline VkPhysicalDeviceProperties const& GetDeviceProperties() const
+        [[nodiscard]] constexpr VkPhysicalDeviceProperties const& GetDeviceProperties() const
         {
             return m_DeviceProperties;
         }
 
         /** Get the selected device Vulkan API version */
-        [[nodiscard]] constexpr inline std::uint32_t GetVulkanVersion() const noexcept
+        [[nodiscard]] constexpr std::uint32_t GetVulkanVersion() const noexcept
         {
             return m_DeviceProperties.apiVersion;
         }
 
         /** Retrieve basic Vulkan 1.0 features */
-        [[nodiscard]] constexpr inline VkPhysicalDeviceFeatures const& GetDeviceFeatures() const
+        [[nodiscard]] constexpr VkPhysicalDeviceFeatures const& GetDeviceFeatures() const
         {
             return m_DeviceFeatures;
         }
 
         /** Retrieve Vulkan 1.1 features */
-        [[nodiscard]] constexpr inline VkPhysicalDeviceVulkan11Features const& GetVulkan11Features() const
+        [[nodiscard]] constexpr VkPhysicalDeviceVulkan11Features const& GetVulkan11Features() const
         {
             return m_Vulkan11Features;
         }
 
         /** Retrieve Vulkan 1.2 features */
-        [[nodiscard]] constexpr inline VkPhysicalDeviceVulkan12Features const& GetVulkan12Features() const
+        [[nodiscard]] constexpr VkPhysicalDeviceVulkan12Features const& GetVulkan12Features() const
         {
             return m_Vulkan12Features;
         }
 
         /** Retrieve Vulkan 1.3 features */
-        [[nodiscard]] constexpr inline VkPhysicalDeviceVulkan13Features const& GetVulkan13Features() const
+        [[nodiscard]] constexpr VkPhysicalDeviceVulkan13Features const& GetVulkan13Features() const
         {
             return m_Vulkan13Features;
         }
 
         /** Retrieve Vulkan 1.4 features */
-        [[nodiscard]] constexpr inline VkPhysicalDeviceVulkan14Features const& GetVulkan14Features() const
+        [[nodiscard]] constexpr VkPhysicalDeviceVulkan14Features const& GetVulkan14Features() const
         {
             return m_Vulkan14Features;
         }
 
         /** Check if the API version is at least the specified one */
-        [[nodiscard]] constexpr inline bool IsVersionAtLeast(const std::uint32_t Major, const std::uint32_t Minor) const noexcept
+        [[nodiscard]] constexpr bool IsVersionAtLeast(const std::uint32_t Major, const std::uint32_t Minor) const noexcept
         {
             return VK_API_VERSION_MAJOR(m_DeviceProperties.apiVersion) > Major || (VK_API_VERSION_MAJOR(m_DeviceProperties.apiVersion) == Major &&
                 VK_API_VERSION_MINOR(m_DeviceProperties.apiVersion)
@@ -165,19 +165,19 @@ namespace luvk
         }
 
         /** Get the device queue family properties of the associated device */
-        [[nodiscard]] constexpr inline std::vector<VkQueueFamilyProperties> const& GetDeviceQueueFamilyProperties() const
+        [[nodiscard]] constexpr std::vector<VkQueueFamilyProperties> const& GetDeviceQueueFamilyProperties() const
         {
             return m_DeviceQueueFamilyProperties;
         }
 
         /** Get the queue map that we got from the logical device creation - Map: <Family Index - Queues> */
-        [[nodiscard]] constexpr inline std::unordered_map<std::uint32_t, std::vector<VkQueue>> const& GetQueues() const
+        [[nodiscard]] constexpr std::unordered_map<std::uint32_t, std::vector<VkQueue>> const& GetQueues() const
         {
             return m_Queues;
         }
 
         /** Access the extension manager */
-        [[nodiscard]] inline DeviceExtensions& GetExtensions()
+        [[nodiscard]] DeviceExtensions& GetExtensions()
         {
             return m_Extensions;
         }
@@ -198,7 +198,7 @@ namespace luvk
         void Wait(VkFence Fence, VkBool32 WaitAll = VK_TRUE, std::uint64_t Timeout = UINT64_MAX) const;
 
         /** Get the available physical devices */
-        [[nodiscard]] constexpr inline std::vector<VkPhysicalDevice> const& GetAvailableDevices()
+        [[nodiscard]] constexpr std::vector<VkPhysicalDevice> const& GetAvailableDevices()
         {
             return m_AvailableDevices;
         }

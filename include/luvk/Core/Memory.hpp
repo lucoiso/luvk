@@ -44,12 +44,12 @@ namespace luvk
         void InitializeAllocator(std::shared_ptr<IRenderModule> const& MainRenderer, std::shared_ptr<IRenderModule> const& DeviceModule, VmaAllocatorCreateFlags Flags);
 
         /** Get the allocator */
-        [[nodiscard]] inline VmaAllocator const& GetAllocator() const
+        [[nodiscard]] VmaAllocator const& GetAllocator() const
         {
             return m_Allocator;
         }
 
-        [[nodiscard]] inline std::shared_ptr<IRenderModule> const& GetDeviceModule() const
+        [[nodiscard]] std::shared_ptr<IRenderModule> const& GetDeviceModule() const
         {
             return m_DeviceModule;
         }

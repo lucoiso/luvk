@@ -113,9 +113,10 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
     std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
     QueueCreateInfos.reserve(std::size(QueueFamilyIndices));
 
-    constexpr std::array<float, 64U> Priorities{0.F}; // 0.F, 0.F, 0.F...
     for (auto const& [Index, Num] : QueueIndices)
     {
+        constexpr std::array<float, 64U> Priorities{0.F};
+
         QueueCreateInfos.push_back(VkDeviceQueueCreateInfo{.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                                                            .queueFamilyIndex = Index,
                                                            .queueCount = Num,
@@ -135,9 +136,7 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
                                               .ppEnabledExtensionNames = std::data(Extensions),
                                               .pEnabledFeatures = nullptr};
 
-    const VkResult Result = vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_LogicalDevice);
-
-    if (!LUVK_EXECUTE(Result))
+    if (!LUVK_EXECUTE(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_LogicalDevice)))
     {
         throw std::runtime_error("Failed to create the logical device.");
     }

@@ -39,7 +39,7 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
     MeshEntry Entry{};
 
     // Create vertex/index buffers only when data is provided
-    if (!Vertices.empty())
+    if (!std::empty(Vertices))
     {
         Entry.VertexBuffer = std::make_shared<Buffer>();
         Entry.VertexBuffer->CreateBuffer(m_MemoryModule,
@@ -47,7 +47,7 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
         Entry.VertexBuffer->Upload(Vertices);
     }
 
-    if (!Indices.empty())
+    if (!std::empty(Indices))
     {
         Entry.IndexBuffer = std::make_shared<Buffer>();
         Entry.IndexBuffer->CreateBuffer(m_MemoryModule,
@@ -169,16 +169,15 @@ void luvk::MeshRegistry::CreateInstanceBuffer(MeshEntry& Entry, const std::span<
 
 void luvk::MeshRegistry::UpdateInstances(const std::size_t MeshIndex, const std::span<InstanceInfo const> Instances)
 {
-    auto& MeshIt = m_Meshes.at(MeshIndex);
-
-    if (!MeshIt.InstanceBuffer)
+    if (auto& MeshIt = m_Meshes.at(MeshIndex);
+        !MeshIt.InstanceBuffer)
     {
         CreateInstanceBuffer(MeshIt, Instances);
     }
     else
     {
-        VkDeviceSize const RequiredSize = sizeof(MeshInstance) * std::size(Instances);
-        if (RequiredSize > MeshIt.InstanceBuffer->GetSize())
+        if (VkDeviceSize const RequiredSize = sizeof(MeshInstance) * std::size(Instances);
+            RequiredSize > MeshIt.InstanceBuffer->GetSize())
         {
             MeshIt.InstanceBuffer->RecreateBuffer({.Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                                    .Size = RequiredSize,

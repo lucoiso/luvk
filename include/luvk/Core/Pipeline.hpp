@@ -110,7 +110,7 @@ namespace luvk
             VkPipelineCreateFlags Flags{0};
 
             /** Optional pipeline cache */
-            class PipelineCache* Cache{nullptr};
+            PipelineCache* Cache{nullptr};
         };
 
         /** Parameters used to create a mesh shader pipeline */
@@ -153,7 +153,7 @@ namespace luvk
             VkPipelineCreateFlags Flags{0};
 
             /** Optional pipeline cache */
-            class PipelineCache* Cache{nullptr};
+            PipelineCache* Cache{nullptr};
         };
 
         /** Create graphics pipeline for the specified render pass */

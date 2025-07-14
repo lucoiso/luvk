@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <volk/volk.h>
 #include <cstdio>
 
 namespace luvk

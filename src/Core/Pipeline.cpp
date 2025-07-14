@@ -98,17 +98,17 @@ void luvk::Pipeline::CreateGraphicsPipeline(std::shared_ptr<Device> const& Devic
                                                                        VK_COLOR_COMPONENT_B_BIT |
                                                                        VK_COLOR_COMPONENT_A_BIT};
 
-    const VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                                                         .attachmentCount = 1,
-                                                         .pAttachments = &ColorBlendAttachment};
+    constexpr VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+                                                             .attachmentCount = 1,
+                                                             .pAttachments = &ColorBlendAttachment};
 
     constexpr std::array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-    const VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-                                                   .pNext = nullptr,
-                                                   .flags = 0,
-                                                   .dynamicStateCount = static_cast<std::uint32_t>(std::size(DynamicStates)),
-                                                   .pDynamicStates = std::data(DynamicStates)};
+    constexpr VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+                                                       .pNext = nullptr,
+                                                       .flags = 0,
+                                                       .dynamicStateCount = static_cast<std::uint32_t>(std::size(DynamicStates)),
+                                                       .pDynamicStates = std::data(DynamicStates)};
 
     VkPipelineLayoutCreateInfo const LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),
@@ -307,17 +307,17 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
                                                                        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                                                        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
 
-    const VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                                                         .attachmentCount = 1,
-                                                         .pAttachments = &ColorBlendAttachment};
+    constexpr VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+                                                             .attachmentCount = 1,
+                                                             .pAttachments = &ColorBlendAttachment};
 
     constexpr std::array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-    const VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-                                                   .pNext = nullptr,
-                                                   .flags = 0,
-                                                   .dynamicStateCount = static_cast<std::uint32_t>(std::size(DynamicStates)),
-                                                   .pDynamicStates = std::data(DynamicStates)};
+    constexpr VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+                                                       .pNext = nullptr,
+                                                       .flags = 0,
+                                                       .dynamicStateCount = static_cast<std::uint32_t>(std::size(DynamicStates)),
+                                                       .pDynamicStates = std::data(DynamicStates)};
 
     VkPipelineLayoutCreateInfo const LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),

@@ -53,7 +53,7 @@ namespace luvk
         }
 
         /** Get the available layers */
-        [[nodiscard]] inline std::vector<Layer> const& GetLayers() const
+        [[nodiscard]] std::vector<Layer> const& GetLayers() const
         {
             return m_Layers;
         }

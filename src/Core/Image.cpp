@@ -10,7 +10,6 @@
 #include <iterator>
 #include <span>
 #include <cstddef>
-#include <cstring>
 
 void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments)
 {
@@ -19,7 +18,7 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
 
     VmaAllocator const& Allocator = m_MemoryModule->GetAllocator();
 
-    VkImageTiling const Tiling = VK_IMAGE_TILING_OPTIMAL;
+    constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
 
     VkImageCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
                                  .imageType = VK_IMAGE_TYPE_2D,
@@ -50,10 +49,8 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
                                          .format = Arguments.Format,
                                          .subresourceRange = {Arguments.Aspect, 0, 1, 0, 1}};
 
-    auto const Dev = DeviceModule;
-    VkDevice const& Device = Dev->GetLogicalDevice();
-
-    if (!LUVK_EXECUTE(vkCreateImageView(Device, &ViewInfo, nullptr, &m_View)))
+    if (VkDevice const& Device = DeviceModule->GetLogicalDevice();
+        !LUVK_EXECUTE(vkCreateImageView(Device, &ViewInfo, nullptr, &m_View)))
     {
         throw std::runtime_error("Failed to create image view.");
     }

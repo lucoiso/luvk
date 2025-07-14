@@ -9,7 +9,6 @@
 #include <volk/volk.h>
 #include <span>
 #include <memory>
-#include <cstdint>
 
 namespace luvk
 {

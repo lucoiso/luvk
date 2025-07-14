@@ -257,7 +257,7 @@ VkDescriptorPool luvk::Renderer::CreateExternalDescriptorPool(std::uint32_t cons
         throw std::runtime_error("Failed to create descriptor pool.");
     }
 
-    EnqueueDestructor([LogicalDevice, Pool]()
+    EnqueueDestructor([=]
     {
         vkDestroyDescriptorPool(LogicalDevice, Pool, nullptr);
     });
@@ -315,7 +315,7 @@ void luvk::Renderer::RecordComputePass(const VkCommandBuffer& Cmd) const
     }
 }
 
-void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const
+void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex)
 {
     const auto SwapChainModule = FindModule<luvk::SwapChain>();
     const auto SyncModule = FindModule<luvk::Synchronization>();
@@ -381,7 +381,6 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
                                    .pImageMemoryBarriers = &DepthBarrier};
 
     vkCmdPipelineBarrier2(Frame.CommandBuffer, &DepInfo);
-
     vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
     const VkViewport Viewport{0.F, 0.F, static_cast<float>(Extent.width), static_cast<float>(Extent.height), 0.F, 1.F};
@@ -400,10 +399,11 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
     {
         VkCommandBuffer SecCmd = SecPool.Acquire();
         Frame.SecondaryBuffers[BatchIndex] = SecCmd;
-        std::size_t StartIndex = BatchIndex * BatchSize;
-        std::size_t EndIndex = std::min(MeshCount, StartIndex + BatchSize);
 
-        ThreadPoolModule->Submit([this, SwapChainModule, SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, ImageIndex]()
+        const std::size_t StartIndex = BatchIndex * BatchSize;
+        const std::size_t EndIndex = std::min(MeshCount, StartIndex + BatchSize);
+
+        ThreadPoolModule->Submit([this, SwapChainModule, SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, ImageIndex]
         {
             VkCommandBufferInheritanceInfo const Inherit{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
                                                          .renderPass = SwapChainModule->GetRenderPass(),
@@ -416,43 +416,71 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
                                                      .pInheritanceInfo = &Inherit};
 
             vkBeginCommandBuffer(SecCmd, &BeginInfo);
-
-            vkCmdSetViewport(SecCmd, 0, 1, &Viewport);
-            vkCmdSetScissor(SecCmd, 0, 1, &Scissor);
-
-            for (std::size_t MeshIndex = StartIndex; MeshIndex < EndIndex; ++MeshIndex)
             {
-                auto const& MeshIt = Meshes[MeshIndex];
+                vkCmdSetViewport(SecCmd, 0, 1, &Viewport);
+                vkCmdSetScissor(SecCmd, 0, 1, &Scissor);
 
-                auto const& Mat = MeshIt.MaterialPtr;
-                if (!Mat || !Mat->GetPipeline())
+                for (std::size_t MeshIndex = StartIndex; MeshIndex < EndIndex; ++MeshIndex)
                 {
-                    continue;
-                }
-                if (Mat->GetPipeline()->GetType() == Pipeline::Type::Compute)
-                {
-                    continue;
-                }
+                    auto const& MeshIt = Meshes[MeshIndex];
 
-                luvk::RecordMeshCommands(SecCmd, MeshIt);
+                    auto const& Mat = MeshIt.MaterialPtr;
+                    if (!Mat || !Mat->GetPipeline())
+                    {
+                        continue;
+                    }
+                    if (Mat->GetPipeline()->GetType() == Pipeline::Type::Compute)
+                    {
+                        continue;
+                    }
+
+                    luvk::RecordMeshCommands(SecCmd, MeshIt);
+                }
             }
-
             vkEndCommandBuffer(SecCmd);
         });
     }
 
     ThreadPoolModule->WaitIdle();
 
+    if (!std::empty(m_PostRenderCommands))
+    {
+        const std::size_t PreSize = std::size(Frame.SecondaryBuffers);
+        Frame.SecondaryBuffers.resize(PreSize + std::size(m_PostRenderCommands));
+        const std::size_t NewSize = std::size(Frame.SecondaryBuffers);
+
+        for (std::size_t BatchIndex = PreSize; BatchIndex < NewSize; ++BatchIndex)
+        {
+            auto& RenderCommand = m_PostRenderCommands[BatchIndex - PreSize];
+            VkCommandBuffer SecCmd = SecPool.Acquire();
+            Frame.SecondaryBuffers[BatchIndex] = SecCmd;
+
+            VkCommandBufferInheritanceInfo const SecRenderInherit{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
+                                                                  .renderPass = SwapChainModule->GetRenderPass(),
+                                                                  .subpass = 0,
+                                                                  .framebuffer = SwapChainModule->GetFramebuffer(ImageIndex)};
+
+            VkCommandBufferBeginInfo const SecRenderBeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                                              .pNext = nullptr,
+                                                              .flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+                                                              .pInheritanceInfo = &SecRenderInherit};
+
+            vkBeginCommandBuffer(SecCmd, &SecRenderBeginInfo);
+            {
+                vkCmdSetViewport(SecCmd, 0, 1, &Viewport);
+                vkCmdSetScissor(SecCmd, 0, 1, &Scissor);
+
+                RenderCommand(SecCmd);
+            }
+            vkEndCommandBuffer(SecCmd);
+        }
+        m_PostRenderCommands.clear();
+    }
+
     if (!std::empty(Frame.SecondaryBuffers))
     {
         vkCmdExecuteCommands(Frame.CommandBuffer, static_cast<std::uint32_t>(std::size(Frame.SecondaryBuffers)), std::data(Frame.SecondaryBuffers));
     }
-
-    for (auto& Cmd : m_PostRenderCommands)
-    {
-        Cmd(Frame.CommandBuffer);
-    }
-    m_PostRenderCommands.clear();
 
     vkCmdEndRenderPass(Frame.CommandBuffer);
 }

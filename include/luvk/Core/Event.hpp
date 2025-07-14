@@ -35,7 +35,7 @@ namespace luvk
         /** Binding caller */
         void operator()();
 
-        [[nodiscard]] constexpr inline bool IsOneTime() const
+        [[nodiscard]] constexpr bool IsOneTime() const
         {
             return m_OneTime;
         }
