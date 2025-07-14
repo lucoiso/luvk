@@ -352,6 +352,23 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
         return;
     }
 
+    VkImageMemoryBarrier2 Barrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                  .srcStageMask = VK_PIPELINE_STAGE_NONE,
+                                  .srcAccessMask = 0,
+                                  .dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                                  .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                  .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                  .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                  .image = SwapChainModule->GetDepthImage(ImageIndex)->GetHandle(),
+                                  .subresourceRange = {VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT, 0, 1, 0, 1}};
+
+    VkDependencyInfo DepInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                             .dependencyFlags = 0,
+                             .imageMemoryBarrierCount = 1,
+                             .pImageMemoryBarriers = &Barrier};
+
+    vkCmdPipelineBarrier2(Frame.CommandBuffer, &DepInfo);
+
     vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
     const VkViewport Viewport{0.F, 0.F, static_cast<float>(Extent.width), static_cast<float>(Extent.height), 0.F, 1.F};
@@ -418,6 +435,12 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
         vkCmdExecuteCommands(Frame.CommandBuffer, static_cast<std::uint32_t>(std::size(Frame.SecondaryBuffers)), std::data(Frame.SecondaryBuffers));
     }
 
+    for (auto& Cmd : m_PostRenderCommands)
+    {
+        Cmd(Frame.CommandBuffer);
+    }
+    m_PostRenderCommands.clear();
+
     vkCmdEndRenderPass(Frame.CommandBuffer);
 }
 
@@ -435,12 +458,6 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, con
 
     RecordComputePass(Frame.CommandBuffer);
     RecordGraphicsPass(Frame, ImageIndex);
-
-    for (auto& Cmd : m_PostRenderCommands)
-    {
-        Cmd(Frame.CommandBuffer);
-    }
-    m_PostRenderCommands.clear();
 }
 
 void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const std::uint32_t ImageIndex) const

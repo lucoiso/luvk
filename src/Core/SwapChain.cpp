@@ -266,7 +266,7 @@ void luvk::SwapChain::DestroyFramebuffers(VkDevice const& LogicalDevice)
 void luvk::SwapChain::CreateDepthResources(std::shared_ptr<Device> const& DeviceModule,
                                            std::shared_ptr<Memory> const& MemoryModule)
 {
-    m_DepthFormat = VK_FORMAT_D32_SFLOAT;
+    m_DepthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
     m_DepthImages.reserve(m_Images.size());
 
     for (std::size_t Index = 0; Index < m_Images.size(); ++Index)
@@ -278,7 +278,7 @@ void luvk::SwapChain::CreateDepthResources(std::shared_ptr<Device> const& Device
                                 {.Extent = {m_Extent.width, m_Extent.height, 1},
                                  .Format = m_DepthFormat,
                                  .Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                 .Aspect = VK_IMAGE_ASPECT_DEPTH_BIT,
+                                 .Aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT,
                                  .MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY});
     }
 }

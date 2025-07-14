@@ -35,7 +35,7 @@ void luvk::Memory::InitializeAllocator(std::shared_ptr<IRenderModule> const& Mai
 
     VmaVulkanFunctions const VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
 
-    VmaAllocatorCreateInfo const AllocatorInfo{.flags = Flags,
+    VmaAllocatorCreateInfo const AllocatorInfo{.flags = Flags | VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT,
                                                .physicalDevice = CastDeviceModule->GetPhysicalDevice(),
                                                .device = CastDeviceModule->GetLogicalDevice(),
                                                .preferredLargeHeapBlockSize = 0U /*Default: 256 MiB*/,

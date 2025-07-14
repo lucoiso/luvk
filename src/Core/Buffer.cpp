@@ -28,7 +28,8 @@ void luvk::Buffer::CreateBuffer(std::shared_ptr<Memory> const& MemoryModule, Cre
     VmaAllocationCreateInfo const AllocInfo{.flags = Arguments.MemoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU
                                                          ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
                                                          : 0U,
-                                            .usage = Arguments.MemoryUsage};
+                                            .usage = Arguments.MemoryUsage,
+                                            .priority = Arguments.Priority};
 
     if (!LUVK_EXECUTE(vmaCreateBuffer(Allocator, &Info, &AllocInfo, &m_Buffer, &m_Allocation, nullptr)))
     {

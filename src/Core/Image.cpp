@@ -19,14 +19,7 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
 
     VmaAllocator const& Allocator = m_MemoryModule->GetAllocator();
 
-    VkFormatProperties Props{};
-    vkGetPhysicalDeviceFormatProperties(m_DeviceModule->GetPhysicalDevice(), Arguments.Format, &Props);
-
-    VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
-    if (Arguments.MemoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU && Props.linearTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)
-    {
-        Tiling = VK_IMAGE_TILING_LINEAR;
-    }
+    VkImageTiling const Tiling = VK_IMAGE_TILING_OPTIMAL;
 
     VkImageCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
                                  .imageType = VK_IMAGE_TYPE_2D,
@@ -43,7 +36,8 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
     VmaAllocationCreateInfo const AllocInfo{.flags = Arguments.MemoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU
                                                          ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
                                                          : 0U,
-                                            .usage = Arguments.MemoryUsage};
+                                            .usage = Arguments.MemoryUsage,
+                                            .priority = Arguments.Priority};
 
     if (!LUVK_EXECUTE(vmaCreateImage(Allocator, &Info, &AllocInfo, &m_Image, &m_Allocation, nullptr)))
     {

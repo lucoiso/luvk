@@ -91,6 +91,24 @@ namespace luvk
             return m_Framebuffers.at(Index);
         }
 
+        /** Get the depth image for the specified index */
+        [[nodiscard]] constexpr std::shared_ptr<luvk::Image> const& GetDepthImage(const std::size_t Index) const
+        {
+            return m_DepthImages.at(Index);
+        }
+
+        /** Retrieve all depth images */
+        [[nodiscard]] constexpr std::vector<std::shared_ptr<luvk::Image>> const& GetDepthImages() const
+        {
+            return m_DepthImages;
+        }
+
+        /** Retrieve the format used for depth images */
+        [[nodiscard]] constexpr VkFormat GetDepthFormat() const
+        {
+            return m_DepthFormat;
+        }
+
         /** Retrieve the render pass used for drawing */
         [[nodiscard]] constexpr VkRenderPass const& GetRenderPass() const
         {

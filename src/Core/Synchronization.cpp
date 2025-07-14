@@ -55,7 +55,7 @@ void luvk::Synchronization::SetupFrames(std::shared_ptr<IRenderModule> const& De
 
     m_SecondaryPool.Destroy();
     const std::uint32_t GraphicsFamily = Dev->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
-    m_SecondaryPool.Create(std::static_pointer_cast<luvk::Device>(DeviceModule), GraphicsFamily, VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
+    m_SecondaryPool.Create(std::static_pointer_cast<luvk::Device>(DeviceModule), GraphicsFamily, 0);
 
     for (std::size_t Index = 0; Index < ImageCount; ++Index)
     {

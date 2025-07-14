@@ -58,6 +58,9 @@ namespace luvk
 
             /** Desired memory usage */
             VmaMemoryUsage MemoryUsage{VMA_MEMORY_USAGE_AUTO};
+
+            /** Memory priority (0.0 - 1.0) */
+            float Priority{1.0f};
         };
 
         void CreateImage(std::shared_ptr<Device> const& DeviceModule, std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments);
