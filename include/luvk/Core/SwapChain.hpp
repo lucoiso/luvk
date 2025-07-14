@@ -189,5 +189,8 @@ namespace luvk
 
         /** Destroy depth images and views */
         void DestroyDepthResources(VkDevice const& LogicalDevice);
+
+        /** Select a supported format for depth resources */
+        [[nodiscard]] static VkFormat SelectDepthFormat(std::shared_ptr<Device> const& DeviceModule);
     };
 } // namespace luvk

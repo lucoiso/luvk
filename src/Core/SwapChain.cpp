@@ -9,6 +9,7 @@
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include <algorithm>
 #include <iterator>
+#include <array>
 
 void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& DeviceModule,
                                       std::shared_ptr<IRenderModule> const& MemoryModule,
@@ -266,7 +267,7 @@ void luvk::SwapChain::DestroyFramebuffers(VkDevice const& LogicalDevice)
 void luvk::SwapChain::CreateDepthResources(std::shared_ptr<Device> const& DeviceModule,
                                            std::shared_ptr<Memory> const& MemoryModule)
 {
-    m_DepthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
+    m_DepthFormat = SelectDepthFormat(DeviceModule);
     m_DepthImages.reserve(m_Images.size());
 
     for (std::size_t Index = 0; Index < m_Images.size(); ++Index)
@@ -296,4 +297,22 @@ void luvk::SwapChain::DestroyDepthResources(VkDevice const& LogicalDevice)
 
     m_DepthMemories.clear();
     m_DepthImages.clear();
+}
+
+VkFormat luvk::SwapChain::SelectDepthFormat(std::shared_ptr<Device> const& DeviceModule)
+{
+    std::array const Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT, VK_FORMAT_D16_UNORM};
+
+    for (VkFormat Format : Candidates)
+    {
+        VkFormatProperties Props{};
+        vkGetPhysicalDeviceFormatProperties(DeviceModule->GetPhysicalDevice(), Format, &Props);
+
+        if (Props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
+        {
+            return Format;
+        }
+    }
+
+    return VK_FORMAT_D16_UNORM;
 }

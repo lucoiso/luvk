@@ -353,7 +353,7 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
     }
 
     VkImageMemoryBarrier2 Barrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                  .srcStageMask = VK_PIPELINE_STAGE_NONE,
+                                  .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                                   .srcAccessMask = 0,
                                   .dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
                                   .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
