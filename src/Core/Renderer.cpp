@@ -352,6 +352,36 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
         return;
     }
 
+    VkImage const DepthImage = SwapChainModule->GetDepthImage(ImageIndex)->GetHandle();
+    VkImageAspectFlags const DepthAspect = SwapChainModule->GetDepthFormat() == VK_FORMAT_D24_UNORM_S8_UINT ||
+                                           SwapChainModule->GetDepthFormat() == VK_FORMAT_D32_SFLOAT_S8_UINT ||
+                                           SwapChainModule->GetDepthFormat() == VK_FORMAT_D16_UNORM_S8_UINT
+                                               ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
+                                               : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT);
+
+    VkImageMemoryBarrier2 const DepthBarrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                             .pNext = nullptr,
+                                             .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                                             .srcAccessMask = 0,
+                                             .dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                                             .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
+                                             .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                             .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+                                             .image = DepthImage,
+                                             .subresourceRange = {DepthAspect, 0, 1, 0, 1}};
+
+    VkDependencyInfo const DepInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                   .pNext = nullptr,
+                                   .dependencyFlags = 0,
+                                   .memoryBarrierCount = 0,
+                                   .pMemoryBarriers = nullptr,
+                                   .bufferMemoryBarrierCount = 0,
+                                   .pBufferMemoryBarriers = nullptr,
+                                   .imageMemoryBarrierCount = 1,
+                                   .pImageMemoryBarriers = &DepthBarrier};
+
+    vkCmdPipelineBarrier2(Frame.CommandBuffer, &DepInfo);
+
     vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 
     const VkViewport Viewport{0.F, 0.F, static_cast<float>(Extent.width), static_cast<float>(Extent.height), 0.F, 1.F};
