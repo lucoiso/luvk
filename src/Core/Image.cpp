@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Core/Image.hpp"
+#include "luvk/Core/Buffer.hpp"
 #include "luvk/Core/Renderer.hpp"
 #include "luvk/Core/Memory.hpp"
 #include "luvk/Core/Device.hpp"
@@ -16,6 +17,9 @@ void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::
 {
     m_DeviceModule = DeviceModule;
     m_MemoryModule = MemoryModule;
+
+    m_Width = Arguments.Extent.width;
+    m_Height = Arguments.Extent.height;
 
     VmaAllocator const& Allocator = m_MemoryModule->GetAllocator();
 
@@ -69,6 +73,127 @@ void luvk::Image::Upload(const std::span<const std::byte> Data) const
     std::memcpy(Mapping, std::data(Data), std::size(Data));
     vmaFlushAllocation(Allocator, m_Allocation, 0, std::size(Data));
     vmaUnmapMemory(Allocator, m_Allocation);
+}
+
+void luvk::Image::Upload(std::shared_ptr<luvk::Buffer> const& Staging)
+{
+    VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const std::uint32_t QueueFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
+    const VkQueue Queue = m_DeviceModule->GetQueue(QueueFamily);
+
+    VkCommandPoolCreateInfo PoolInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                    .pNext = nullptr,
+                                    .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+                                    .queueFamilyIndex = QueueFamily};
+
+    VkCommandPool Pool{VK_NULL_HANDLE};
+
+    if (!LUVK_EXECUTE(vkCreateCommandPool(LogicalDevice, &PoolInfo, nullptr, &Pool)))
+    {
+        throw std::runtime_error("Failed to create command pool for image upload");
+    }
+
+    VkCommandBufferAllocateInfo AllocationInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                                .pNext = nullptr,
+                                                .commandPool = Pool,
+                                                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                                .commandBufferCount = 1};
+
+    VkCommandBuffer CommandBuffer{VK_NULL_HANDLE};
+
+    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(LogicalDevice, &AllocationInfo, &CommandBuffer)))
+    {
+        vkDestroyCommandPool(LogicalDevice, Pool, nullptr);
+        throw std::runtime_error("Failed to allocate command buffer for image upload");
+    }
+
+    VkCommandBufferBeginInfo CommandBufferBeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                                    .pNext = nullptr,
+                                                    .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+                                                    .pInheritanceInfo = nullptr};
+    vkBeginCommandBuffer(CommandBuffer, &CommandBufferBeginInfo);
+
+    VkImageMemoryBarrier ToTransfer{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                    .pNext = nullptr,
+                                    .srcAccessMask = 0,
+                                    .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+                                    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                    .image = m_Image,
+                                    .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+
+    vkCmdPipelineBarrier(CommandBuffer,
+                            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                            VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            0,
+                            0,
+                            nullptr,
+                            0,
+                            nullptr,
+                            1,
+                            &ToTransfer);
+
+    VkBufferImageCopy Region{.bufferOffset = 0,
+                            .bufferRowLength = 0,
+                            .bufferImageHeight = 0,
+                            .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+                            .imageOffset = {0, 0, 0},
+                            .imageExtent = {m_Width, m_Height, 1}};
+
+    vkCmdCopyBufferToImage(CommandBuffer,
+                           Staging->GetHandle(),
+                           m_Image,
+                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                           1,
+                           &Region);
+
+    VkImageMemoryBarrier ToShaderRead{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                      .pNext = nullptr,
+                                      .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+                                      .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                                      .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                      .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+                                      .image = m_Image,
+                                      .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+
+    vkCmdPipelineBarrier(CommandBuffer,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                         0,
+                         0,
+                         nullptr,
+                         0,
+                         nullptr,
+                         1,
+                         &ToShaderRead);
+
+    vkEndCommandBuffer(CommandBuffer);
+
+    VkSubmitInfo QueueSubmitInfo{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                                 .pNext = nullptr,
+                                 .waitSemaphoreCount = 0,
+                                 .pWaitSemaphores = nullptr,
+                                 .pWaitDstStageMask = nullptr,
+                                 .commandBufferCount = 1,
+                                 .pCommandBuffers = &CommandBuffer,
+                                 .signalSemaphoreCount = 0,
+                                 .pSignalSemaphores = nullptr};
+
+    if (!LUVK_EXECUTE(vkQueueSubmit(Queue, 1, &QueueSubmitInfo, VK_NULL_HANDLE)))
+    {
+        vkFreeCommandBuffers(LogicalDevice, Pool, 1, &CommandBuffer);
+        vkDestroyCommandPool(LogicalDevice, Pool, nullptr);
+        throw std::runtime_error("Failed to submit image upload command");
+    }
+
+    vkQueueWaitIdle(Queue);
+
+    vkFreeCommandBuffers(LogicalDevice, Pool, 1, &CommandBuffer);
+    vkDestroyCommandPool(LogicalDevice, Pool, nullptr);
 }
 
 luvk::Image::~Image()

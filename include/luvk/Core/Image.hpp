@@ -15,10 +15,17 @@ namespace luvk
 {
     /** Image object managed with VMA */
     class Memory;
+    class Buffer;
     class Device;
 
     class LUVKMODULE_API Image
-    {
+    {        
+        /** Width of the image */
+        std::uint32_t m_Width{0};
+
+        /** Height of the image */
+        std::uint32_t m_Height{0};
+
         /** Handle to the Vulkan image */
         VkImage m_Image{VK_NULL_HANDLE};
 
@@ -67,6 +74,7 @@ namespace luvk
 
         /** Upload data to the image memory */
         void Upload(std::span<const std::byte> Data) const;
+        void Upload(std::shared_ptr<luvk::Buffer> const& Staging);
 
         /** Retrieve the Vulkan image handle */
         [[nodiscard]] constexpr VkImage const& GetHandle() const
