@@ -91,6 +91,9 @@ namespace luvk
             /** Front face orientation */
             VkFrontFace FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
 
+            /** Enable depth operations */
+            bool EnableDepthOp{true};
+
             /** Additional pipeline creation flags */
             VkPipelineCreateFlags Flags{0};
 
@@ -152,6 +155,9 @@ namespace luvk
 
             /** Front face orientation */
             VkFrontFace FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
+
+            /** Enable depth operations */
+            bool EnableDepthOp{true};
 
             /** Additional pipeline creation flags */
             VkPipelineCreateFlags Flags{0};

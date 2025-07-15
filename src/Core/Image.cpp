@@ -82,9 +82,9 @@ void luvk::Image::Upload(std::shared_ptr<luvk::Buffer> const& Staging)
     const VkQueue Queue = m_DeviceModule->GetQueue(QueueFamily);
 
     VkCommandPoolCreateInfo PoolInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                                    .pNext = nullptr,
-                                    .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
-                                    .queueFamilyIndex = QueueFamily};
+                                     .pNext = nullptr,
+                                     .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT,
+                                     .queueFamilyIndex = QueueFamily};
 
     VkCommandPool Pool{VK_NULL_HANDLE};
 
@@ -94,10 +94,10 @@ void luvk::Image::Upload(std::shared_ptr<luvk::Buffer> const& Staging)
     }
 
     VkCommandBufferAllocateInfo AllocationInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                                .pNext = nullptr,
-                                                .commandPool = Pool,
-                                                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-                                                .commandBufferCount = 1};
+                                               .pNext = nullptr,
+                                               .commandPool = Pool,
+                                               .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+                                               .commandBufferCount = 1};
 
     VkCommandBuffer CommandBuffer{VK_NULL_HANDLE};
 
@@ -125,22 +125,22 @@ void luvk::Image::Upload(std::shared_ptr<luvk::Buffer> const& Staging)
                                     .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
 
     vkCmdPipelineBarrier(CommandBuffer,
-                            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                            VK_PIPELINE_STAGE_TRANSFER_BIT,
-                            0,
-                            0,
-                            nullptr,
-                            0,
-                            nullptr,
-                            1,
-                            &ToTransfer);
+                         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         0,
+                         0,
+                         nullptr,
+                         0,
+                         nullptr,
+                         1,
+                         &ToTransfer);
 
     VkBufferImageCopy Region{.bufferOffset = 0,
-                            .bufferRowLength = 0,
-                            .bufferImageHeight = 0,
-                            .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
-                            .imageOffset = {0, 0, 0},
-                            .imageExtent = {m_Width, m_Height, 1}};
+                             .bufferRowLength = 0,
+                             .bufferImageHeight = 0,
+                             .imageSubresource = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1},
+                             .imageOffset = {0, 0, 0},
+                             .imageExtent = {m_Width, m_Height, 1}};
 
     vkCmdCopyBufferToImage(CommandBuffer,
                            Staging->GetHandle(),

@@ -207,12 +207,12 @@ void luvk::SwapChain::CreateRenderPass(VkDevice const& LogicalDevice)
     VkSubpassDependency SubpassDependency{.srcSubpass = VK_SUBPASS_EXTERNAL,
                                           .dstSubpass = 0,
                                           .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                                                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
                                           .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT |
-                                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
+                                                          VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
                                           .srcAccessMask = 0,
                                           .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT |
-                                          VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
+                                                           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
 
     const VkRenderPassCreateInfo Info{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
                                       .attachmentCount = static_cast<std::int32_t>(std::size(Attachments)),

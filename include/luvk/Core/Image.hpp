@@ -19,7 +19,7 @@ namespace luvk
     class Device;
 
     class LUVKMODULE_API Image
-    {        
+    {
         /** Width of the image */
         std::uint32_t m_Width{0};
 
@@ -67,7 +67,7 @@ namespace luvk
             VmaMemoryUsage MemoryUsage{VMA_MEMORY_USAGE_AUTO};
 
             /** Memory priority (0.0 - 1.0) */
-            float Priority{1.0f};
+            float Priority{1.F};
         };
 
         void CreateImage(std::shared_ptr<Device> const& DeviceModule, std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments);
