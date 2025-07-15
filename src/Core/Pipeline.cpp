@@ -40,11 +40,11 @@ void luvk::Pipeline::CreateGraphicsPipeline(std::shared_ptr<Device> const& Devic
     VkShaderModule FragModule = CreateShader(LogicalDevice, Arguments.FragmentShader);
 
     VkPipelineShaderStageCreateInfo const VertStage{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-                                                    .pNext = nullptr,
-                                                    .flags = 0,
-                                                    .stage = VK_SHADER_STAGE_VERTEX_BIT,
-                                                    .module = VertModule,
-                                                    .pName = "main"};
+                                                   .pNext = nullptr,
+                                                   .flags = 0,
+                                                   .stage = VK_SHADER_STAGE_VERTEX_BIT,
+                                                   .module = VertModule,
+                                                   .pName = "main"};
 
     VkPipelineShaderStageCreateInfo const FragStage{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                     .pNext = nullptr,
@@ -98,23 +98,32 @@ void luvk::Pipeline::CreateGraphicsPipeline(std::shared_ptr<Device> const& Devic
                                                                        VK_COLOR_COMPONENT_B_BIT |
                                                                        VK_COLOR_COMPONENT_A_BIT};
 
-    constexpr VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                                                             .attachmentCount = 1,
-                                                             .pAttachments = &ColorBlendAttachment};
+    const VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+                                                         .attachmentCount = 1,
+                                                         .pAttachments = &ColorBlendAttachment};
 
     constexpr std::array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-    constexpr VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-                                                       .pNext = nullptr,
-                                                       .flags = 0,
-                                                       .dynamicStateCount = static_cast<std::uint32_t>(std::size(DynamicStates)),
-                                                       .pDynamicStates = std::data(DynamicStates)};
+    const VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+                                                   .pNext = nullptr,
+                                                   .flags = 0,
+                                                   .dynamicStateCount = static_cast<std::uint32_t>(std::size(DynamicStates)),
+                                                   .pDynamicStates = std::data(DynamicStates)};
+
+    m_PushConstants.assign(std::begin(Arguments.PushConstants), std::end(Arguments.PushConstants));
+    if (std::empty(m_PushConstants))
+    {
+        VkPushConstantRange const Range{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                        .offset = 0,
+                                        .size = Device->GetDeviceProperties().limits.maxPushConstantsSize};
+        m_PushConstants.push_back(Range);
+    }
 
     VkPipelineLayoutCreateInfo const LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),
                                                 .pSetLayouts = std::data(Arguments.SetLayouts),
-                                                .pushConstantRangeCount = static_cast<std::uint32_t>(std::size(Arguments.PushConstants)),
-                                                .pPushConstantRanges = std::data(Arguments.PushConstants)};
+                                                .pushConstantRangeCount = static_cast<std::uint32_t>(std::size(m_PushConstants)),
+                                                .pPushConstantRanges = std::data(m_PushConstants)};
 
     if (!LUVK_EXECUTE(vkCreatePipelineLayout(LogicalDevice, &LayoutInfo, nullptr, &m_PipelineLayout)))
     {
@@ -188,11 +197,20 @@ void luvk::Pipeline::CreateComputePipeline(std::shared_ptr<Device> const& Device
                                                     .module = CompModule,
                                                     .pName = "main"};
 
+    m_PushConstants.assign(std::begin(Arguments.PushConstants), std::end(Arguments.PushConstants));
+    if (std::empty(m_PushConstants))
+    {
+        VkPushConstantRange const Range{.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
+                                        .offset = 0,
+                                        .size = Device->GetDeviceProperties().limits.maxPushConstantsSize};
+        m_PushConstants.push_back(Range);
+    }
+
     VkPipelineLayoutCreateInfo const LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),
                                                 .pSetLayouts = std::data(Arguments.SetLayouts),
-                                                .pushConstantRangeCount = static_cast<std::uint32_t>(std::size(Arguments.PushConstants)),
-                                                .pPushConstantRanges = std::data(Arguments.PushConstants)};
+                                                .pushConstantRangeCount = static_cast<std::uint32_t>(std::size(m_PushConstants)),
+                                                .pPushConstantRanges = std::data(m_PushConstants)};
 
     if (!LUVK_EXECUTE(vkCreatePipelineLayout(LogicalDevice, &LayoutInfo, nullptr, &m_PipelineLayout)))
     {
@@ -307,23 +325,32 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
                                                                        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
                                                                        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT};
 
-    constexpr VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-                                                             .attachmentCount = 1,
-                                                             .pAttachments = &ColorBlendAttachment};
+    const VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+                                                         .attachmentCount = 1,
+                                                         .pAttachments = &ColorBlendAttachment};
 
     constexpr std::array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
-    constexpr VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-                                                       .pNext = nullptr,
-                                                       .flags = 0,
-                                                       .dynamicStateCount = static_cast<std::uint32_t>(std::size(DynamicStates)),
-                                                       .pDynamicStates = std::data(DynamicStates)};
+    const VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+                                                   .pNext = nullptr,
+                                                   .flags = 0,
+                                                   .dynamicStateCount = static_cast<std::uint32_t>(std::size(DynamicStates)),
+                                                   .pDynamicStates = std::data(DynamicStates)};
+
+    m_PushConstants.assign(std::begin(Arguments.PushConstants), std::end(Arguments.PushConstants));
+    if (std::empty(m_PushConstants))
+    {
+        VkPushConstantRange const Range{.stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
+                                        .offset = 0,
+                                        .size = Device->GetDeviceProperties().limits.maxPushConstantsSize};
+        m_PushConstants.push_back(Range);
+    }
 
     VkPipelineLayoutCreateInfo const LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),
                                                 .pSetLayouts = std::data(Arguments.SetLayouts),
-                                                .pushConstantRangeCount = static_cast<std::uint32_t>(std::size(Arguments.PushConstants)),
-                                                .pPushConstantRanges = std::data(Arguments.PushConstants)};
+                                                .pushConstantRangeCount = static_cast<std::uint32_t>(std::size(m_PushConstants)),
+                                                .pPushConstantRanges = std::data(m_PushConstants)};
 
     if (!LUVK_EXECUTE(vkCreatePipelineLayout(LogicalDevice, &LayoutInfo, nullptr, &m_PipelineLayout)))
     {
@@ -424,4 +451,5 @@ void luvk::Pipeline::ClearResources()
         vkDestroyPipelineLayout(LogicalDevice, m_PipelineLayout, nullptr);
         m_PipelineLayout = VK_NULL_HANDLE;
     }
+    m_PushConstants.clear();
 }
