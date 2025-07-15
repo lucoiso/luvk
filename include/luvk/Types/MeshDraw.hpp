@@ -64,11 +64,23 @@ namespace luvk
 
         if (!std::empty(Entry.UniformCache))
         {
-            const VkShaderStageFlags Stages = PipelineType == Pipeline::Type::Compute
-                                                  ? VK_SHADER_STAGE_COMPUTE_BIT
-                                                  : PipelineType == Pipeline::Type::Mesh
-                                                        ? VK_SHADER_STAGE_MESH_BIT_EXT
-                                                        : VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            VkShaderStageFlags Stages{};
+            auto const& Ranges = Pipeline->GetPushConstants();
+            if (!std::empty(Ranges))
+            {
+                for (auto const& Range : Ranges)
+                {
+                    Stages |= Range.stageFlags;
+                }
+            }
+            else
+            {
+                Stages = PipelineType == Pipeline::Type::Compute
+                             ? VK_SHADER_STAGE_COMPUTE_BIT
+                             : PipelineType == Pipeline::Type::Mesh
+                                   ? VK_SHADER_STAGE_MESH_BIT_EXT
+                                   : VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            }
 
             vkCmdPushConstants(Command,
                                Pipeline->GetPipelineLayout(),

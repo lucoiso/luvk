@@ -8,6 +8,7 @@
 
 #include <memory>
 #include <span>
+#include <vector>
 #include <volk/volk.h>
 
 namespace luvk
@@ -34,6 +35,9 @@ namespace luvk
 
         /** Handle to the graphics pipeline */
         VkPipeline m_Pipeline{VK_NULL_HANDLE};
+
+        /** Push constant ranges associated with this pipeline */
+        std::vector<VkPushConstantRange> m_PushConstants{};
 
         /** Device used to create the pipeline */
         std::shared_ptr<Device> m_DeviceModule{};
@@ -182,6 +186,11 @@ namespace luvk
         [[nodiscard]] constexpr VkPipelineLayout const& GetPipelineLayout() const
         {
             return m_PipelineLayout;
+        }
+
+        [[nodiscard]] constexpr std::span<VkPushConstantRange const> GetPushConstants() const noexcept
+        {
+            return m_PushConstants;
         }
 
         [[nodiscard]] constexpr Type GetType() const noexcept
