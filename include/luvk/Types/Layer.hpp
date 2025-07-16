@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
+#include "luvk/Modules/Module.hpp"
 #include "luvk/Types/Pair.hpp"
 
 #include <string>

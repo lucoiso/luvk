@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
-#include "luvk/Core/MeshRegistry.hpp"
+#include "luvk/Modules/Module.hpp"
+#include "luvk/Subsystems/MeshRegistry.hpp"
 #include <memory>
 #include <cstdint>
 #include <vector>
