@@ -4,8 +4,8 @@
 
 #pragma once
 
-#include "luvk/Modules/Module.hpp"
-#include "luvk/Subsystems/Event.hpp"
+#include "luvk/Module.hpp"
+#include "luvk/Resources/Event.hpp"
 #include <memory>
 #include <vector>
 #include <string_view>

@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include "luvk/Modules/Module.hpp"
+#include "luvk/Module.hpp"
 #include <memory>
 #include <cstdint>
 #include <array>
