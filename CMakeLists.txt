@@ -8,8 +8,8 @@ SET(LIBRARY_NAME luvk)
 CMAKE_MINIMUM_REQUIRED(VERSION 3.28)
 PROJECT(${LIBRARY_NAME} VERSION 0.0.1 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+SET(CMAKE_CXX_STANDARD 23)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 IF (POLICY CMP0048)
     CMAKE_POLICY(SET CMP0048 NEW)
@@ -19,64 +19,8 @@ ENDIF ()
 SET(LUVK_SOURCE_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
 SET(LUVK_INCLUDE_BASE_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/)
 
-SET(SOURCE_FILES
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Renderer.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Device.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Memory.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/SwapChain.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Debug.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Extensions.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Event.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/CommandPool.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Pipeline.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/DescriptorPool.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/DescriptorSet.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/CommandBufferPool.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/PipelineCache.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/MeshRegistry.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Buffer.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Image.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Sampler.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/ThreadPool.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Core/Synchronization.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Types/Mesh.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Libraries/ShaderCompiler.cpp"
-        "${LUVK_SOURCE_BASE_DIRECTORY}/Module.cpp"
-)
-
-SET(INCLUDE_FILES
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Renderer.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Device.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Memory.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/SwapChain.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Debug.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Extensions.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Event.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/CommandPool.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Pipeline.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/DescriptorPool.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/DescriptorSet.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/CommandBufferPool.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/PipelineCache.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/MeshRegistry.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Buffer.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Image.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Sampler.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/ThreadPool.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/Synchronization.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Core/IRenderModule.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Layer.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Pair.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Array.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Mesh.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Transform.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Texture.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Types/Material.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Libraries/CompileTime.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Libraries/ShaderCompiler.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Libraries/Functional.hpp"
-        "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/Module.hpp"
-)
+FILE(GLOB_RECURSE SOURCE_FILES CONFIGURE_DEPENDS "${LUVK_SOURCE_BASE_DIRECTORY}/*.cpp")
+FILE(GLOB_RECURSE HEADER_FILES CONFIGURE_DEPENDS "${LUVK_INCLUDE_BASE_DIRECTORY}/luvk/**/*.hpp")
 
 ADD_LIBRARY(${LIBRARY_NAME} SHARED ${SOURCE_FILES})
 SET_TARGET_PROPERTIES(${LIBRARY_NAME} PROPERTIES LINKER_LANGUAGE CXX)

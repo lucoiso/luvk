@@ -10,7 +10,7 @@
 #include <glslang/Public/ResourceLimits.h>
 #include <stdexcept>
 
-static std::atomic_uint g_GlslangInitCount{0};
+static constinit std::atomic_uint g_GlslangInitCount{0};
 
 void luvk::InitializeGlslang()
 {
