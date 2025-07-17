@@ -32,14 +32,11 @@ namespace luvk
         /** Created Vulkan instance */
         VkInstance m_Instance{VK_NULL_HANDLE};
 
-        /** Extensions available for the instance */
-        InstanceExtensions m_Extensions{};
-
-        /** Modules registered to the renderer */
-        std::vector<std::shared_ptr<IRenderModule>> m_RenderModules{};
-
         /** Fast lookup table of registered modules */
         std::unordered_map<std::type_index, std::shared_ptr<IRenderModule>> m_ModuleMap{};
+
+        /** Extensions available for the instance */
+        InstanceExtensions m_Extensions{};
 
     public:
         constexpr Renderer() = default;
@@ -60,9 +57,9 @@ namespace luvk
         }
 
         /** Get the render modules */
-        [[nodiscard]] std::vector<std::shared_ptr<IRenderModule>> const& GetModules() const
+        [[nodiscard]] auto const& GetModules() const
         {
-            return m_RenderModules;
+            return m_ModuleMap;
         }
 
         [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept override
@@ -141,14 +138,14 @@ namespace luvk
         void EndExternalFrame();
 
     private:
-        /** Indicates if rendering is paused */
-        bool m_Paused{false};
-
         /** Queue of commands to execute while the render pass is active */
         std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
 
         /** Destructors for external resources */
         std::vector<std::function<void()>> m_ExternalDestructors{};
+
+        /** Indicates if rendering is paused */
+        bool m_Paused{false};
 
         /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;

@@ -69,7 +69,7 @@ luvk::ThreadPool::~ThreadPool()
     ThreadPool::ClearResources();
 }
 
-void luvk::ThreadPool::InitializeDependencies(std::shared_ptr<IRenderModule> const& /*MainRenderer*/)
+void luvk::ThreadPool::InitializeDependencies(std::shared_ptr<IRenderModule> const&)
 {
     // Do nothing
 }

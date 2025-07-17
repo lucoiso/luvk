@@ -56,7 +56,7 @@ void luvk::Memory::InitializeAllocator(std::shared_ptr<IRenderModule> const& Mai
     GetEventSystem().Execute(MemoryEvents::OnAllocatorCreated);
 }
 
-void luvk::Memory::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
+void luvk::Memory::InitializeDependencies(std::shared_ptr<IRenderModule> const&)
 {
     // Do nothing
 }

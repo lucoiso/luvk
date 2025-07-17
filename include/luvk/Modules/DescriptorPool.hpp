@@ -59,7 +59,7 @@ namespace luvk
         }
 
     private: /** Set up any required dependencies */
-        void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
+        void InitializeDependencies(std::shared_ptr<IRenderModule> const&) override;
 
         /** Destroy the internal Vulkan descriptor pool */
         void ClearResources() override;

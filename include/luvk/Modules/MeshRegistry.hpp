@@ -95,7 +95,7 @@ namespace luvk
         }
 
     private:
-        void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
+        void InitializeDependencies(std::shared_ptr<IRenderModule> const&) override;
         void ClearResources() override;
     };
 } // namespace luvk

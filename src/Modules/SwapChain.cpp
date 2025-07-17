@@ -91,7 +91,7 @@ void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& Devi
     }
 }
 
-void luvk::SwapChain::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
+void luvk::SwapChain::InitializeDependencies(std::shared_ptr<IRenderModule> const&)
 {
     // Do nothing
 }

@@ -66,7 +66,7 @@ namespace luvk
         void Worker();
 
         /** Setup dependencies after renderer initialization */
-        void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
+        void InitializeDependencies(std::shared_ptr<IRenderModule> const&) override;
 
         /** Destroy threads and clear remaining tasks */
         void ClearResources() override;

@@ -77,7 +77,7 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
 
     if (m_Renderer)
     {
-        for (auto const& Module : m_Renderer->GetModules())
+        for (auto const& [Index, Module] : m_Renderer->GetModules())
         {
             for (auto const& Ext : Module->GetRequiredDeviceExtensions())
             {

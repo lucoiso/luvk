@@ -43,7 +43,7 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
     {
         Entry.VertexBuffer = std::make_shared<Buffer>();
         Entry.VertexBuffer->CreateBuffer(m_MemoryModule,
-                                         {.Usage = VertexUsage, .Size = std::size(Vertices), .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+                                         {.Size = std::size(Vertices), .Usage = VertexUsage, .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
         Entry.VertexBuffer->Upload(Vertices);
     }
 
@@ -51,7 +51,7 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<std::byte const> Ve
     {
         Entry.IndexBuffer = std::make_shared<Buffer>();
         Entry.IndexBuffer->CreateBuffer(m_MemoryModule,
-                                        {.Usage = IndexUsage, .Size = std::size(Indices), .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+                                        {.Size = std::size(Indices), .Usage = IndexUsage, .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
         Entry.IndexBuffer->Upload(Indices);
     }
 
@@ -152,7 +152,7 @@ void luvk::MeshRegistry::CreateInstanceBuffer(MeshEntry& Entry, const std::span<
 
     Entry.InstanceBuffer = std::make_shared<Buffer>();
     Entry.InstanceBuffer->CreateBuffer(m_MemoryModule,
-                                       {.Usage = VertexUsage, .Size = sizeof(MeshInstance) * std::size(Instances), .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+                                       {.Size = sizeof(MeshInstance) * std::size(Instances), .Usage = VertexUsage, .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
 
     std::vector<MeshInstance> InstanceData;
     InstanceData.reserve(std::size(Instances));
@@ -179,8 +179,8 @@ void luvk::MeshRegistry::UpdateInstances(const std::size_t MeshIndex, const std:
         if (VkDeviceSize const RequiredSize = sizeof(MeshInstance) * std::size(Instances);
             RequiredSize > MeshIt.InstanceBuffer->GetSize())
         {
-            MeshIt.InstanceBuffer->RecreateBuffer({.Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                                                   .Size = RequiredSize,
+            MeshIt.InstanceBuffer->RecreateBuffer({.Size = RequiredSize,
+                                                   .Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                                    .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
         }
 

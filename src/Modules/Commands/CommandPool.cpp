@@ -41,7 +41,7 @@ std::vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(VkDevice const& 
     return Buffers;
 }
 
-void luvk::CommandPool::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
+void luvk::CommandPool::InitializeDependencies(std::shared_ptr<IRenderModule> const&)
 {
     // Do nothing
 }

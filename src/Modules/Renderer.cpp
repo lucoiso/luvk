@@ -37,12 +37,10 @@ void luvk::Renderer::PreInitializeRenderer()
 
 void luvk::Renderer::RegisterModules(std::vector<std::shared_ptr<IRenderModule>>&& Modules)
 {
-    const std::size_t Count = Modules.size();
-    m_RenderModules = std::move(Modules);
     m_ModuleMap.clear();
-    m_ModuleMap.reserve(Count);
+    m_ModuleMap.reserve(Modules.size());
 
-    for (const auto& ModuleIt : m_RenderModules)
+    for (const auto& ModuleIt : Modules)
     {
         m_ModuleMap.emplace(std::type_index(typeid(*ModuleIt)), ModuleIt);
     }
@@ -56,7 +54,7 @@ bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Argumen
     }
 
     void const* FeatureChain = pNext;
-    for (auto const& Module : m_RenderModules)
+    for (auto const& [Index, Module] : m_ModuleMap)
     {
         for (auto const& Ext : Module->GetRequiredInstanceExtensions())
         {
@@ -114,11 +112,11 @@ void luvk::Renderer::PostInitializeRenderer()
 void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
     std::for_each(std::execution::seq,
-                  std::begin(m_RenderModules),
-                  std::end(m_RenderModules),
-                  [this](const auto& ModuleIt)
+                  std::begin(m_ModuleMap),
+                  std::end(m_ModuleMap),
+                  [this](const auto& Pair)
                   {
-                      ModuleIt->InitializeDependencies(shared_from_this());
+                      Pair.second->InitializeDependencies(shared_from_this());
                   });
 }
 
@@ -141,11 +139,11 @@ void luvk::Renderer::ClearResources()
     m_ExternalDestructors.clear();
 
     std::for_each(std::execution::seq,
-                  std::rbegin(m_RenderModules),
-                  std::rend(m_RenderModules),
-                  [this](std::shared_ptr<IRenderModule> const& ModuleIt)
+                  std::begin(m_ModuleMap),
+                  std::end(m_ModuleMap),
+                  [this](const auto& Pair)
                   {
-                      ModuleIt->ClearResources();
+                      Pair.second->ClearResources();
                   });
 
     if (m_Instance != VK_NULL_HANDLE)

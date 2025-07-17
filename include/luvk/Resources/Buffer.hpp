@@ -38,11 +38,11 @@ namespace luvk
         /** Buffer creation information */
         struct CreationArguments
         {
-            /** Usage flags describing how the buffer will be used */
-            VkBufferUsageFlags Usage{};
-
             /** Size in bytes */
             VkDeviceSize Size{0};
+
+            /** Usage flags describing how the buffer will be used */
+            VkBufferUsageFlags Usage{};
 
             /** Desired memory usage */
             VmaMemoryUsage MemoryUsage{VMA_MEMORY_USAGE_AUTO};

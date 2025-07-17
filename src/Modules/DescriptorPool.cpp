@@ -29,7 +29,7 @@ void luvk::DescriptorPool::CreateDescriptorPool(std::shared_ptr<IRenderModule> c
     }
 }
 
-void luvk::DescriptorPool::InitializeDependencies(std::shared_ptr<IRenderModule> const& /*MainRenderer*/)
+void luvk::DescriptorPool::InitializeDependencies(std::shared_ptr<IRenderModule> const&)
 {
     // No-op
 }
