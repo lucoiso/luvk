@@ -563,5 +563,5 @@ void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const 
     }
 
     SyncModule->AdvanceFrame();
-    DeviceModule->WaitIdle(); // TODO : Use fence & semaphore instead device
+    DeviceModule->Wait(GraphicsQueue);
 }
