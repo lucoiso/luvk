@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** CommandBufferPool.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include <volk/volk.h>

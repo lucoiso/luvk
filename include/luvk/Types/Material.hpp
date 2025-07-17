@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** Material.hpp definitions */
 
 #include "luvk/Module.hpp"
 

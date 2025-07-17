@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** MeshDraw.hpp definitions */
 
 #include "luvk/Types/MeshEntry.hpp"
 #include "luvk/Types/Material.hpp"

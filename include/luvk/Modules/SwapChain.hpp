@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** SwapChain.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include "luvk/Subsystems/IRenderModule.hpp"
@@ -50,6 +51,26 @@ namespace luvk
 
         /** Device module used for creation */
         std::shared_ptr<IRenderModule> m_DeviceModule{};
+
+        /** Arguments for the swap chain (re)creation */
+        struct CreationArguments
+        {
+            bool Clip{true};
+            VkSwapchainCreateFlagsKHR Flags{};
+            VkPresentModeKHR PresentMode{VK_PRESENT_MODE_FIFO_KHR};
+            VkSurfaceTransformFlagBitsKHR TransformFlags{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
+            VkFormat Format{VK_FORMAT_R8G8B8A8_UNORM};
+            VkColorSpaceKHR ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+            VkImageUsageFlags UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
+            VkCompositeAlphaFlagBitsKHR CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
+            std::uint32_t ImageCount{1U};
+            VkExtent2D Extent{.width = 0U, .height = 0U};
+            std::vector<std::uint32_t> QueueIndices{};
+        };
+
+        /** Stored creation arguments */
+        CreationArguments m_Arguments{};
+
 
     public:
         constexpr SwapChain() = default;
@@ -128,24 +149,6 @@ namespace luvk
         {
             return nullptr;
         }
-
-        /** Arguments for the swap chain (re) creation */
-        struct CreationArguments
-        {
-            bool Clip{true};
-            VkSwapchainCreateFlagsKHR Flags{};
-            VkPresentModeKHR PresentMode{VK_PRESENT_MODE_FIFO_KHR};
-            VkSurfaceTransformFlagBitsKHR TransformFlags{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
-            VkFormat Format{VK_FORMAT_R8G8B8A8_UNORM};
-            VkColorSpaceKHR ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-            VkImageUsageFlags UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
-            VkCompositeAlphaFlagBitsKHR CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
-            std::uint32_t ImageCount{1U};
-            VkExtent2D Extent{.width = 0U, .height = 0U};
-            std::vector<std::uint32_t> QueueIndices{};
-        };
-
-        CreationArguments m_Arguments{};
 
         /** (Re) Create the Swap Chain */
         void CreateSwapChain(std::shared_ptr<IRenderModule> const& DeviceModule,

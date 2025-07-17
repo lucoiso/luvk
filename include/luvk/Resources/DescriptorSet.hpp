@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** DescriptorSet.hpp definitions */
 
 #include "luvk/Module.hpp"
 

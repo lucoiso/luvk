@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** Functional.hpp definitions */
 
 #include <execution>
 #include <array>

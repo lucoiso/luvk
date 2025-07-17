@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** Extensions.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include "luvk/Libraries/CompileTime.hpp"

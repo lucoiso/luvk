@@ -25,17 +25,17 @@ inline void luvk::Mesh::Draw(const VkCommandBuffer CommandBuffer) const
 inline void luvk::InstancedMesh::SetInstances(std::span<MeshRegistry::InstanceInfo const> Instances)
 {
     m_Instances.assign(std::begin(Instances), std::end(Instances));
-    if (m_Registry)
+    if (auto const& registry = GetRegistry())
     {
-        m_Registry->UpdateInstances(GetIndex(), m_Instances);
+        registry->UpdateInstances(GetIndex(), m_Instances);
     }
 }
 
 inline void luvk::InstancedMesh::AddInstance(MeshRegistry::InstanceInfo const& Instance)
 {
     m_Instances.push_back(Instance);
-    if (m_Registry)
+    if (auto const& registry = GetRegistry())
     {
-        m_Registry->UpdateInstances(GetIndex(), m_Instances);
+        registry->UpdateInstances(GetIndex(), m_Instances);
     }
 }

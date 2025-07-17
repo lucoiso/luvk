@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** Buffer.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include <memory>

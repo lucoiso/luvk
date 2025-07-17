@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
+/** Mesh.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include "luvk/Modules/MeshRegistry.hpp"
@@ -15,7 +16,6 @@ namespace luvk
     /** Non-instanced mesh wrapper */
     class LUVKMODULE_API Mesh
     {
-    protected:
         std::shared_ptr<luvk::MeshRegistry> m_Registry{};
         std::size_t m_Index{};
 
@@ -31,6 +31,12 @@ namespace luvk
         }
 
         void Draw(VkCommandBuffer CommandBuffer) const;
+
+    protected:
+        [[nodiscard]] constexpr std::shared_ptr<luvk::MeshRegistry> const& GetRegistry() const noexcept
+        {
+            return m_Registry;
+        }
     };
 
     /** Instanced mesh wrapper */
