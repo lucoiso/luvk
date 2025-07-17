@@ -90,8 +90,6 @@ void CommandBufferPool::Reset()
     const auto DevicePtr = m_Device;
     const VkDevice DeviceHandle = DevicePtr->GetLogicalDevice();
 
-    // Ensure all submitted command buffers finished execution before resetting
-    vkDeviceWaitIdle(DeviceHandle);
-    vkResetCommandPool(DeviceHandle, m_Pool, 0);
+    vkResetCommandPool(DeviceHandle, m_Pool, VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT);
     m_Free = m_Buffers;
 }

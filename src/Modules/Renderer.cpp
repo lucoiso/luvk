@@ -17,7 +17,7 @@
 #include <thread>
 #include <future>
 
-static bool s_IsVolkInitialized = false;
+static constinit bool s_IsVolkInitialized = false;
 
 luvk::Renderer::~Renderer()
 {
@@ -37,7 +37,15 @@ void luvk::Renderer::PreInitializeRenderer()
 
 void luvk::Renderer::RegisterModules(std::vector<std::shared_ptr<IRenderModule>>&& Modules)
 {
+    const std::size_t Count = Modules.size();
     m_RenderModules = std::move(Modules);
+    m_ModuleMap.clear();
+    m_ModuleMap.reserve(Count);
+
+    for (const auto& ModuleIt : m_RenderModules)
+    {
+        m_ModuleMap.emplace(std::type_index(typeid(*ModuleIt)), ModuleIt);
+    }
 }
 
 bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Arguments, void const* pNext)

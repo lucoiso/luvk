@@ -216,29 +216,5 @@ void luvk::MeshRegistry::InitializeDependencies(std::shared_ptr<IRenderModule> c
 
 void luvk::MeshRegistry::ClearResources()
 {
-    for (auto& MeshIt : m_Meshes)
-    {
-        if (MeshIt.VertexBuffer)
-        {
-            MeshIt.VertexBuffer.reset();
-        }
-        if (MeshIt.IndexBuffer)
-        {
-            MeshIt.IndexBuffer.reset();
-        }
-        if (MeshIt.MaterialPtr)
-        {
-            MeshIt.MaterialPtr.reset();
-        }
-        if (MeshIt.UniformBuffer)
-        {
-            MeshIt.UniformBuffer.reset();
-        }
-        if (MeshIt.InstanceBuffer)
-        {
-            MeshIt.InstanceBuffer.reset();
-        }
-    }
-
     m_Meshes.clear();
 }

@@ -38,8 +38,6 @@ namespace luvk
         /** Depth images for each framebuffer */
         std::vector<std::shared_ptr<luvk::Image>> m_DepthImages{};
 
-        /** Memory for each depth image */
-        std::vector<VkDeviceMemory> m_DepthMemories{};
 
         /** Format used for depth images */
         VkFormat m_DepthFormat{VK_FORMAT_UNDEFINED};

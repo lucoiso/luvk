@@ -294,18 +294,8 @@ void luvk::SwapChain::CreateDepthResources(std::shared_ptr<Device> const& Device
     }
 }
 
-void luvk::SwapChain::DestroyDepthResources(VkDevice const& LogicalDevice)
+void luvk::SwapChain::DestroyDepthResources(VkDevice const& /*LogicalDevice*/)
 {
-    for (auto& MemoryIt : m_DepthMemories)
-    {
-        if (MemoryIt != VK_NULL_HANDLE)
-        {
-            vkFreeMemory(LogicalDevice, MemoryIt, nullptr);
-            MemoryIt = VK_NULL_HANDLE;
-        }
-    }
-
-    m_DepthMemories.clear();
     m_DepthImages.clear();
 }
 

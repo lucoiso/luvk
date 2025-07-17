@@ -14,6 +14,8 @@
 #include <memory>
 #include <functional>
 #include <span>
+#include <unordered_map>
+#include <typeindex>
 
 namespace luvk
 {
@@ -35,6 +37,9 @@ namespace luvk
 
         /** Modules registered to the renderer */
         std::vector<std::shared_ptr<IRenderModule>> m_RenderModules{};
+
+        /** Fast lookup table of registered modules */
+        std::unordered_map<std::type_index, std::shared_ptr<IRenderModule>> m_ModuleMap{};
 
     public:
         constexpr Renderer() = default;
@@ -74,14 +79,11 @@ namespace luvk
         template <typename Type>
         [[nodiscard]] constexpr std::shared_ptr<Type> FindModule() const
         {
-            for (const std::shared_ptr<IRenderModule>& ModuleIt : m_RenderModules)
+            const auto It = m_ModuleMap.find(std::type_index(typeid(Type)));
+            if (It != std::end(m_ModuleMap))
             {
-                if (const std::shared_ptr<Type> CastTarget = std::dynamic_pointer_cast<Type>(ModuleIt))
-                {
-                    return CastTarget;
-                }
+                return std::static_pointer_cast<Type>(It->second);
             }
-
             return nullptr;
         }
 
