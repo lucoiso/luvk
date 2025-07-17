@@ -30,7 +30,9 @@ namespace luvk
 
     class LUVKMODULE_API MeshRegistry : public IRenderModule
     {
-    private: /** Stored mesh entries */
+    private:
+    
+        /** Stored mesh entries */
         std::vector<MeshEntry> m_Meshes{};
 
         /** Memory allocator used by meshes */
@@ -82,16 +84,6 @@ namespace luvk
         [[nodiscard]] constexpr std::span<MeshEntry const> GetMeshes() const
         {
             return {std::data(m_Meshes), std::size(m_Meshes)};
-        }
-
-        [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
         }
 
     private:

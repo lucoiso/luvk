@@ -30,17 +30,9 @@ namespace luvk
             return ToExtensionMap("VK_LAYER_KHRONOS_validation", {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
         }
 
-        [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-    private: /** Initialize the dependencies of this module */
+    private:
+    
+        /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
 
         /** Clear the resources of this module */

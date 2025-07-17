@@ -73,7 +73,9 @@ namespace luvk
         /** Fill the extensions container */
         void FillExtensionsContainer();
 
-    protected: /** Check for available extensions in the given layer */
+    protected:
+    
+        /** Check for available extensions in the given layer */
         [[nodiscard]] virtual std::vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const = 0;
 
         /** Check for available layers and fill the layers container */
@@ -87,7 +89,9 @@ namespace luvk
         constexpr InstanceExtensions() = default;
         ~InstanceExtensions() override = default;
 
-    protected: /** Check for available extensions in the given layer */
+    protected:
+    
+        /** Check for available extensions in the given layer */
         [[nodiscard]] std::vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const override;
 
         /** Check for available layers and fill the layers container */
@@ -110,7 +114,9 @@ namespace luvk
             m_Device = Device;
         }
 
-    protected: /** Check for available extensions in the given layer */
+    protected:
+    
+        /** Check for available extensions in the given layer */
         [[nodiscard]] std::vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const override;
 
         /** Check for available layers and fill the layers container */

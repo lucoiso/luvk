@@ -65,12 +65,18 @@ namespace luvk
          *  \warning The returned pointer must remain valid until the logical
          *  device creation finishes.
          */
-        [[nodiscard]] virtual void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept = 0;
+        [[nodiscard]] virtual void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept
+        {
+            return nullptr;
+        }
 
         /** Optional chain of instance features
          *  \warning The returned pointer must remain valid until the instance
          *  creation finishes.
          */
-        [[nodiscard]] virtual void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept = 0;
+        [[nodiscard]] virtual void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept
+        {
+            return nullptr;
+        }
     };
 } // namespace luvk

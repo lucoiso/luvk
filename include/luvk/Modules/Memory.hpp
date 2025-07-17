@@ -33,7 +33,6 @@ namespace luvk
     public:
         constexpr Memory() = default;
 
-        //~ Begin of IRenderModule interface
         /** Destructor releases the allocator */
         ~Memory() override
         {
@@ -57,26 +56,12 @@ namespace luvk
         /** Query memory usage and log stats. Optionally abort if usage is critical */
         void QueryMemoryStats(bool AbortOnCritical = false) const;
 
-        [[nodiscard]] std::unordered_map<std::string_view, std::vector<std::string_view>> GetRequiredDeviceExtensions() const override
-        {
-            return {};
-        }
-
-        [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const&) const noexcept override
-        {
-            return nullptr;
-        }
-
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-    private: /** Initialize the dependencies of this module */
+    private:
+    
+        /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const&) override;
 
         /** Clear the resources of this module */
         void ClearResources() override;
-        //~ End of IRenderModule interface
     };
 } // namespace luvk

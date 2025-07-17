@@ -31,7 +31,9 @@ namespace luvk
         /** Synchronization primitive for multi-threading */
         std::mutex m_Mutex{};
 
-    public: /** Default constructor */
+    public:
+    
+        /** Default constructor */
         constexpr CommandBufferPool() = default;
 
         /** Destructor */

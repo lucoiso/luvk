@@ -5,7 +5,7 @@
 #pragma once
 
 #include "luvk/Subsystems/IRenderModule.hpp"
-#include "luvk/Resources/Commands/CommandBufferPool.hpp"
+#include "luvk/Resources/CommandBufferPool.hpp"
 #include <volk/volk.h>
 #include <memory>
 #include <vector>
@@ -27,7 +27,9 @@ namespace luvk
             bool Submitted{false};
         };
 
-    private: /** Per-frame data used by the renderer */
+    private:
+    
+        /** Per-frame data used by the renderer */
         std::vector<FrameData> m_Frames{};
 
         /** Semaphores signaled when rendering is finished */
@@ -45,10 +47,11 @@ namespace luvk
         /** Device module used for resource creation */
         std::shared_ptr<IRenderModule> m_DeviceModule{};
 
-    public: /** Default constructor */
+    public:
+
+        /** Default constructor */
         constexpr Synchronization() = default;
 
-        //~ Begin of IRenderModule interface
         /** Virtual destructor */
         ~Synchronization() override = default;
 
@@ -91,29 +94,12 @@ namespace luvk
         /** Advance to the next frame index */
         void AdvanceFrame();
 
-        /** Retrieve required device extensions for this module */
-        [[nodiscard]] std::unordered_map<std::string_view, std::vector<std::string_view>> GetRequiredDeviceExtensions() const override
-        {
-            return {};
-        }
-
-        /** Get the feature chain for device creation */
-        [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-        /** Get the feature chain for instance creation */
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-    private: /** Synchronization module has no dependencies to set up */
+    private:
+    
+        /** Synchronization module has no dependencies to set up */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const&) override {}
 
         /** Release allocated Vulkan objects */
         void ClearResources() override;
-        //~ End of IRenderModule interface
     };
 } // namespace luvk

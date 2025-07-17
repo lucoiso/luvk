@@ -55,7 +55,6 @@ namespace luvk
         /** Depth images for each framebuffer */
         std::vector<std::shared_ptr<luvk::Image>> m_DepthImages{};
 
-
         /** Format used for depth images */
         VkFormat m_DepthFormat{VK_FORMAT_UNDEFINED};
 
@@ -71,11 +70,9 @@ namespace luvk
         /** Stored creation arguments */
         CreationArguments m_Arguments{};
 
-
     public:
         constexpr SwapChain() = default;
 
-        //~ Begin of IRenderModule interface
         ~SwapChain() override
         {
             SwapChain::ClearResources();
@@ -140,14 +137,10 @@ namespace luvk
             return m_Extent;
         }
 
-        [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept override
+        /** Get the creation arguments */
+        [[nodiscard]] constexpr CreationArguments const& GetCreationArguments() const
         {
-            return nullptr;
-        }
-
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
+            return m_Arguments;
         }
 
         /** (Re) Create the Swap Chain */
@@ -165,7 +158,6 @@ namespace luvk
 
         /** Clear the resources of this module */
         void ClearResources() override;
-        //~ End of IRenderModule interface
 
         /** Create the swap chain images */
         void CreateSwapChainImages(VkDevice const& LogicalDevice);

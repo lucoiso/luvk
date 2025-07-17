@@ -41,7 +41,6 @@ namespace luvk
     public:
         constexpr Renderer() = default;
 
-        //~ Begin of IRenderModule interface
         ~Renderer() override;
 
         /** Get associated vulkan instance */
@@ -60,16 +59,6 @@ namespace luvk
         [[nodiscard]] auto const& GetModules() const
         {
             return m_ModuleMap;
-        }
-
-        [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
         }
 
         /** Find module from type */
@@ -152,7 +141,6 @@ namespace luvk
 
         /** Clear the resources of this module */
         void ClearResources() override;
-        //~ End of IRenderModule interface
 
         /** Prepare per-frame resources */
         void SetupFrames() const;

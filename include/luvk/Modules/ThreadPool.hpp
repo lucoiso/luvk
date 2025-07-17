@@ -40,7 +40,6 @@ namespace luvk
     public:
         constexpr ThreadPool() = default;
 
-        //~ Begin of IRenderModule interface
         ~ThreadPool() override;
 
         /** Start the thread pool */
@@ -52,17 +51,9 @@ namespace luvk
         /** Wait until all tasks are processed */
         void WaitIdle();
 
-        [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-    private: /** Worker thread entry */
+    private:
+    
+        /** Worker thread entry */
         void Worker();
 
         /** Setup dependencies after renderer initialization */
@@ -70,6 +61,5 @@ namespace luvk
 
         /** Destroy threads and clear remaining tasks */
         void ClearResources() override;
-        //~ End of IRenderModule interface
     };
 } // namespace luvk

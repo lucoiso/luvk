@@ -29,7 +29,9 @@ namespace luvk
         /** Owning memory module */
         std::shared_ptr<Memory> m_MemoryModule{};
 
-    public: /** Default constructor */
+    public:
+    
+        /** Default constructor */
         constexpr Buffer() = default;
 
         /** Release the buffer and its allocation */

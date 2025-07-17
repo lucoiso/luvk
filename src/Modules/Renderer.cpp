@@ -5,7 +5,7 @@
 #include "luvk/Modules/Renderer.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/SwapChain.hpp"
-#include "luvk/Modules/Commands/CommandPool.hpp"
+#include "luvk/Modules//CommandPool.hpp"
 #include "luvk/Modules/MeshRegistry.hpp"
 #include "luvk/Modules/ThreadPool.hpp"
 #include "luvk/Types/MeshDraw.hpp"
@@ -563,4 +563,5 @@ void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const 
     }
 
     SyncModule->AdvanceFrame();
+    DeviceModule->WaitIdle(); // TODO : Use fence & semaphore instead device
 }

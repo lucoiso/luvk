@@ -37,7 +37,9 @@ namespace luvk
         /** True when this object created the layout */
         bool m_OwnsLayout{false};
 
-    public: /** Default constructor */
+    public:
+    
+        /** Default constructor */
         constexpr DescriptorSet() = default;
 
         /** Destructor cleans up resources */
@@ -85,7 +87,9 @@ namespace luvk
             return m_Set;
         }
 
-    private: /** Release the descriptor set and layout */
+    private:
+    
+        /** Release the descriptor set and layout */
         void Destroy();
     };
 } // namespace luvk

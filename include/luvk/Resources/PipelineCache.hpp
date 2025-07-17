@@ -30,7 +30,9 @@ namespace luvk
         /** Device that owns the caches */
         std::shared_ptr<Device> m_Device{};
 
-    public: /** Default constructor */
+    public:
+    
+        /** Default constructor */
         constexpr PipelineCache() = default;
 
         /** Destructor releases caches */

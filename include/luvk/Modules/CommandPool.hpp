@@ -53,22 +53,9 @@ namespace luvk
             return m_CommandPool;
         }
 
-        [[nodiscard]] std::unordered_map<std::string_view, std::vector<std::string_view>> GetRequiredDeviceExtensions() const override
-        {
-            return {};
-        }
-
-        [[nodiscard]] void const* GetDeviceFeatureChain(std::shared_ptr<IRenderModule> const& DeviceModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-    private: /** Retrieve dependencies after renderer initialization */
+    private:
+    
+        /** Retrieve dependencies after renderer initialization */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const&) override;
 
         /** Destroy the Vulkan command pool */

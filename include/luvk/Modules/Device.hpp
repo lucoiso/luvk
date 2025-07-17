@@ -203,7 +203,6 @@ namespace luvk
             return m_AvailableDevices;
         }
 
-        //~ Begin of IRenderModule interface
         ~Device() override
         {
             Device::ClearResources();
@@ -214,17 +213,13 @@ namespace luvk
             return &m_FeatureChain;
         }
 
-        [[nodiscard]] void const* GetInstanceFeatureChain(std::shared_ptr<IRenderModule> const& RendererModule) const noexcept override
-        {
-            return nullptr;
-        }
-
-    private: /** Initialize the dependencies of this module */
+    private:
+    
+        /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
 
         /** Clear the resources of this module */
         void ClearResources() override;
-        //~ End of IRenderModule interface
 
         /** Get the available devices */
         void FetchAvailableDevices(VkInstance const& Instance);

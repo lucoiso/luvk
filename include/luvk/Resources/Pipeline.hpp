@@ -215,7 +215,9 @@ namespace luvk
             }
         }
 
-    private: /** Destroy the pipeline and layout */
+    private:
+    
+        /** Destroy the pipeline and layout */
         void ClearResources();
     };
 } // namespace luvk

@@ -22,7 +22,9 @@ namespace luvk
         /** Device module used to create the sampler */
         std::shared_ptr<Device> m_DeviceModule{};
 
-    public: /** Default constructor */
+    public:
+    
+        /** Default constructor */
         constexpr Sampler() = default;
 
         /** Destructor releases the sampler */
@@ -46,7 +48,9 @@ namespace luvk
             return m_Sampler;
         }
 
-    private: /** Destroy the sampler */
+    private:
+    
+        /** Destroy the sampler */
         void Destroy();
     };
 } // namespace luvk
