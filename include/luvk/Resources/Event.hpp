@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** Event.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include <cstdint>

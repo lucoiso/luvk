@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** Transform.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include <array>

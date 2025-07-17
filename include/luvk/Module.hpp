@@ -4,7 +4,6 @@
 
 #ifndef LUVKMODULE_H
 #define LUVKMODULE_H
-/** Module.hpp definitions */
 
 #ifdef __GNUC__
       #define LUVKMODULE_API __attribute__((visibility("default")))

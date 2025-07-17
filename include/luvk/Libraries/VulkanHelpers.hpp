@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** VulkanHelpers.hpp definitions */
 
 #include <cstdio>
 

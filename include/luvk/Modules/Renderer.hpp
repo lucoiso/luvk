@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** Renderer.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include "luvk/Subsystems/IRenderModule.hpp"

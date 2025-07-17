@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** Synchronization.hpp definitions */
 
 #include "luvk/Subsystems/IRenderModule.hpp"
 #include "luvk/Resources/Commands/CommandBufferPool.hpp"

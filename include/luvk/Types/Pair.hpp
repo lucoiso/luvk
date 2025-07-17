@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** Pair.hpp definitions */
 
 #include "luvk/Module.hpp"
 

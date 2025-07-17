@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** Mesh.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include "luvk/Modules/MeshRegistry.hpp"

@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** SwapChain.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include "luvk/Subsystems/IRenderModule.hpp"
@@ -12,6 +11,22 @@
 
 namespace luvk
 {
+    /** Parameters used to create the swap chain */
+    struct SwapChainCreationArguments
+    {
+        bool Clip{true};
+        VkSwapchainCreateFlagsKHR Flags{};
+        VkPresentModeKHR PresentMode{VK_PRESENT_MODE_FIFO_KHR};
+        VkSurfaceTransformFlagBitsKHR TransformFlags{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
+        VkFormat Format{VK_FORMAT_R8G8B8A8_UNORM};
+        VkColorSpaceKHR ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+        VkImageUsageFlags UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
+        VkCompositeAlphaFlagBitsKHR CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
+        std::uint32_t ImageCount{1U};
+        VkExtent2D Extent{.width = 0U, .height = 0U};
+        std::vector<std::uint32_t> QueueIndices{};
+    };
+
     /** Swap Chain Event Keys */
     enum class SwapChainEvents : std::uint8_t
     {
@@ -21,6 +36,7 @@ namespace luvk
     /** Render module responsible for the Swap Chain management */
     class LUVKMODULE_API SwapChain : public IRenderModule
     {
+        using CreationArguments = SwapChainCreationArguments;
         /** Current swap chain handle */
         VkSwapchainKHR m_SwapChain{VK_NULL_HANDLE};
 
@@ -51,22 +67,6 @@ namespace luvk
 
         /** Device module used for creation */
         std::shared_ptr<IRenderModule> m_DeviceModule{};
-
-        /** Arguments for the swap chain (re)creation */
-        struct CreationArguments
-        {
-            bool Clip{true};
-            VkSwapchainCreateFlagsKHR Flags{};
-            VkPresentModeKHR PresentMode{VK_PRESENT_MODE_FIFO_KHR};
-            VkSurfaceTransformFlagBitsKHR TransformFlags{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
-            VkFormat Format{VK_FORMAT_R8G8B8A8_UNORM};
-            VkColorSpaceKHR ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-            VkImageUsageFlags UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
-            VkCompositeAlphaFlagBitsKHR CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
-            std::uint32_t ImageCount{1U};
-            VkExtent2D Extent{.width = 0U, .height = 0U};
-            std::vector<std::uint32_t> QueueIndices{};
-        };
 
         /** Stored creation arguments */
         CreationArguments m_Arguments{};

@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #pragma once
-/** IRenderModule.hpp definitions */
 
 #include "luvk/Module.hpp"
 #include "luvk/Resources/Event.hpp"
