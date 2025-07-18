@@ -5,7 +5,7 @@
 #include "luvk/Modules/MeshRegistry.hpp"
 #include <array>
 #include <iterator>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Modules/DescriptorPool.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
@@ -153,7 +153,7 @@ void luvk::MeshRegistry::CreateInstanceBuffer(MeshEntry& Entry, const std::span<
     Entry.InstanceBuffer->CreateBuffer(m_MemoryModule,
                                        {.Size = sizeof(MeshInstance) * std::size(Instances), .Usage = VertexUsage, .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
 
-    std::vector<MeshInstance> InstanceData;
+    luvk::Vector<MeshInstance> InstanceData;
     InstanceData.reserve(std::size(Instances));
 
     for (auto const& Instance : Instances)
@@ -183,7 +183,7 @@ void luvk::MeshRegistry::UpdateInstances(const std::size_t MeshIndex, const std:
                                                    .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
         }
 
-        std::vector<MeshInstance> Data;
+        luvk::Vector<MeshInstance> Data;
         Data.reserve(std::size(Instances));
 
         for (auto const& Instance : Instances)

@@ -24,14 +24,14 @@ void luvk::CommandPool::CreateCommandPool(std::shared_ptr<IRenderModule> const& 
     GetEventSystem().Execute(CommandPoolEvents::OnCreatedPool);
 }
 
-std::vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(VkDevice const& LogicalDevice, std::uint32_t const Count, VkCommandBufferLevel const Level)
+luvk::Vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(VkDevice const& LogicalDevice, std::uint32_t const Count, VkCommandBufferLevel const Level)
 {
     VkCommandBufferAllocateInfo const AllocateInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
                                                    .commandPool = m_CommandPool,
                                                    .level = Level,
                                                    .commandBufferCount = Count};
 
-    std::vector<VkCommandBuffer> Buffers(Count);
+    luvk::Vector<VkCommandBuffer> Buffers(Count);
     if (!LUVK_EXECUTE(vkAllocateCommandBuffers(LogicalDevice, &AllocateInfo, std::data(Buffers))))
     {
         throw std::runtime_error("Failed to allocate command buffers.");

@@ -50,7 +50,7 @@ void luvk::Synchronization::SetupFrames(std::shared_ptr<IRenderModule> const& De
     const VkDevice LogicalDevice = Dev->GetLogicalDevice();
     const std::size_t ImageCount = std::size(Swap->GetImageViews());
 
-    const std::vector<VkCommandBuffer> Buffers = Pool->AllocateBuffers(LogicalDevice, static_cast<std::uint32_t>(ImageCount));
+    const luvk::Vector<VkCommandBuffer> Buffers = Pool->AllocateBuffers(LogicalDevice, static_cast<std::uint32_t>(ImageCount));
 
     m_SecondaryPool.Destroy();
     const std::uint32_t GraphicsFamily = Dev->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();

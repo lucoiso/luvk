@@ -25,7 +25,7 @@ void luvk::RecordMeshCommands(const VkCommandBuffer& Command, MeshEntry const& E
 
     if (BindPoint == VK_PIPELINE_BIND_POINT_GRAPHICS && Pipeline->GetType() == Pipeline::Type::Graphics)
     {
-        std::vector<VkBuffer> Buffers{};
+        luvk::Vector<VkBuffer> Buffers{};
         Buffers.reserve(2U);
 
         if (Entry.VertexBuffer)
@@ -43,7 +43,7 @@ void luvk::RecordMeshCommands(const VkCommandBuffer& Command, MeshEntry const& E
             return;
         }
 
-        const std::vector<VkDeviceSize> Offsets(std::size(Buffers), 0);
+        const luvk::Vector<VkDeviceSize> Offsets(std::size(Buffers), 0);
 
         vkCmdBindVertexBuffers(Command, 0, static_cast<std::int32_t>(std::size(Buffers)), std::data(Buffers), std::data(Offsets));
         if (Entry.IndexBuffer)

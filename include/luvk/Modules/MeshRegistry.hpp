@@ -8,7 +8,7 @@
 #include <iterator>
 #include <memory>
 #include <span>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Module.hpp"
 #include "luvk/Modules/DescriptorPool.hpp"
 #include "luvk/Resources/Buffer.hpp"
@@ -27,7 +27,7 @@ namespace luvk
 
     class LUVKMODULE_API MeshRegistry : public IRenderModule
     {
-        std::vector<MeshEntry> m_Meshes{};
+        luvk::Vector<MeshEntry> m_Meshes{};
         std::shared_ptr<Memory> m_MemoryModule{};
 
     public:

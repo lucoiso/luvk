@@ -6,7 +6,7 @@
 
 #include <memory>
 #include <mutex>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include <volk/volk.h>
 #include "luvk/Module.hpp"
 
@@ -17,8 +17,8 @@ namespace luvk
     class LUVKMODULE_API CommandBufferPool
     {
         VkCommandPool m_Pool{VK_NULL_HANDLE};
-        std::vector<VkCommandBuffer> m_Buffers{};
-        std::vector<VkCommandBuffer> m_Free{};
+        luvk::Vector<VkCommandBuffer> m_Buffers{};
+        luvk::Vector<VkCommandBuffer> m_Free{};
         std::shared_ptr<Device> m_Device{};
         std::mutex m_Mutex{};
 

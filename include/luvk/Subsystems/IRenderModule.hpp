@@ -6,16 +6,17 @@
 
 #include <memory>
 #include <string_view>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
+#include "luvk/Types/UnorderedMap.hpp"
 #include "luvk/Module.hpp"
 #include "luvk/Resources/Event.hpp"
 
 namespace luvk
 {
     template <typename KeyType, typename ValueType>
-    std::unordered_map<std::string_view, std::vector<std::string_view>> ToExtensionMap(KeyType&& Key, std::initializer_list<ValueType>&& Values)
+    luvk::UnorderedMap<std::string_view, luvk::Vector<std::string_view>> ToExtensionMap(KeyType&& Key, std::initializer_list<ValueType>&& Values)
     {
-        std::vector<std::string_view> NewEntries;
+        luvk::Vector<std::string_view> NewEntries;
         NewEntries.reserve(std::size(Values));
 
         for (const auto& ValueIt : Values)
@@ -23,7 +24,7 @@ namespace luvk
             NewEntries.push_back(std::string_view{ValueIt});
         }
 
-        return std::unordered_map<std::string_view, std::vector<std::string_view>>{{std::string_view{Key}, NewEntries}};
+        return luvk::UnorderedMap<std::string_view, luvk::Vector<std::string_view>>{{std::string_view{Key}, NewEntries}};
     }
 
     class LUVKMODULE_API IRenderModule
@@ -42,12 +43,12 @@ namespace luvk
         virtual void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) = 0;
         virtual void ClearResources() = 0;
 
-        [[nodiscard]] virtual std::unordered_map<std::string_view, std::vector<std::string_view>> GetRequiredInstanceExtensions() const
+        [[nodiscard]] virtual luvk::UnorderedMap<std::string_view, luvk::Vector<std::string_view>> GetRequiredInstanceExtensions() const
         {
             return {};
         }
 
-        [[nodiscard]] virtual std::unordered_map<std::string_view, std::vector<std::string_view>> GetRequiredDeviceExtensions() const
+        [[nodiscard]] virtual luvk::UnorderedMap<std::string_view, luvk::Vector<std::string_view>> GetRequiredDeviceExtensions() const
         {
             return {};
         }

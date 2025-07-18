@@ -10,6 +10,7 @@
 #include <span>
 #include "luvk/Module.hpp"
 #include "luvk/Types/Array.hpp"
+#include "luvk/Types/Tuple.hpp"
 
 namespace luvk
 {
@@ -95,7 +96,7 @@ namespace luvk
 
             std::size_t const DataSize = std::distance(std::begin(ConcatenatedDataArray), LastIterator);
 
-            return std::tuple{std::size(InputData), DataSize, ConcatenatedDataArray, DataSizeArray};
+            return luvk::Tuple{std::size(InputData), DataSize, ConcatenatedDataArray, DataSizeArray};
         }();
 
         constexpr auto DataSize = std::get<1>(AllocationResult);

@@ -23,7 +23,7 @@ namespace luvk
             Debug::ClearResources();
         }
 
-        [[nodiscard]] std::unordered_map<std::string_view, std::vector<std::string_view>> GetRequiredInstanceExtensions() const override
+        [[nodiscard]] luvk::UnorderedMap<std::string_view, luvk::Vector<std::string_view>> GetRequiredInstanceExtensions() const override
         {
             return ToExtensionMap("VK_LAYER_KHRONOS_validation", {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
         }

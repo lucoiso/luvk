@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Module.hpp"
 #include "luvk/Resources/Image.hpp"
 #include "luvk/Subsystems/IRenderModule.hpp"
@@ -23,7 +23,7 @@ namespace luvk
         VkCompositeAlphaFlagBitsKHR CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
         std::uint32_t ImageCount{1U};
         VkExtent2D Extent{.width = 0U, .height = 0U};
-        std::vector<std::uint32_t> QueueIndices{};
+        luvk::Vector<std::uint32_t> QueueIndices{};
     };
 
     enum class SwapChainEvents : std::uint8_t
@@ -37,10 +37,10 @@ namespace luvk
 
         VkSwapchainKHR m_SwapChain{VK_NULL_HANDLE};
         VkSwapchainKHR m_PreviousSwapChain{VK_NULL_HANDLE};
-        std::vector<VkImage> m_Images{};
-        std::vector<VkImageView> m_ImageViews{};
-        std::vector<VkFramebuffer> m_Framebuffers{};
-        std::vector<std::shared_ptr<Image>> m_DepthImages{};
+        luvk::Vector<VkImage> m_Images{};
+        luvk::Vector<VkImageView> m_ImageViews{};
+        luvk::Vector<VkFramebuffer> m_Framebuffers{};
+        luvk::Vector<std::shared_ptr<Image>> m_DepthImages{};
         VkFormat m_DepthFormat{VK_FORMAT_UNDEFINED};
         VkRenderPass m_RenderPass{VK_NULL_HANDLE};
         VkExtent2D m_Extent{0U, 0U};
@@ -55,7 +55,7 @@ namespace luvk
             SwapChain::ClearResources();
         }
 
-        [[nodiscard]] std::unordered_map<std::string_view, std::vector<std::string_view>> GetRequiredDeviceExtensions() const override
+        [[nodiscard]] luvk::UnorderedMap<std::string_view, luvk::Vector<std::string_view>> GetRequiredDeviceExtensions() const override
         {
             return ToExtensionMap("", {VK_KHR_SWAPCHAIN_EXTENSION_NAME});
         }
@@ -65,12 +65,12 @@ namespace luvk
             return m_SwapChain;
         }
 
-        [[nodiscard]] constexpr std::vector<VkImage> const& GetImages() const
+        [[nodiscard]] constexpr luvk::Vector<VkImage> const& GetImages() const
         {
             return m_Images;
         }
 
-        [[nodiscard]] constexpr std::vector<VkImageView> const& GetImageViews() const
+        [[nodiscard]] constexpr luvk::Vector<VkImageView> const& GetImageViews() const
         {
             return m_ImageViews;
         }
@@ -85,7 +85,7 @@ namespace luvk
             return m_DepthImages.at(Index);
         }
 
-        [[nodiscard]] constexpr std::vector<std::shared_ptr<Image>> const& GetDepthImages() const
+        [[nodiscard]] constexpr luvk::Vector<std::shared_ptr<Image>> const& GetDepthImages() const
         {
             return m_DepthImages;
         }

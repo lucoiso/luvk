@@ -5,7 +5,7 @@
 #pragma once
 
 #include <memory>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Module.hpp"
 #include "luvk/Modules/MeshRegistry.hpp"
 
@@ -38,7 +38,7 @@ namespace luvk
 
     class LUVKMODULE_API InstancedMesh : public Mesh
     {
-        std::vector<MeshRegistry::InstanceInfo> m_Instances{};
+        luvk::Vector<MeshRegistry::InstanceInfo> m_Instances{};
 
     public:
         using Mesh::Mesh;

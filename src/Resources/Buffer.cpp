@@ -8,6 +8,7 @@
 #include "luvk/Modules/Renderer.hpp"
 
 #include <iterator>
+#include <cstring>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 
 void luvk::Buffer::CreateBuffer(std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments)

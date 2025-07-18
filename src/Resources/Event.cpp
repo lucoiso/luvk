@@ -38,7 +38,7 @@ void luvk::EventGraph::AddNode(EventNode&& Node, std::size_t const Key)
     }
     else
     {
-        m_Nodes.emplace(Key, std::vector{std::move(Node)});
+        m_Nodes.emplace(Key, luvk::Vector{std::move(Node)});
     }
 }
 
@@ -49,7 +49,7 @@ void luvk::EventGraph::Execute(std::size_t const Key)
         bool EmptyNode = false;
 
         {
-            std::vector<EventNode>& Nodes = m_Nodes.at(Key);
+            luvk::Vector<EventNode>& Nodes = m_Nodes.at(Key);
 
             std::erase_if(Nodes,
                           [](EventNode& NodeIt)

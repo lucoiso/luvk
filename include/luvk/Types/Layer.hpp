@@ -7,6 +7,7 @@
 #include <string>
 #include "luvk/Module.hpp"
 #include "luvk/Types/Pair.hpp"
+#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
@@ -14,6 +15,6 @@ namespace luvk
     {
         bool Enabled{};
         std::string Name{};
-        std::vector<Pair<std::string, bool>> Extensions;
+        luvk::Vector<Pair<std::string, bool>> Extensions;
     };
 } // namespace luvk

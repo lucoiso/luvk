@@ -6,8 +6,8 @@
 
 #include <cstdint>
 #include <functional>
-#include <map>
-#include <vector>
+#include "luvk/Types/Map.hpp"
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Module.hpp"
 
 namespace luvk
@@ -16,7 +16,7 @@ namespace luvk
     {
         bool m_OneTime{false};
         std::function<void()> m_Binding{};
-        std::vector<EventNode> m_SubNodes{};
+        luvk::Vector<EventNode> m_SubNodes{};
 
     public:
         constexpr EventNode() = default;
@@ -39,7 +39,7 @@ namespace luvk
 
     class LUVKMODULE_API EventGraph
     {
-        std::map<std::size_t, std::vector<EventNode>> m_Nodes{};
+        luvk::Map<std::size_t, luvk::Vector<EventNode>> m_Nodes{};
 
     public:
         constexpr EventGraph() = default;
