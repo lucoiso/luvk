@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <cstddef>
+#include <concepts>
 #include "luvk/Module.hpp"
 
 namespace luvk
@@ -12,7 +13,9 @@ namespace luvk
         using base = std::vector<T, Allocator>;
 
     public:
-        Vector()
+        using base::base;
+
+        Vector() requires std::default_initializable<T>
         {
             if constexpr (Capacity > 0U)
             {
@@ -20,9 +23,7 @@ namespace luvk
             }
         }
 
-        explicit Vector(std::size_t const Count, T const& Value = T{}) : base(Count, Value) {}
-
-        explicit Vector(std::initializer_list<T> const Init) : base(Init)
+        explicit Vector(std::initializer_list<T> const Init) requires std::copy_constructible<T> : base(Init)
         {
             if constexpr (Capacity > 0U)
             {
@@ -31,6 +32,9 @@ namespace luvk
         }
 
         template <typename... Args>
-        explicit Vector(Args&&... ArgsIn) : base(std::forward<Args>(ArgsIn)...) {}
+            requires std::constructible_from<base, Args...>
+        explicit Vector(Args&&... ArgsIn) : base(std::forward<Args>(ArgsIn)...) 
+        {
+        }
     };
 } // namespace luvk

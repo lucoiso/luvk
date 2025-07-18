@@ -6,6 +6,7 @@
 
 #include <cstdint>
 #include <functional>
+#include <memory>
 #include "luvk/Types/Map.hpp"
 #include "luvk/Types/Vector.hpp"
 #include "luvk/Module.hpp"
@@ -16,7 +17,7 @@ namespace luvk
     {
         bool m_OneTime{false};
         std::function<void()> m_Binding{};
-        luvk::Vector<EventNode> m_SubNodes{};
+        luvk::Vector<std::shared_ptr<EventNode>> m_SubNodes{};
 
     public:
         constexpr EventNode() = default;

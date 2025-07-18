@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Event.hpp"
+#include <memory>
 
 void luvk::EventNode::operator()()
 {
@@ -12,10 +13,10 @@ void luvk::EventNode::operator()()
     }
 
     std::erase_if(m_SubNodes,
-                  [](EventNode& NodeIt)
+                  [](std::shared_ptr<EventNode>& NodeIt)
                   {
-                      NodeIt();
-                      return NodeIt.IsOneTime();
+                      (*NodeIt)();
+                      return NodeIt->IsOneTime();
                   });
 }
 
@@ -26,7 +27,7 @@ luvk::EventNode luvk::EventNode::NewNode(std::function<void()>&& Function, bool 
 
 luvk::EventNode& luvk::EventNode::Then(std::function<void()>&& Function, bool const OneTime)
 {
-    m_SubNodes.emplace_back(std::move(Function), OneTime);
+    m_SubNodes.emplace_back(std::make_shared<EventNode>(std::move(Function), OneTime));
     return *this;
 }
 
