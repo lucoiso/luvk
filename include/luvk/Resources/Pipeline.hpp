@@ -6,7 +6,7 @@
 
 #include <memory>
 #include <span>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include <volk/volk.h>
 #include "luvk/Module.hpp"
 
@@ -36,7 +36,7 @@ namespace luvk
         VkPipeline m_Pipeline{VK_NULL_HANDLE};
 
         /** Push constant ranges associated with this pipeline */
-        std::vector<VkPushConstantRange> m_PushConstants{};
+        luvk::Vector<VkPushConstantRange> m_PushConstants{};
 
         /** Device used to create the pipeline */
         std::shared_ptr<Device> m_DeviceModule{};

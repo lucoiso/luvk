@@ -71,7 +71,7 @@ void luvk::Device::SetSurface(VkSurfaceKHR const& Surface)
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &NumFormats, std::data(m_SurfaceFormat));
 }
 
-void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, void const* pNext)
+void luvk::Device::CreateLogicalDevice(luvk::UnorderedMap<std::uint32_t, std::uint32_t>&& QueueIndices, void const* pNext)
 {
     void const* FeatureChain = pNext;
 
@@ -81,11 +81,11 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
         {
             for (auto const& Ext : Module->GetRequiredDeviceExtensions())
             {
-                m_Extensions.SetLayerState(Ext.first, true);
+                m_Extensions.SetLayerState(Ext.First, true);
 
-                for (std::string_view const ExtensionIt : Ext.second)
+                for (std::string_view const ExtensionIt : Ext.Second)
                 {
-                    m_Extensions.SetExtensionState(Ext.first, ExtensionIt, true);
+                    m_Extensions.SetExtensionState(Ext.First, ExtensionIt, true);
                 }
             }
 
@@ -109,9 +109,9 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
         m_Extensions.SetExtensionState("", VK_KHR_SWAPCHAIN_EXTENSION_NAME, true);
     }
 
-    auto const QueueFamilyIndices = QueueIndices | std::views::keys;
-    std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
-    QueueCreateInfos.reserve(std::size(QueueFamilyIndices));
+    auto const NumFamilies = QueueIndices.size();
+    luvk::Vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
+    QueueCreateInfos.reserve(NumFamilies);
 
     for (auto const& [Index, Num] : QueueIndices)
     {
@@ -123,8 +123,8 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
                                                            .pQueuePriorities = std::data(Priorities)});
     }
 
-    std::vector<const char*> Extensions = m_Extensions.GetEnabledExtensionsNames();
-    std::vector<const char*> Layers = m_Extensions.GetEnabledLayersNames();
+    luvk::Vector<const char*> Extensions = m_Extensions.GetEnabledExtensionsNames();
+    luvk::Vector<const char*> Layers = m_Extensions.GetEnabledLayersNames();
 
     const VkDeviceCreateInfo DeviceCreateInfo{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
                                               .pNext = const_cast<void*>(FeatureChain),
@@ -145,7 +145,7 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
 
     for (VkDeviceQueueCreateInfo const& QueueCreateInfoIt : QueueCreateInfos)
     {
-        std::vector<VkQueue> QueueList(QueueCreateInfoIt.queueCount);
+        luvk::Vector<VkQueue> QueueList(QueueCreateInfoIt.queueCount);
 
         for (std::uint32_t Index = 0U; Index < QueueCreateInfoIt.queueCount;
              ++Index)
@@ -210,9 +210,9 @@ VkQueue luvk::Device::GetQueue(std::uint32_t const FamilyIndex, std::uint32_t co
 
         It != std::end(m_Queues))
     {
-        if (QueueIndex < std::size(It->second))
+        if (QueueIndex < std::size(It->Second))
         {
-            return It->second.at(QueueIndex);
+            return It->Second.at(QueueIndex);
         }
     }
 

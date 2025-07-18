@@ -5,7 +5,7 @@
 #include "luvk/Resources/Pipeline.hpp"
 #include <array>
 #include <iterator>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Resources/PipelineCache.hpp"
@@ -264,7 +264,7 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
         FragModule = CreateShader(LogicalDevice, Arguments.FragmentShader);
     }
 
-    std::vector<VkPipelineShaderStageCreateInfo> Stages{};
+    luvk::Vector<VkPipelineShaderStageCreateInfo> Stages{};
     if (TaskModule != VK_NULL_HANDLE)
     {
         Stages.push_back({.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,

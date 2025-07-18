@@ -7,7 +7,7 @@
 #include <array>
 #include <cstdint>
 #include <memory>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Module.hpp"
 
 namespace luvk
@@ -29,7 +29,7 @@ namespace luvk
         std::shared_ptr<Buffer> UniformBuffer{};
         std::shared_ptr<Buffer> InstanceBuffer{};
         std::shared_ptr<Material> MaterialPtr{};
-        std::vector<std::byte> UniformCache{};
+        luvk::Vector<std::byte> UniformCache{};
         std::uint32_t IndexCount{};
         std::uint32_t InstanceCount{};
         std::uint32_t DispatchX{1};

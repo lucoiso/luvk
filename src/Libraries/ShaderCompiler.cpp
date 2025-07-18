@@ -28,7 +28,7 @@ void luvk::FinalizeGlslang()
     }
 }
 
-std::vector<std::uint32_t> luvk::CompileGLSLToSPIRV(std::string_view const Source, EShLanguage const Stage, std::string_view const EntryPoint)
+luvk::Vector<std::uint32_t> luvk::CompileGLSLToSPIRV(std::string_view const Source, EShLanguage const Stage, std::string_view const EntryPoint)
 {
     const char* ShaderStr = std::data(Source);
 
@@ -55,7 +55,7 @@ std::vector<std::uint32_t> luvk::CompileGLSLToSPIRV(std::string_view const Sourc
         throw std::runtime_error(Program.getInfoLog());
     }
 
-    std::vector<std::uint32_t> Spirv{};
+    luvk::Vector<std::uint32_t> Spirv{};
     glslang::SpvOptions Options{};
     glslang::GlslangToSpv(*Program.getIntermediate(Stage), Spirv, &Options);
     return Spirv;

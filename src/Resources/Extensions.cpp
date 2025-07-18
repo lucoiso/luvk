@@ -58,9 +58,9 @@ void luvk::IExtensions::SetExtensionState(std::string_view const FromLayer, std:
     throw std::runtime_error("Unavailable extension: " + std::string(Extension));
 }
 
-std::vector<const char*> luvk::IExtensions::GetEnabledLayersNames() const
+luvk::Vector<const char*> luvk::IExtensions::GetEnabledLayersNames() const
 {
-    std::vector<const char*> Output{};
+    luvk::Vector<const char*> Output{};
     Output.reserve(g_ReservationSize);
 
     for (auto const& [Enabled, Name, Extensions] : m_Layers)
@@ -78,9 +78,9 @@ std::vector<const char*> luvk::IExtensions::GetEnabledLayersNames() const
     return Output;
 }
 
-std::vector<const char*> luvk::IExtensions::GetEnabledExtensionsNames() const
+luvk::Vector<const char*> luvk::IExtensions::GetEnabledExtensionsNames() const
 {
-    std::vector<const char*> Output{};
+    luvk::Vector<const char*> Output{};
     Output.reserve(g_ReservationSize);
 
     for (auto const& [LayerEnabled, LayerName, LayerExtensions] : m_Layers)
@@ -114,14 +114,14 @@ void luvk::IExtensions::FillExtensionsContainer()
     }
     m_Layers.reserve(g_ReservationSize);
 
-    std::vector<VkLayerProperties> const AvailableProperties = FetchAvailableLayers();
+    luvk::Vector<VkLayerProperties> const AvailableProperties = FetchAvailableLayers();
 
     std::for_each(std::execution::unseq,
                   std::begin(AvailableProperties),
                   std::end(AvailableProperties),
                   [this](VkLayerProperties const& Iterator)
                   {
-                      std::vector<VkExtensionProperties> const AvailableExtensions = FetchAvailableLayerExtensions(Iterator.layerName);
+                      luvk::Vector<VkExtensionProperties> const AvailableExtensions = FetchAvailableLayerExtensions(Iterator.layerName);
 
                       Layer NewLayer{.Name = Iterator.layerName, .Extensions = {}};
                       NewLayer.Extensions.reserve(g_ReservationSize);
@@ -138,45 +138,45 @@ void luvk::IExtensions::FillExtensionsContainer()
                   });
 }
 
-std::vector<VkExtensionProperties> luvk::InstanceExtensions::FetchAvailableLayerExtensions(std::string_view const LayerName) const
+luvk::Vector<VkExtensionProperties> luvk::InstanceExtensions::FetchAvailableLayerExtensions(std::string_view const LayerName) const
 {
     std::uint32_t NumExtensions = 0U;
     vkEnumerateInstanceExtensionProperties(std::data(LayerName), &NumExtensions, nullptr);
 
-    std::vector<VkExtensionProperties> ExtensionProperties(NumExtensions);
+    luvk::Vector<VkExtensionProperties> ExtensionProperties(NumExtensions);
     vkEnumerateInstanceExtensionProperties(std::data(LayerName), &NumExtensions, std::data(ExtensionProperties));
 
     return ExtensionProperties;
 }
 
-std::vector<VkLayerProperties> luvk::InstanceExtensions::FetchAvailableLayers() const
+luvk::Vector<VkLayerProperties> luvk::InstanceExtensions::FetchAvailableLayers() const
 {
     std::uint32_t NumLayers = 0U;
     vkEnumerateInstanceLayerProperties(&NumLayers, nullptr);
 
-    std::vector<VkLayerProperties> Output(NumLayers + 1U);
+    luvk::Vector<VkLayerProperties> Output(NumLayers + 1U);
     vkEnumerateInstanceLayerProperties(&NumLayers, std::data(Output));
 
     return Output;
 }
 
-std::vector<VkExtensionProperties> luvk::DeviceExtensions::FetchAvailableLayerExtensions(std::string_view const LayerName) const
+luvk::Vector<VkExtensionProperties> luvk::DeviceExtensions::FetchAvailableLayerExtensions(std::string_view const LayerName) const
 {
     std::uint32_t NumExtensions = 0U;
     vkEnumerateDeviceExtensionProperties(m_Device, std::data(LayerName), &NumExtensions, nullptr);
 
-    std::vector<VkExtensionProperties> ExtensionProperties(NumExtensions);
+    luvk::Vector<VkExtensionProperties> ExtensionProperties(NumExtensions);
     vkEnumerateDeviceExtensionProperties(m_Device, std::data(LayerName), &NumExtensions, std::data(ExtensionProperties));
 
     return ExtensionProperties;
 }
 
-std::vector<VkLayerProperties> luvk::DeviceExtensions::FetchAvailableLayers() const
+luvk::Vector<VkLayerProperties> luvk::DeviceExtensions::FetchAvailableLayers() const
 {
     std::uint32_t NumLayers = 0U;
     vkEnumerateDeviceLayerProperties(m_Device, &NumLayers, nullptr);
 
-    std::vector<VkLayerProperties> Output(NumLayers + 1U);
+    luvk::Vector<VkLayerProperties> Output(NumLayers + 1U);
     vkEnumerateDeviceLayerProperties(m_Device, &NumLayers, std::data(Output));
 
     return Output;

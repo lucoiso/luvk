@@ -6,7 +6,8 @@
 
 #include <cstdint>
 #include <optional>
-#include <unordered_map>
+#include "luvk/Types/Vector.hpp"
+#include "luvk/Types/UnorderedMap.hpp"
 #include <volk/volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Resources/Extensions.hpp"
@@ -28,7 +29,7 @@ namespace luvk
         VkPhysicalDevice m_PhysicalDevice{VK_NULL_HANDLE};
         VkSurfaceKHR m_Surface{VK_NULL_HANDLE};
         DeviceExtensions m_Extensions{};
-        std::vector<VkPhysicalDevice> m_AvailableDevices{};
+        luvk::Vector<VkPhysicalDevice> m_AvailableDevices{};
         VkPhysicalDeviceFeatures2 m_FeatureChain{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
         VkPhysicalDeviceFeatures& m_DeviceFeatures = m_FeatureChain.features;
         VkPhysicalDeviceVulkan11Features m_Vulkan11Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
@@ -36,9 +37,9 @@ namespace luvk
         VkPhysicalDeviceVulkan13Features m_Vulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
         VkPhysicalDeviceVulkan14Features m_Vulkan14Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
         VkPhysicalDeviceProperties m_DeviceProperties{};
-        std::vector<VkSurfaceFormatKHR> m_SurfaceFormat{};
-        std::vector<VkQueueFamilyProperties> m_DeviceQueueFamilyProperties{};
-        std::unordered_map<std::uint32_t, std::vector<VkQueue>> m_Queues{};
+        luvk::Vector<VkSurfaceFormatKHR> m_SurfaceFormat{};
+        luvk::Vector<VkQueueFamilyProperties> m_DeviceQueueFamilyProperties{};
+        luvk::UnorderedMap<std::uint32_t, luvk::Vector<VkQueue>> m_Queues{};
         VkInstance m_Instance{VK_NULL_HANDLE};
         std::shared_ptr<Renderer> m_Renderer{nullptr};
 
@@ -49,7 +50,7 @@ namespace luvk
         void SetPhysicalDevice(std::uint8_t Index);
         void SetPhysicalDevice(VkPhysicalDeviceType Type);
         void SetSurface(VkSurfaceKHR const& Surface);
-        void CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, void const* pNext);
+        void CreateLogicalDevice(luvk::UnorderedMap<std::uint32_t, std::uint32_t>&& QueueIndices, void const* pNext);
 
         [[nodiscard]] constexpr VkDevice const& GetLogicalDevice() const
         {
@@ -66,7 +67,7 @@ namespace luvk
             return m_Surface;
         }
 
-        [[nodiscard]] constexpr std::vector<VkSurfaceFormatKHR> const& GetSurfaceFormat() const
+        [[nodiscard]] constexpr luvk::Vector<VkSurfaceFormatKHR> const& GetSurfaceFormat() const
         {
             return m_SurfaceFormat;
         }
@@ -113,12 +114,12 @@ namespace luvk
                 VK_API_VERSION_MINOR(m_DeviceProperties.apiVersion) >= Minor);
         }
 
-        [[nodiscard]] constexpr std::vector<VkQueueFamilyProperties> const& GetDeviceQueueFamilyProperties() const
+        [[nodiscard]] constexpr luvk::Vector<VkQueueFamilyProperties> const& GetDeviceQueueFamilyProperties() const
         {
             return m_DeviceQueueFamilyProperties;
         }
 
-        [[nodiscard]] constexpr std::unordered_map<std::uint32_t, std::vector<VkQueue>> const& GetQueues() const
+        [[nodiscard]] constexpr luvk::UnorderedMap<std::uint32_t, luvk::Vector<VkQueue>> const& GetQueues() const
         {
             return m_Queues;
         }
@@ -134,7 +135,7 @@ namespace luvk
         void Wait(VkQueue Queue) const;
         void Wait(VkFence Fence, VkBool32 WaitAll = VK_TRUE, std::uint64_t Timeout = UINT64_MAX) const;
 
-        [[nodiscard]] constexpr std::vector<VkPhysicalDevice> const& GetAvailableDevices()
+        [[nodiscard]] constexpr luvk::Vector<VkPhysicalDevice> const& GetAvailableDevices()
         {
             return m_AvailableDevices;
         }

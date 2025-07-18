@@ -35,7 +35,7 @@ void luvk::Renderer::PreInitializeRenderer()
     m_Extensions.FillExtensionsContainer();
 }
 
-void luvk::Renderer::RegisterModules(std::vector<std::shared_ptr<IRenderModule>>&& Modules)
+void luvk::Renderer::RegisterModules(luvk::Vector<std::shared_ptr<IRenderModule>>&& Modules)
 {
     m_ModuleMap.clear();
     m_ModuleMap.reserve(Modules.size());
@@ -58,11 +58,11 @@ bool luvk::Renderer::InitializeRenderer(InstanceCreationArguments const& Argumen
     {
         for (auto const& Ext : Module->GetRequiredInstanceExtensions())
         {
-            m_Extensions.SetLayerState(Ext.first, true);
+            m_Extensions.SetLayerState(Ext.First, true);
 
-            for (std::string_view const ExtensionIt : Ext.second)
+            for (std::string_view const ExtensionIt : Ext.Second)
             {
-                m_Extensions.SetExtensionState(Ext.first, ExtensionIt, true);
+                m_Extensions.SetExtensionState(Ext.First, ExtensionIt, true);
             }
         }
 
@@ -116,7 +116,7 @@ void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const
                   std::end(m_ModuleMap),
                   [this](const auto& Pair)
                   {
-                      Pair.second->InitializeDependencies(shared_from_this());
+                      Pair.Second->InitializeDependencies(shared_from_this());
                   });
 }
 
@@ -141,7 +141,7 @@ void luvk::Renderer::ClearResources()
                   std::end(m_ModuleMap),
                   [this](const auto& Pair)
                   {
-                      Pair.second->ClearResources();
+                      Pair.Second->ClearResources();
                   });
 
     if (m_Instance != VK_NULL_HANDLE)

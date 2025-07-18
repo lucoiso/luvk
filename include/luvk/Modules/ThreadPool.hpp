@@ -9,7 +9,7 @@
 #include <mutex>
 #include <queue>
 #include <thread>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Module.hpp"
 #include "luvk/Subsystems/IRenderModule.hpp"
 
@@ -17,7 +17,7 @@ namespace luvk
 {
     class LUVKMODULE_API ThreadPool : public IRenderModule
     {
-        std::vector<std::thread> m_Threads{};
+        luvk::Vector<std::thread> m_Threads{};
         std::queue<std::function<void()>> m_Tasks{};
         std::mutex m_Mutex{};
         std::condition_variable m_Condition{};

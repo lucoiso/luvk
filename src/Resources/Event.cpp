@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Event.hpp"
+#include <memory>
 
 void luvk::EventNode::operator()()
 {
@@ -12,10 +13,10 @@ void luvk::EventNode::operator()()
     }
 
     std::erase_if(m_SubNodes,
-                  [](EventNode& NodeIt)
+                  [](std::shared_ptr<EventNode>& NodeIt)
                   {
-                      NodeIt();
-                      return NodeIt.IsOneTime();
+                      (*NodeIt)();
+                      return NodeIt->IsOneTime();
                   });
 }
 
@@ -26,11 +27,11 @@ luvk::EventNode luvk::EventNode::NewNode(std::function<void()>&& Function, bool 
 
 luvk::EventNode& luvk::EventNode::Then(std::function<void()>&& Function, bool const OneTime)
 {
-    m_SubNodes.emplace_back(std::move(Function), OneTime);
+    m_SubNodes.emplace_back(std::make_shared<EventNode>(std::move(Function), OneTime));
     return *this;
 }
 
-void luvk::EventGraph::AddNode(EventNode&& Node, std::size_t const Key)
+void luvk::EventGraph::AddNode(std::shared_ptr<EventNode> Node, std::size_t const Key)
 {
     if (m_Nodes.contains(Key))
     {
@@ -38,7 +39,7 @@ void luvk::EventGraph::AddNode(EventNode&& Node, std::size_t const Key)
     }
     else
     {
-        m_Nodes.emplace(Key, std::vector{std::move(Node)});
+        m_Nodes.emplace(Key, luvk::Vector{std::move(Node)});
     }
 }
 
@@ -49,13 +50,13 @@ void luvk::EventGraph::Execute(std::size_t const Key)
         bool EmptyNode = false;
 
         {
-            std::vector<EventNode>& Nodes = m_Nodes.at(Key);
+            luvk::Vector<std::shared_ptr<EventNode>>& Nodes = m_Nodes.at(Key);
 
             std::erase_if(Nodes,
-                          [](EventNode& NodeIt)
+                          [](std::shared_ptr<EventNode>& NodeIt)
                           {
-                              NodeIt();
-                              return NodeIt.IsOneTime();
+                              (*NodeIt)();
+                              return NodeIt->IsOneTime();
                           });
 
             EmptyNode = std::empty(Nodes);

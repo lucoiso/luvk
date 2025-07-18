@@ -6,7 +6,7 @@
 
 #include <iterator>
 #include <memory>
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include <volk/volk.h>
 #include "luvk/Resources/CommandBufferPool.hpp"
 #include "luvk/Subsystems/IRenderModule.hpp"
@@ -19,15 +19,15 @@ namespace luvk
         struct FrameData
         {
             VkCommandBuffer CommandBuffer{VK_NULL_HANDLE};
-            std::vector<VkCommandBuffer> SecondaryBuffers{};
+            luvk::Vector<VkCommandBuffer> SecondaryBuffers{};
             VkSemaphore ImageAvailable{VK_NULL_HANDLE};
             VkFence InFlight{VK_NULL_HANDLE};
             bool Submitted{false};
         };
 
     private:
-        std::vector<FrameData> m_Frames{};
-        std::vector<VkSemaphore> m_RenderFinished{};
+        luvk::Vector<FrameData> m_Frames{};
+        luvk::Vector<VkSemaphore> m_RenderFinished{};
         CommandBufferPool m_SecondaryPool{};
         std::size_t m_CurrentFrame{0};
         std::size_t m_ThreadCount{1};

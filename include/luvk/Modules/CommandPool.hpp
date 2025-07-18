@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <vector>
+#include "luvk/Types/Vector.hpp"
 #include <volk/volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Subsystems/IRenderModule.hpp"
@@ -19,7 +19,7 @@ namespace luvk
     class LUVKMODULE_API CommandPool : public IRenderModule
     {
         VkCommandPool m_CommandPool{VK_NULL_HANDLE};
-        std::vector<VkCommandBuffer> m_Buffers{};
+        luvk::Vector<VkCommandBuffer> m_Buffers{};
         std::shared_ptr<IRenderModule> m_DeviceModule{};
 
     public:
@@ -34,7 +34,7 @@ namespace luvk
                                std::uint32_t QueueFamilyIndex,
                                VkCommandPoolCreateFlags Flags);
 
-        [[nodiscard]] std::vector<VkCommandBuffer> AllocateBuffers(VkDevice const& LogicalDevice,
+        [[nodiscard]] luvk::Vector<VkCommandBuffer> AllocateBuffers(VkDevice const& LogicalDevice,
                                                                    std::uint32_t Count,
                                                                    VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 

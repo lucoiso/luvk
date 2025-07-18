@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <iterator>
 #include <span>
+#include <cstring>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"

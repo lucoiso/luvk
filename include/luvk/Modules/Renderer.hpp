@@ -8,8 +8,8 @@
 #include <memory>
 #include <span>
 #include <typeindex>
-#include <unordered_map>
-#include <vector>
+#include "luvk/Types/UnorderedMap.hpp"
+#include "luvk/Types/Vector.hpp"
 #include "luvk/Module.hpp"
 #include "luvk/Modules/Memory.hpp"
 #include "luvk/Modules/Synchronization.hpp"
@@ -28,9 +28,9 @@ namespace luvk
     {
         VkInstance m_Instance{VK_NULL_HANDLE};
         InstanceExtensions m_Extensions{};
-        std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
-        std::vector<std::function<void()>> m_ExternalDestructors{};
-        std::unordered_map<std::type_index, std::shared_ptr<IRenderModule>> m_ModuleMap{};
+        luvk::Vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
+        luvk::Vector<std::function<void()>> m_ExternalDestructors{};
+        luvk::UnorderedMap<std::type_index, std::shared_ptr<IRenderModule>> m_ModuleMap{};
         bool m_Paused{false};
 
     public:
@@ -59,13 +59,13 @@ namespace luvk
             const auto It = m_ModuleMap.find(std::type_index(typeid(Type)));
             if (It != std::end(m_ModuleMap))
             {
-                return std::static_pointer_cast<Type>(It->second);
+                return std::static_pointer_cast<Type>(It->Second);
             }
             return nullptr;
         }
 
         void PreInitializeRenderer();
-        void RegisterModules(std::vector<std::shared_ptr<IRenderModule>>&& Modules);
+        void RegisterModules(luvk::Vector<std::shared_ptr<IRenderModule>>&& Modules);
 
         struct InstanceCreationArguments
         {
