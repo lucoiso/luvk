@@ -31,7 +31,7 @@ luvk::EventNode& luvk::EventNode::Then(std::function<void()>&& Function, bool co
     return *this;
 }
 
-void luvk::EventGraph::AddNode(EventNode&& Node, std::size_t const Key)
+void luvk::EventGraph::AddNode(std::shared_ptr<EventNode> Node, std::size_t const Key)
 {
     if (m_Nodes.contains(Key))
     {
@@ -50,13 +50,13 @@ void luvk::EventGraph::Execute(std::size_t const Key)
         bool EmptyNode = false;
 
         {
-            luvk::Vector<EventNode>& Nodes = m_Nodes.at(Key);
+            luvk::Vector<std::shared_ptr<EventNode>>& Nodes = m_Nodes.at(Key);
 
             std::erase_if(Nodes,
-                          [](EventNode& NodeIt)
+                          [](std::shared_ptr<EventNode>& NodeIt)
                           {
-                              NodeIt();
-                              return NodeIt.IsOneTime();
+                              (*NodeIt)();
+                              return NodeIt->IsOneTime();
                           });
 
             EmptyNode = std::empty(Nodes);

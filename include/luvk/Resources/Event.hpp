@@ -40,16 +40,16 @@ namespace luvk
 
     class LUVKMODULE_API EventGraph
     {
-        luvk::Map<std::size_t, luvk::Vector<EventNode>> m_Nodes{};
+        luvk::Map<std::size_t, luvk::Vector<std::shared_ptr<EventNode>>> m_Nodes{};
 
     public:
         constexpr EventGraph() = default;
         ~EventGraph() = default;
 
-        void AddNode(EventNode&& Node, std::size_t Key);
+        void AddNode(std::shared_ptr<EventNode> Node, std::size_t Key);
 
         template <typename KeyType> requires std::is_enum_v<KeyType>
-        constexpr void AddNode(EventNode&& Node, KeyType Key)
+        constexpr void AddNode(std::shared_ptr<EventNode> Node, KeyType Key)
         {
             AddNode(std::move(Node), static_cast<std::size_t>(Key));
         }
