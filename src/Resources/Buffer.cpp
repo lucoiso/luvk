@@ -3,13 +3,12 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Buffer.hpp"
-#include "luvk/Modules/Renderer.hpp"
-#include "luvk/Modules/Memory.hpp"
 #include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/Memory.hpp"
+#include "luvk/Modules/Renderer.hpp"
 
-#include "luvk/Libraries/VulkanHelpers.hpp"
 #include <iterator>
-#include <cstring>
+#include "luvk/Libraries/VulkanHelpers.hpp"
 
 void luvk::Buffer::CreateBuffer(std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments)
 {

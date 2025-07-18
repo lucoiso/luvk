@@ -4,23 +4,21 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
-
 #include <memory>
+#include "luvk/Module.hpp"
 
 namespace luvk
 {
     class Image;
     class Sampler;
 
-    /** Simple texture handle combining image and sampler */
     class LUVKMODULE_API Texture
     {
         std::shared_ptr<Image> m_Image{};
         std::shared_ptr<Sampler> m_Sampler{};
 
     public:
-        constexpr Texture() = default;
+        Texture() = delete;
 
         explicit Texture(std::shared_ptr<Image> img, std::shared_ptr<Sampler> samp) noexcept
             : m_Image(std::move(img)),

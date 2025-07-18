@@ -4,14 +4,12 @@
 
 #pragma once
 
+#include <volk/volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Subsystems/IRenderModule.hpp"
 
-#include <volk/volk.h>
-
 namespace luvk
 {
-    /** Render module responsible for debugging messages */
     class LUVKMODULE_API Debug : public IRenderModule
     {
         VkDebugUtilsMessengerEXT m_Messenger{VK_NULL_HANDLE};
@@ -31,11 +29,7 @@ namespace luvk
         }
 
     private:
-    
-        /** Initialize the dependencies of this module */
         void InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer) override;
-
-        /** Clear the resources of this module */
         void ClearResources() override;
     };
 } // namespace luvk

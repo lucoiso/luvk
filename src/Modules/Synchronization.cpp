@@ -3,15 +3,14 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Synchronization.hpp"
+#include <iterator>
+#include <stdexcept>
+#include <thread>
+#include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules//CommandPool.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Renderer.hpp"
 #include "luvk/Modules/SwapChain.hpp"
-#include "luvk/Modules/ThreadPool.hpp"
-#include "luvk/Libraries/VulkanHelpers.hpp"
-#include <iterator>
-#include <stdexcept>
-#include <thread>
 
 void luvk::Synchronization::Initialize(std::shared_ptr<IRenderModule> const& DeviceModule, const std::size_t FrameCount)
 {
@@ -42,9 +41,9 @@ void luvk::Synchronization::SetupFrames(std::shared_ptr<IRenderModule> const& De
                                         std::shared_ptr<IRenderModule> const& SwapChainModule,
                                         std::shared_ptr<IRenderModule> const& CommandPoolModule)
 {
-    const auto Dev = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
-    const auto Pool = std::dynamic_pointer_cast<luvk::CommandPool>(CommandPoolModule);
-    const auto Swap = std::dynamic_pointer_cast<luvk::SwapChain>(SwapChainModule);
+    const auto Dev = std::dynamic_pointer_cast<Device>(DeviceModule);
+    const auto Pool = std::dynamic_pointer_cast<CommandPool>(CommandPoolModule);
+    const auto Swap = std::dynamic_pointer_cast<SwapChain>(SwapChainModule);
 
     m_ThreadCount = std::max<std::size_t>(1, std::thread::hardware_concurrency());
     Dev->WaitIdle();
@@ -55,7 +54,7 @@ void luvk::Synchronization::SetupFrames(std::shared_ptr<IRenderModule> const& De
 
     m_SecondaryPool.Destroy();
     const std::uint32_t GraphicsFamily = Dev->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
-    m_SecondaryPool.Create(std::static_pointer_cast<luvk::Device>(DeviceModule), GraphicsFamily, 0);
+    m_SecondaryPool.Create(std::static_pointer_cast<Device>(DeviceModule), GraphicsFamily, 0);
 
     for (std::size_t Index = 0; Index < ImageCount; ++Index)
     {
@@ -68,16 +67,6 @@ void luvk::Synchronization::SetupFrames(std::shared_ptr<IRenderModule> const& De
             vkResetFences(LogicalDevice, 1, &Frame.InFlight);
         }
     }
-}
-
-luvk::Synchronization::FrameData& luvk::Synchronization::GetFrame(const std::size_t Index)
-{
-    return m_Frames.at(Index);
-}
-
-void luvk::Synchronization::AdvanceFrame()
-{
-    m_CurrentFrame = (m_CurrentFrame + 1) % std::size(m_Frames);
 }
 
 void luvk::Synchronization::ClearResources()

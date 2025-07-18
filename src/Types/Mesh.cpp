@@ -3,7 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Types/Mesh.hpp"
-#include "luvk/Types/MeshDraw.hpp"
+#include "../../include/luvk/Libraries/MeshDraw.hpp"
 
 inline void luvk::Mesh::Draw(const VkCommandBuffer CommandBuffer) const
 {
@@ -19,7 +19,7 @@ inline void luvk::Mesh::Draw(const VkCommandBuffer CommandBuffer) const
     }
 
     auto const& Entry = Meshes[m_Index];
-    luvk::RecordMeshCommands(CommandBuffer, Entry);
+    RecordMeshCommands(CommandBuffer, Entry);
 }
 
 inline void luvk::InstancedMesh::SetInstances(std::span<MeshRegistry::InstanceInfo const> Instances)

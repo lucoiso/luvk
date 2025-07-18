@@ -3,13 +3,13 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/SwapChain.hpp"
-#include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/Renderer.hpp"
-#include "luvk/Modules/Memory.hpp"
-#include "luvk/Libraries/VulkanHelpers.hpp"
 #include <algorithm>
-#include <iterator>
 #include <array>
+#include <iterator>
+#include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/Memory.hpp"
+#include "luvk/Modules/Renderer.hpp"
 
 void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& DeviceModule,
                                       std::shared_ptr<IRenderModule> const& MemoryModule,
@@ -17,8 +17,8 @@ void luvk::SwapChain::CreateSwapChain(std::shared_ptr<IRenderModule> const& Devi
                                       void* const& pNext)
 {
     m_DeviceModule = DeviceModule;
-    auto const CastDeviceModule = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
-    auto const CastMemoryModule = std::dynamic_pointer_cast<luvk::Memory>(MemoryModule);
+    auto const CastDeviceModule = std::dynamic_pointer_cast<Device>(DeviceModule);
+    auto const CastMemoryModule = std::dynamic_pointer_cast<Memory>(MemoryModule);
 
     m_PreviousSwapChain = m_SwapChain;
 
@@ -103,7 +103,7 @@ void luvk::SwapChain::ClearResources()
         return;
     }
 
-    auto const DeviceModule = std::dynamic_pointer_cast<luvk::Device>(m_DeviceModule);
+    auto const DeviceModule = std::dynamic_pointer_cast<Device>(m_DeviceModule);
     VkDevice const& LogicalDevice = DeviceModule->GetLogicalDevice();
 
     DestroySwapChainImages(LogicalDevice);
@@ -278,7 +278,7 @@ void luvk::SwapChain::CreateDepthResources(std::shared_ptr<Device> const& Device
 
     for (std::size_t Index = 0; Index < std::size(m_Images); ++Index)
     {
-        const auto& DepthImage = m_DepthImages.emplace_back(std::make_shared<luvk::Image>());
+        const auto& DepthImage = m_DepthImages.emplace_back(std::make_shared<Image>());
 
         VkImageAspectFlags const Aspect = HasStencil
                                               ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)

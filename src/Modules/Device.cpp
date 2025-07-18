@@ -3,10 +3,10 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/Renderer.hpp"
-#include "luvk/Libraries/VulkanHelpers.hpp"
-#include <ranges>
 #include <iterator>
+#include <ranges>
+#include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules/Renderer.hpp"
 
 void luvk::Device::SetPhysicalDevice(VkPhysicalDevice const& Device)
 {
@@ -161,7 +161,7 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
 
 void luvk::Device::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
-    m_Renderer = std::dynamic_pointer_cast<luvk::Renderer>(MainRenderer);
+    m_Renderer = std::dynamic_pointer_cast<Renderer>(MainRenderer);
     m_Instance = m_Renderer->GetInstance();
     FetchAvailableDevices(m_Instance);
 }

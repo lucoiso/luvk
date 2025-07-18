@@ -3,15 +3,14 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Image.hpp"
-#include "luvk/Resources/Buffer.hpp"
-#include "luvk/Modules/Renderer.hpp"
-#include "luvk/Modules/Memory.hpp"
-#include "luvk/Modules/Device.hpp"
-#include "luvk/Libraries/VulkanHelpers.hpp"
+#include <cstddef>
 #include <iterator>
 #include <span>
-#include <cstddef>
-#include <cstring>
+#include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/Memory.hpp"
+#include "luvk/Modules/Renderer.hpp"
+#include "luvk/Resources/Buffer.hpp"
 
 void luvk::Image::CreateImage(std::shared_ptr<Device> const& DeviceModule, std::shared_ptr<Memory> const& MemoryModule, CreationArguments const& Arguments)
 {
@@ -75,7 +74,7 @@ void luvk::Image::Upload(const std::span<const std::byte> Data) const
     vmaUnmapMemory(Allocator, m_Allocation);
 }
 
-void luvk::Image::Upload(std::shared_ptr<luvk::Buffer> const& Staging)
+void luvk::Image::Upload(std::shared_ptr<Buffer> const& Staging)
 {
     VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
     const std::uint32_t QueueFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();

@@ -6,9 +6,9 @@
 
 #include <atomic>
 #include <iterator>
-#include <glslang/SPIRV/GlslangToSpv.h>
-#include <glslang/Public/ResourceLimits.h>
 #include <stdexcept>
+#include <glslang/Public/ResourceLimits.h>
+#include <glslang/SPIRV/GlslangToSpv.h>
 
 static constinit std::atomic_uint g_GlslangInitCount{0};
 

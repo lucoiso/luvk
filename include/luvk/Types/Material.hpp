@@ -4,9 +4,8 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
-
 #include <memory>
+#include "luvk/Module.hpp"
 
 namespace luvk
 {
@@ -14,7 +13,6 @@ namespace luvk
     class DescriptorSet;
     class Pipeline;
 
-    /** Basic material holding pipeline and texture references */
     class LUVKMODULE_API Material
     {
         std::shared_ptr<Texture> m_Texture{};

@@ -4,8 +4,8 @@
 
 #include "luvk/Modules/Debug.hpp"
 
-#include "luvk/Modules/Renderer.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules/Renderer.hpp"
 
 #include <cstdio>
 
@@ -21,7 +21,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback([[maybe_unused]] VkD
 
 void luvk::Debug::InitializeDependencies(std::shared_ptr<IRenderModule> const& MainRenderer)
 {
-    m_Instance = std::dynamic_pointer_cast<luvk::Renderer>(MainRenderer)->GetInstance();
+    m_Instance = std::dynamic_pointer_cast<Renderer>(MainRenderer)->GetInstance();
     VkInstance const& Instance = m_Instance;
 
     constexpr auto Severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |

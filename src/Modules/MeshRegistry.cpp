@@ -3,18 +3,17 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/MeshRegistry.hpp"
-#include "luvk/Modules/Renderer.hpp"
+#include <array>
+#include <iterator>
+#include <vector>
+#include "luvk/Modules/DescriptorPool.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
-#include <iterator>
 #include "luvk/Resources/Image.hpp"
-#include "luvk/Modules/DescriptorPool.hpp"
-#include "luvk/Resources/Sampler.hpp"
 #include "luvk/Resources/Pipeline.hpp"
-#include "luvk/Types/Texture.hpp"
+#include "luvk/Resources/Sampler.hpp"
 #include "luvk/Types/Material.hpp"
-#include <array>
-#include <vector>
+#include "luvk/Types/Texture.hpp"
 
 void luvk::MeshRegistry::Initialize(std::shared_ptr<Memory> const& MemoryModule)
 {

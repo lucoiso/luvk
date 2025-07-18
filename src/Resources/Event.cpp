@@ -21,7 +21,7 @@ void luvk::EventNode::operator()()
 
 luvk::EventNode luvk::EventNode::NewNode(std::function<void()>&& Function, bool const OneTime)
 {
-    return luvk::EventNode{std::move(Function), OneTime};
+    return EventNode{std::move(Function), OneTime};
 }
 
 luvk::EventNode& luvk::EventNode::Then(std::function<void()>&& Function, bool const OneTime)

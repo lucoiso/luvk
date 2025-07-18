@@ -3,19 +3,19 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Renderer.hpp"
-#include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/SwapChain.hpp"
-#include "luvk/Modules//CommandPool.hpp"
-#include "luvk/Modules/MeshRegistry.hpp"
-#include "luvk/Modules/ThreadPool.hpp"
-#include "luvk/Types/MeshDraw.hpp"
-#include "luvk/Libraries/VulkanHelpers.hpp"
-#include <execution>
 #include <algorithm>
-#include <limits>
-#include <iterator>
-#include <thread>
+#include <execution>
 #include <future>
+#include <iterator>
+#include <limits>
+#include "luvk/Libraries/MeshDraw.hpp"
+#include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules//CommandPool.hpp"
+#include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/MeshRegistry.hpp"
+#include "luvk/Modules/SwapChain.hpp"
+#include "luvk/Modules/ThreadPool.hpp"
+#include "luvk/Types/Material.hpp"
 
 static constinit bool s_IsVolkInitialized = false;
 
@@ -122,12 +122,10 @@ void luvk::Renderer::InitializeDependencies(std::shared_ptr<IRenderModule> const
 
 void luvk::Renderer::ClearResources()
 {
-    const auto DeviceModule = FindModule<luvk::Device>();
-    const VkDevice LogicalDevice = DeviceModule
-                                       ? DeviceModule->GetLogicalDevice()
-                                       : VK_NULL_HANDLE;
+    const auto DeviceModule = FindModule<Device>();
 
-    if (LogicalDevice != VK_NULL_HANDLE)
+    if (const VkDevice& LogicalDevice = DeviceModule->GetLogicalDevice();
+        LogicalDevice != VK_NULL_HANDLE)
     {
         vkDeviceWaitIdle(LogicalDevice);
     }
@@ -172,12 +170,12 @@ void luvk::Renderer::DrawFrame()
         return;
     }
 
-    const auto DeviceModule = FindModule<luvk::Device>();
-    const auto SwapChainModule = FindModule<luvk::SwapChain>();
+    const auto DeviceModule = FindModule<Device>();
+    const auto SwapChainModule = FindModule<SwapChain>();
 
-    const VkDevice LogicalDevice = DeviceModule->GetLogicalDevice();
+    const VkDevice& LogicalDevice = DeviceModule->GetLogicalDevice();
 
-    const auto Sync = FindModule<luvk::Synchronization>();
+    const auto Sync = FindModule<Synchronization>();
     auto& Frame = Sync->GetFrame(Sync->GetCurrentFrame());
 
     if (Frame.Submitted)
@@ -223,9 +221,9 @@ void luvk::Renderer::SetPaused(const bool Paused)
 
 void luvk::Renderer::Refresh(const VkExtent2D& Extent) const
 {
-    const auto DeviceModule = FindModule<luvk::Device>();
-    const auto SwapChainModule = FindModule<luvk::SwapChain>();
-    const auto MemoryModule = FindModule<luvk::Memory>();
+    const auto DeviceModule = FindModule<Device>();
+    const auto SwapChainModule = FindModule<SwapChain>();
+    const auto MemoryModule = FindModule<Memory>();
 
     DeviceModule->WaitIdle();
     SwapChainModule->Recreate(DeviceModule, MemoryModule, Extent, nullptr);
@@ -247,7 +245,7 @@ VkDescriptorPool luvk::Renderer::CreateExternalDescriptorPool(std::uint32_t cons
                                                               std::span<VkDescriptorPoolSize const> PoolSizes,
                                                               VkDescriptorPoolCreateFlags const Flags)
 {
-    const auto DeviceModule = FindModule<luvk::Device>();
+    const auto DeviceModule = FindModule<Device>();
     VkDevice const LogicalDevice = DeviceModule->GetLogicalDevice();
 
     VkDescriptorPool Pool{VK_NULL_HANDLE};
@@ -278,7 +276,7 @@ void luvk::Renderer::DestroyExternalDescriptorPool(VkDescriptorPool& Pool) const
         return;
     }
 
-    const auto DeviceModule = FindModule<luvk::Device>();
+    const auto DeviceModule = FindModule<Device>();
     VkDevice const LogicalDevice = DeviceModule->GetLogicalDevice();
 
     vkDestroyDescriptorPool(LogicalDevice, Pool, nullptr);
@@ -291,17 +289,17 @@ void luvk::Renderer::EndExternalFrame() {}
 
 void luvk::Renderer::SetupFrames() const
 {
-    const auto SyncModule = FindModule<luvk::Synchronization>();
-    const auto DeviceModule = FindModule<luvk::Device>();
-    const auto SwapChainModule = FindModule<luvk::SwapChain>();
-    const auto CommandPoolModule = FindModule<luvk::CommandPool>();
+    const auto SyncModule = FindModule<Synchronization>();
+    const auto DeviceModule = FindModule<Device>();
+    const auto SwapChainModule = FindModule<SwapChain>();
+    const auto CommandPoolModule = FindModule<CommandPool>();
 
     SyncModule->SetupFrames(DeviceModule, SwapChainModule, CommandPoolModule);
 }
 
 void luvk::Renderer::RecordComputePass(const VkCommandBuffer& Cmd) const
 {
-    const auto MeshRegistryModule = FindModule<luvk::MeshRegistry>();
+    const auto MeshRegistryModule = FindModule<MeshRegistry>();
 
     for (auto const& Meshes = MeshRegistryModule->GetMeshes();
          auto const& MeshIt : Meshes)
@@ -317,16 +315,16 @@ void luvk::Renderer::RecordComputePass(const VkCommandBuffer& Cmd) const
             continue;
         }
 
-        luvk::RecordMeshCommands(Cmd, MeshIt);
+        RecordMeshCommands(Cmd, MeshIt);
     }
 }
 
-void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame, std::uint32_t ImageIndex)
+void luvk::Renderer::RecordGraphicsPass(Synchronization::FrameData& Frame, std::uint32_t ImageIndex)
 {
-    const auto SwapChainModule = FindModule<luvk::SwapChain>();
-    const auto SyncModule = FindModule<luvk::Synchronization>();
-    const auto MeshRegistryModule = FindModule<luvk::MeshRegistry>();
-    const auto ThreadPoolModule = FindModule<luvk::ThreadPool>();
+    const auto SwapChainModule = FindModule<SwapChain>();
+    const auto SyncModule = FindModule<Synchronization>();
+    const auto MeshRegistryModule = FindModule<MeshRegistry>();
+    const auto ThreadPoolModule = FindModule<ThreadPool>();
 
     const VkExtent2D Extent = SwapChainModule->GetExtent();
 
@@ -358,7 +356,7 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
         return;
     }
 
-    VkImage const DepthImage = SwapChainModule->GetDepthImage(ImageIndex)->GetHandle();
+    VkImage const& DepthImage = SwapChainModule->GetDepthImage(ImageIndex)->GetHandle();
     VkImageAspectFlags const DepthAspect = SwapChainModule->GetDepthFormat() == VK_FORMAT_D24_UNORM_S8_UINT ||
                                            SwapChainModule->GetDepthFormat() == VK_FORMAT_D32_SFLOAT_S8_UINT ||
                                            SwapChainModule->GetDepthFormat() == VK_FORMAT_D16_UNORM_S8_UINT
@@ -440,7 +438,7 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
                         continue;
                     }
 
-                    luvk::RecordMeshCommands(SecCmd, MeshIt);
+                    RecordMeshCommands(SecCmd, MeshIt);
                 }
             }
             vkEndCommandBuffer(SecCmd);
@@ -491,7 +489,7 @@ void luvk::Renderer::RecordGraphicsPass(luvk::Synchronization::FrameData& Frame,
     vkCmdEndRenderPass(Frame.CommandBuffer);
 }
 
-void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)
+void luvk::Renderer::RecordCommands(Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)
 {
     constexpr VkCommandBufferBeginInfo Begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                                              .pNext = nullptr,
@@ -507,11 +505,11 @@ void luvk::Renderer::RecordCommands(luvk::Synchronization::FrameData& Frame, con
     RecordGraphicsPass(Frame, ImageIndex);
 }
 
-void luvk::Renderer::SubmitFrame(luvk::Synchronization::FrameData& Frame, const std::uint32_t ImageIndex) const
+void luvk::Renderer::SubmitFrame(Synchronization::FrameData& Frame, const std::uint32_t ImageIndex) const
 {
-    const auto SyncModule = FindModule<luvk::Synchronization>();
-    const auto DeviceModule = FindModule<luvk::Device>();
-    const auto SwapChainModule = FindModule<luvk::SwapChain>();
+    const auto SyncModule = FindModule<Synchronization>();
+    const auto DeviceModule = FindModule<Device>();
+    const auto SwapChainModule = FindModule<SwapChain>();
 
     if (!LUVK_EXECUTE(vkEndCommandBuffer(Frame.CommandBuffer)))
     {

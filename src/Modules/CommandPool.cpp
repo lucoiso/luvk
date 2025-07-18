@@ -3,15 +3,15 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules//CommandPool.hpp"
+#include <iterator>
+#include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Renderer.hpp"
-#include "luvk/Libraries/VulkanHelpers.hpp"
-#include <iterator>
 
 void luvk::CommandPool::CreateCommandPool(std::shared_ptr<IRenderModule> const& DeviceModule, std::uint32_t const QueueFamilyIndex, VkCommandPoolCreateFlags const Flags)
 {
     m_DeviceModule = DeviceModule;
-    auto const CastDevice = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
+    auto const CastDevice = std::dynamic_pointer_cast<Device>(DeviceModule);
     VkDevice const& LogicalDevice = CastDevice->GetLogicalDevice();
 
     VkCommandPoolCreateInfo const Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .pNext = nullptr, .flags = Flags, .queueFamilyIndex = QueueFamilyIndex};
@@ -52,7 +52,7 @@ void luvk::CommandPool::ClearResources()
     {
         return;
     }
-    auto const DeviceModule = std::dynamic_pointer_cast<luvk::Device>(m_DeviceModule);
+    auto const DeviceModule = std::dynamic_pointer_cast<Device>(m_DeviceModule);
     VkDevice const& LogicalDevice = DeviceModule->GetLogicalDevice();
 
     if (!std::empty(m_Buffers))

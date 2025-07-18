@@ -4,22 +4,16 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
-
-#include <glslang/Public/ShaderLang.h>
-#include <span>
+#include <cstdint>
 #include <string_view>
 #include <vector>
-#include <cstdint>
+#include <glslang/Public/ShaderLang.h>
+#include "luvk/Module.hpp"
 
 namespace luvk
 {
-    /** Initialize the glslang compiler process */
     LUVKMODULE_API void InitializeGlslang();
-
-    /** Finalize the glslang compiler process */
     LUVKMODULE_API void FinalizeGlslang();
 
-    /** Compile GLSL source code to SPIR-V */
     [[nodiscard]] LUVKMODULE_API std::vector<std::uint32_t> CompileGLSLToSPIRV(std::string_view Source, EShLanguage Stage, std::string_view EntryPoint = "main");
 } // namespace luvk

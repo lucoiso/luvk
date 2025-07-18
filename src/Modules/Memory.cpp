@@ -3,10 +3,10 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Memory.hpp"
-#include "luvk/Modules/Renderer.hpp"
-#include "luvk/Modules/Device.hpp"
-#include "luvk/Libraries/VulkanHelpers.hpp"
 #include <cstdio>
+#include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/Renderer.hpp"
 
 #ifndef VMA_IMPLEMENTATION
 #    define VMA_LEAK_LOG_FORMAT(format, ...)                                            \
@@ -27,8 +27,8 @@ void luvk::Memory::InitializeAllocator(std::shared_ptr<IRenderModule> const& Mai
                                        VmaAllocatorCreateFlags const Flags)
 {
     m_DeviceModule = DeviceModule;
-    auto const CastRendererModule = std::dynamic_pointer_cast<luvk::Renderer>(MainRenderer);
-    auto const CastDeviceModule = std::dynamic_pointer_cast<luvk::Device>(DeviceModule);
+    auto const CastRendererModule = std::dynamic_pointer_cast<Renderer>(MainRenderer);
+    auto const CastDeviceModule = std::dynamic_pointer_cast<Device>(DeviceModule);
 
     VkPhysicalDeviceMemoryProperties MemProps{};
     vkGetPhysicalDeviceMemoryProperties(CastDeviceModule->GetPhysicalDevice(), &MemProps);

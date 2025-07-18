@@ -4,23 +4,17 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
-
 #include <array>
-#include <execution>
+#include "luvk/Module.hpp"
 
 namespace luvk
 {
-    /** Minimal array wrapper with size tracking */
     template <typename Type, std::size_t Capacity = 512U>
     struct LUVKMODULE_API Array
     {
         using value_type = Type;
 
-        /** Storage for elements */
         std::array<Type, Capacity> Data{};
-
-        /** Number of valid elements */
         std::size_t Size{0U};
 
         [[nodiscard]] constexpr std::size_t size() const noexcept

@@ -3,9 +3,9 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Sampler.hpp"
-#include "luvk/Modules/Renderer.hpp"
-#include "luvk/Modules/Device.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/Renderer.hpp"
 
 void luvk::Sampler::CreateSampler(std::shared_ptr<Device> const& DeviceModule, CreationArguments const& Arguments)
 {

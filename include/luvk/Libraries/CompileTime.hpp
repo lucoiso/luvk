@@ -4,19 +4,17 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
-#include "luvk/Types/Array.hpp"
-
 #include <algorithm>
 #include <array>
 #include <execution>
 #include <span>
+#include "luvk/Module.hpp"
+#include "luvk/Types/Array.hpp"
 
 namespace luvk
 {
     // Functions inspired by Jason Turner's presentations and implementations that can be found on:     // https://github.com/lefticus/tools/blob/main/include/lefticus/tools/static_views.hpp
 
-    /** Constraint that checks for begin/end methods */
     template <typename Value>
     concept IsIterable = requires(const Value& Input)
     {
@@ -24,23 +22,20 @@ namespace luvk
         std::end(Input);
     };
 
-    /** Constraint that ensures a callable returns an iterable */
     template <typename Callable>
     concept CreatesIterable = requires(const Callable& Input)
     {
         requires IsIterable<std::decay_t<decltype(Input())>>;
     };
 
-    /** Store static data for later retrieval */
     template <auto Data>
     inline LUVKMODULE_API constexpr auto const& AsStatic = Data;
 
-    /** Convert a container to the custom Array structure */
     template <typename DataType>
     constexpr LUVKMODULE_API auto GenerateOversizedArray(DataType const& Data)
     {
         using InputType = typename DataType::value_type;
-        luvk::Array<InputType> OutputOversized{};
+        Array<InputType> OutputOversized{};
 
         std::copy(std::begin(Data), std::end(Data), std::begin(OutputOversized));
 
@@ -49,7 +44,6 @@ namespace luvk
         return OutputOversized;
     }
 
-    /** Generate an array with the exact size of the provided range */
     constexpr LUVKMODULE_API auto GenerateRightSized(CreatesIterable auto Getter)
     {
         constexpr auto GeneratedContainer = GenerateOversizedArray(Getter());
@@ -62,31 +56,22 @@ namespace luvk
         return RightSizedArray;
     }
 
-    /** Convert compile time data to a std::span */
-    consteval LUVKMODULE_API
-
-    auto ToSpan(CreatesIterable auto Getter)
+    consteval LUVKMODULE_API auto ToSpan(CreatesIterable auto Getter)
     {
         constexpr auto& StaticData = AsStatic<GenerateRightSized(Getter)>;
         using InputType = typename std::decay_t<decltype(StaticData)>::value_type;
         return std::span<InputType const>{std::begin(StaticData), std::end(StaticData)};
     }
 
-    /** Convert compile time data to a std::string_view */
-    consteval LUVKMODULE_API
-
-    auto ToStringView(CreatesIterable auto Getter)
+    consteval LUVKMODULE_API auto ToStringView(CreatesIterable auto Getter)
     {
         constexpr auto& StaticData = AsStatic<GenerateRightSized(Getter)>;
         using InputType = typename std::decay_t<decltype(StaticData)>::value_type;
         return std::basic_string_view<InputType>{std::begin(StaticData), std::end(StaticData)};
     }
 
-    /** Concatenate compile time arrays into a container span */
     template <typename OutputType>
-    consteval LUVKMODULE_API
-
-    auto ToContainerSpan(CreatesIterable auto Getter)
+    consteval LUVKMODULE_API auto ToContainerSpan(CreatesIterable auto Getter)
     {
         constexpr std::size_t AllocationSize = 256U;
 
@@ -122,7 +107,9 @@ namespace luvk
 
             std::array<InputType, DataSize> Output;
 
-            std::copy(std::begin(ConcatenatedDataArray), std::begin(ConcatenatedDataArray) + static_cast<std::ptrdiff_t>(DataSize), std::begin(Output));
+            std::copy(std::begin(ConcatenatedDataArray),
+                      std::begin(ConcatenatedDataArray) + static_cast<std::ptrdiff_t>(DataSize),
+                      std::begin(Output));
 
             return Output;
         }();
@@ -142,8 +129,9 @@ namespace luvk
             if constexpr (std::is_same_v<OutputType, const char*>)
             {
                 std::string_view const NewView
-                {static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart)),
-                 static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart + CurrentSize))
+                {
+                    static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart)),
+                    static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart + CurrentSize))
                 };
 
                 GeneratedArray.at(Iterator) = std::data(NewView);
@@ -151,8 +139,9 @@ namespace luvk
             else
             {
                 GeneratedArray.at(Iterator) = OutputType
-                {static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart)),
-                 static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart + CurrentSize))
+                {
+                    static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart)),
+                    static_cast<typename RightSizedFullType::const_iterator>(std::begin(RightSizedData) + static_cast<std::ptrdiff_t>(DataStart + CurrentSize))
                 };
             }
 

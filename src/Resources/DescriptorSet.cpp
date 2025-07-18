@@ -3,12 +3,12 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/DescriptorSet.hpp"
-#include "luvk/Modules/Renderer.hpp"
-#include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/DescriptorPool.hpp"
-#include "luvk/Modules/Memory.hpp"
 #include <vector>
 #include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules/DescriptorPool.hpp"
+#include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/Memory.hpp"
+#include "luvk/Modules/Renderer.hpp"
 
 void luvk::DescriptorSet::CreateLayout(std::shared_ptr<Device> const& DeviceModule, LayoutInfo const& Info)
 {

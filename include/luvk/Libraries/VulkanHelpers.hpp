@@ -6,9 +6,10 @@
 
 #include <cstdio>
 
+#include "luvk/Types/MeshEntry.hpp"
+
 namespace luvk
 {
-    /** Convert a debug severity to a readable string */
     [[nodiscard]] constexpr const char* SeverityToString(const VkDebugUtilsMessageSeverityFlagBitsEXT Severity)
     {
         switch (Severity)
@@ -21,7 +22,6 @@ namespace luvk
         }
     }
 
-    /** Convert a VkResult to a readable string */
     [[nodiscard]] constexpr const char* ResultToString(const VkResult ResultValue)
     {
         switch (ResultValue)
@@ -61,9 +61,8 @@ namespace luvk
         }
     }
 
-    /** Wrapper that logs Vulkan errors */
     template <typename Result>
-    inline bool ExecuteVulkanFunc(Result ResultValue, const char* Name, const char* File, const std::uint32_t Line)
+    static bool ExecuteVulkanFunc(Result ResultValue, const char* Name, const char* File, const std::uint32_t Line)
     {
         if (ResultValue != VK_SUCCESS)
         {
