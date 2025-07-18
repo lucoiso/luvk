@@ -109,8 +109,8 @@ namespace luvk
         [[nodiscard]] constexpr bool IsVersionAtLeast(const std::uint32_t Major, const std::uint32_t Minor) const noexcept
         {
             return VK_API_VERSION_MAJOR(m_DeviceProperties.apiVersion) > Major ||
-                   (VK_API_VERSION_MAJOR(m_DeviceProperties.apiVersion) == Major &&
-                   VK_API_VERSION_MINOR(m_DeviceProperties.apiVersion) >= Minor);
+            (VK_API_VERSION_MAJOR(m_DeviceProperties.apiVersion) == Major &&
+                VK_API_VERSION_MINOR(m_DeviceProperties.apiVersion) >= Minor);
         }
 
         [[nodiscard]] constexpr std::vector<VkQueueFamilyProperties> const& GetDeviceQueueFamilyProperties() const

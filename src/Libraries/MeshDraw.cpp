@@ -91,12 +91,12 @@ void luvk::RecordMeshCommands(const VkCommandBuffer& Command, MeshEntry const& E
 
     switch (PipelineType)
     {
-        case Pipeline::Type::Compute:
+    case Pipeline::Type::Compute:
         {
             vkCmdDispatch(Command, Entry.DispatchX, Entry.DispatchY, Entry.DispatchZ);
             break;
         }
-        case Pipeline::Type::Mesh:
+    case Pipeline::Type::Mesh:
         {
             if (vkCmdDrawMeshTasksEXT)
             {
@@ -104,8 +104,8 @@ void luvk::RecordMeshCommands(const VkCommandBuffer& Command, MeshEntry const& E
             }
             break;
         }
-        case Pipeline::Type::Graphics:
-        default:
+    case Pipeline::Type::Graphics:
+    default:
         {
             std::uint32_t const drawInstances = Entry.InstanceBuffer
                                                     ? Entry.InstanceCount

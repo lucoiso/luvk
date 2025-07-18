@@ -20,7 +20,7 @@ namespace luvk
         constexpr Mesh() = default;
 
         explicit Mesh(std::shared_ptr<MeshRegistry> Registry, const std::size_t Index) noexcept : m_Registry(std::move(Registry)),
-                                                                                                        m_Index(Index) {}
+                                                                                                  m_Index(Index) {}
 
         [[nodiscard]] constexpr std::size_t GetIndex() const noexcept
         {

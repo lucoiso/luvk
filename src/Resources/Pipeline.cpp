@@ -94,9 +94,9 @@ void luvk::Pipeline::CreateGraphicsPipeline(std::shared_ptr<Device> const& Devic
                                                                        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                                                                        .alphaBlendOp = VK_BLEND_OP_ADD,
                                                                        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                                                                                         VK_COLOR_COMPONENT_G_BIT |
-                                                                                         VK_COLOR_COMPONENT_B_BIT |
-                                                                                         VK_COLOR_COMPONENT_A_BIT};
+                                                                       VK_COLOR_COMPONENT_G_BIT |
+                                                                       VK_COLOR_COMPONENT_B_BIT |
+                                                                       VK_COLOR_COMPONENT_A_BIT};
 
     const VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
                                                          .attachmentCount = 1,
@@ -315,7 +315,6 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
     constexpr VkPipelineMultisampleStateCreateInfo Multisample{.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
                                                                .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT};
 
-
     constexpr VkPipelineColorBlendAttachmentState ColorBlendAttachment{.blendEnable = VK_TRUE,
                                                                        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
                                                                        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
@@ -324,9 +323,9 @@ void luvk::Pipeline::CreateMeshPipeline(std::shared_ptr<Device> const& DeviceMod
                                                                        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
                                                                        .alphaBlendOp = VK_BLEND_OP_ADD,
                                                                        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT |
-                                                                                         VK_COLOR_COMPONENT_G_BIT |
-                                                                                         VK_COLOR_COMPONENT_B_BIT |
-                                                                                         VK_COLOR_COMPONENT_A_BIT};
+                                                                       VK_COLOR_COMPONENT_G_BIT |
+                                                                       VK_COLOR_COMPONENT_B_BIT |
+                                                                       VK_COLOR_COMPONENT_A_BIT};
 
     const VkPipelineColorBlendStateCreateInfo ColorBlend{.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
                                                          .attachmentCount = 1,

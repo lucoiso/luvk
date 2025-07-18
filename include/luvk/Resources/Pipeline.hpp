@@ -215,7 +215,6 @@ namespace luvk
         }
 
     private:
-    
         /** Destroy the pipeline and layout */
         void ClearResources();
     };
