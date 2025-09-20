@@ -10,7 +10,7 @@
 #include <limits>
 #include "luvk/Libraries/MeshDraw.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
-#include "luvk/Modules//CommandPool.hpp"
+#include "luvk/Modules/CommandPool.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/MeshRegistry.hpp"
 #include "luvk/Modules/SwapChain.hpp"

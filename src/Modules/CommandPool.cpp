@@ -2,7 +2,7 @@
 // Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
-#include "luvk/Modules//CommandPool.hpp"
+#include "luvk/Modules/CommandPool.hpp"
 #include <iterator>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
