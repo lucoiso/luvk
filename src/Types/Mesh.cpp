@@ -7,12 +7,12 @@
 
 inline void luvk::Mesh::Draw(const VkCommandBuffer& CommandBuffer) const
 {
-    if (!m_Registry)
+    if (!m_RegistryModule)
     {
         return;
     }
 
-    const auto Meshes = m_Registry->GetMeshes();
+    const auto Meshes = m_RegistryModule->GetMeshes();
     if (m_Index >= std::size(Meshes))
     {
         return;
@@ -25,17 +25,11 @@ inline void luvk::Mesh::Draw(const VkCommandBuffer& CommandBuffer) const
 inline void luvk::InstancedMesh::SetInstances(const std::span<const MeshRegistry::InstanceInfo>& Instances)
 {
     m_Instances.assign(std::begin(Instances), std::end(Instances));
-    if (const auto& Registry = GetRegistry())
-    {
-        Registry->UpdateInstances(GetIndex(), m_Instances);
-    }
+    m_RegistryModule->UpdateInstances(GetIndex(), m_Instances);
 }
 
 inline void luvk::InstancedMesh::AddInstance(const MeshRegistry::InstanceInfo& Instance)
 {
     m_Instances.push_back(Instance);
-    if (const auto& Registry = GetRegistry())
-    {
-        Registry->UpdateInstances(GetIndex(), m_Instances);
-    }
+    m_RegistryModule->UpdateInstances(GetIndex(), m_Instances);
 }

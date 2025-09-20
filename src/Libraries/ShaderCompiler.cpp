@@ -3,7 +3,6 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Libraries/ShaderCompiler.hpp"
-
 #include <atomic>
 #include <iterator>
 #include <stdexcept>

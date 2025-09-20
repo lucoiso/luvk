@@ -7,7 +7,6 @@
 #include "luvk/Module.hpp"
 #include "luvk/Libraries/CompileTime.hpp"
 #include "luvk/Types/Layer.hpp"
-
 #include <execution>
 #include <string>
 #include <volk/volk.h>

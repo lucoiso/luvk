@@ -4,9 +4,9 @@
 
 #include "luvk/Libraries/MeshDraw.hpp"
 #include <volk/volk.h>
+#include "luvk/Resources/DescriptorSet.hpp"
 #include "luvk/Types/Material.hpp"
 #include "luvk/Types/Mesh.hpp"
-#include "luvk/Resources/DescriptorSet.hpp"
 
 void luvk::RecordMeshCommands(const VkCommandBuffer& Command, const MeshEntry& Entry)
 {

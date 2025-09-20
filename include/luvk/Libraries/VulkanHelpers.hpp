@@ -5,7 +5,6 @@
 #pragma once
 
 #include <cstdio>
-
 #include "luvk/Types/MeshEntry.hpp"
 
 namespace luvk

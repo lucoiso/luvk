@@ -7,7 +7,8 @@
 #include <memory>
 #include <vma/vk_mem_alloc.h>
 #include "luvk/Module.hpp"
-#include "luvk/Subsystems/IRenderModule.hpp"
+#include "luvk/Interfaces/IEventModule.hpp"
+#include "luvk/Interfaces/IRenderModule.hpp"
 
 namespace luvk
 {
@@ -16,40 +17,36 @@ namespace luvk
 
     enum class MemoryEvents : std::uint8_t
     {
-        OnAllocatorCreated, OnAllocatorDestroyed
+        OnAllocatorCreated,
+        OnAllocatorDestroyed
     };
 
-    class LUVKMODULE_API Memory : public IRenderModule
+    class LUVKMODULE_API Memory : public IRenderModule,
+                                  public IEventModule
     {
         VmaAllocator m_Allocator{VK_NULL_HANDLE};
         std::shared_ptr<Device> m_DeviceModule{};
+        std::shared_ptr<Renderer> m_RendererModule{};
 
     public:
-        constexpr Memory() = default;
+        Memory() = delete;
+        explicit Memory(const std::shared_ptr<Renderer>& RendererModule, const std::shared_ptr<Device>& DeviceModule);
 
         ~Memory() override
         {
             Memory::ClearResources();
         }
 
-        void InitializeAllocator(const std::shared_ptr<Device>& DeviceModule,
-                                 const VkInstance& Instance,
-                                 VmaAllocatorCreateFlags Flags);
+        void InitializeAllocator(VmaAllocatorCreateFlags Flags);
 
         [[nodiscard]] const VmaAllocator& GetAllocator() const
         {
             return m_Allocator;
         }
 
-        [[nodiscard]] const std::shared_ptr<Device>& GetDeviceModule() const
-        {
-            return m_DeviceModule;
-        }
-
         void QueryMemoryStats(bool AbortOnCritical = false) const;
 
     private:
-        void InitializeDependencies(const std::shared_ptr<IRenderModule>&) override;
         void ClearResources() override;
     };
 } // namespace luvk

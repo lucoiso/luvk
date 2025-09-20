@@ -11,14 +11,13 @@
 #include "luvk/Modules/Memory.hpp"
 #include "luvk/Modules/Renderer.hpp"
 
-void luvk::SwapChain::CreateSwapChain(const std::shared_ptr<Device>& DeviceModule,
-                                      const std::shared_ptr<Memory>& MemoryModule,
-                                      CreationArguments&& Arguments,
+luvk::SwapChain::SwapChain(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
+    : m_DeviceModule(DeviceModule),
+      m_MemoryModule(MemoryModule) {}
+
+void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
                                       void* const& pNext)
 {
-    m_DeviceModule = DeviceModule;
-    m_MemoryModule = MemoryModule;
-
     m_PreviousSwapChain = m_SwapChain;
 
     m_Arguments = Arguments;
@@ -67,7 +66,7 @@ void luvk::SwapChain::CreateSwapChain(const std::shared_ptr<Device>& DeviceModul
     const bool HasChangedNumImages = Arguments.ImageCount != std::size(m_Images);
 
     DestroySwapChainImages(LogicalDevice);
-    DestroyDepthResources(LogicalDevice);
+    DestroyDepthResources();
     DestroyFramebuffers(LogicalDevice);
     DestroyRenderPass(LogicalDevice);
     DestroyFramebuffers(LogicalDevice);
@@ -92,22 +91,12 @@ void luvk::SwapChain::CreateSwapChain(const std::shared_ptr<Device>& DeviceModul
     }
 }
 
-void luvk::SwapChain::InitializeDependencies(const std::shared_ptr<IRenderModule>&)
-{
-    // Do nothing
-}
-
 void luvk::SwapChain::ClearResources()
 {
-    if (!m_DeviceModule)
-    {
-        return;
-    }
-
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     DestroySwapChainImages(LogicalDevice);
-    DestroyDepthResources(LogicalDevice);
+    DestroyDepthResources();
     DestroyFramebuffers(LogicalDevice);
     DestroyRenderPass(LogicalDevice);
 
@@ -122,7 +111,7 @@ void luvk::SwapChain::Recreate(const VkExtent2D NewExtent,
                                void* const & pNext)
 {
     m_Arguments.Extent = NewExtent;
-    CreateSwapChain(m_DeviceModule, m_MemoryModule, CreationArguments(m_Arguments), pNext);
+    CreateSwapChain(CreationArguments(m_Arguments), pNext);
     GetEventSystem().Execute(SwapChainEvents::OnRecreated);
 }
 
@@ -273,15 +262,13 @@ void luvk::SwapChain::CreateDepthResources()
 
     for (std::size_t Index = 0; Index < std::size(m_Images); ++Index)
     {
-        const auto& DepthImage = m_DepthImages.emplace_back(std::make_shared<Image>());
+        const auto& DepthImage = m_DepthImages.emplace_back(std::make_shared<Image>(m_DeviceModule, m_MemoryModule));
 
         const VkImageAspectFlags Aspect = HasStencil
                                               ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
                                               : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT);
 
-        DepthImage->CreateImage(m_DeviceModule,
-                                m_MemoryModule,
-                                {.Extent = {m_Extent.width, m_Extent.height, 1},
+        DepthImage->CreateImage({.Extent = {m_Extent.width, m_Extent.height, 1},
                                  .Format = m_DepthFormat,
                                  .Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                  .Aspect = Aspect,
@@ -289,7 +276,7 @@ void luvk::SwapChain::CreateDepthResources()
     }
 }
 
-void luvk::SwapChain::DestroyDepthResources(const VkDevice& LogicalDevice)
+void luvk::SwapChain::DestroyDepthResources()
 {
     m_DepthImages.clear();
 }

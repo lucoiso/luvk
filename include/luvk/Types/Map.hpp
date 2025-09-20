@@ -34,8 +34,8 @@ namespace luvk
         }
 
     public:
-        using iterator = decltype(m_Data)::iterator;
-        using const_iterator = decltype(m_Data)::const_iterator;
+        using iterator = typename decltype(m_Data)::iterator;
+        using const_iterator = typename decltype(m_Data)::const_iterator;
         using value_type = Pair<Key, T>;
 
         constexpr Map() = default;

@@ -64,16 +64,6 @@ void luvk::ThreadPool::WaitIdle()
                      });
 }
 
-luvk::ThreadPool::~ThreadPool()
-{
-    ThreadPool::ClearResources();
-}
-
-void luvk::ThreadPool::InitializeDependencies(const std::shared_ptr<IRenderModule>&)
-{
-    // Do nothing
-}
-
 void luvk::ThreadPool::ClearResources()
 {
     {

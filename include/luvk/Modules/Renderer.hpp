@@ -9,10 +9,10 @@
 #include <span>
 #include <typeindex>
 #include "luvk/Module.hpp"
+#include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Modules/Memory.hpp"
 #include "luvk/Modules/Synchronization.hpp"
 #include "luvk/Resources/Extensions.hpp"
-#include "luvk/Subsystems/IRenderModule.hpp"
 #include "luvk/Types/UnorderedMap.hpp"
 #include "luvk/Types/Vector.hpp"
 
@@ -20,11 +20,12 @@ namespace luvk
 {
     enum class RendererEvents : std::uint8_t
     {
-        OnPostInitialized, OnRenderLoopInitialized
+        OnPostInitialized,
+        OnRenderLoopInitialized
     };
 
     class LUVKMODULE_API Renderer : public IRenderModule,
-                                    public std::enable_shared_from_this<Renderer>
+                                    public IEventModule
     {
         VkInstance m_Instance{VK_NULL_HANDLE};
         InstanceExtensions m_Extensions{};
@@ -36,7 +37,10 @@ namespace luvk
     public:
         constexpr Renderer() = default;
 
-        ~Renderer() override;
+        ~Renderer() override
+        {
+            Renderer::ClearResources();
+        }
 
         [[nodiscard]] const VkInstance& GetInstance() const
         {
@@ -97,7 +101,6 @@ namespace luvk
         void EndExternalFrame();
 
     private:
-        void InitializeDependencies(const std::shared_ptr<IRenderModule>& MainRenderer) override;
         void ClearResources() override;
         void SetupFrames() const;
         void RecordComputePass(const VkCommandBuffer& Cmd) const;

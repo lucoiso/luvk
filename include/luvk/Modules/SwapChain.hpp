@@ -5,8 +5,10 @@
 #pragma once
 
 #include "luvk/Module.hpp"
+#include "luvk/Interfaces/IEventModule.hpp"
+#include "luvk/Interfaces/IExtensionsModule.hpp"
+#include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Resources/Image.hpp"
-#include "luvk/Subsystems/IRenderModule.hpp"
 #include "luvk/Types/Vector.hpp"
 
 namespace luvk
@@ -36,7 +38,9 @@ namespace luvk
         OnChangedNumberOfImages
     };
 
-    class LUVKMODULE_API SwapChain : public IRenderModule
+    class LUVKMODULE_API SwapChain : public IRenderModule,
+                                     public IEventModule,
+                                     public IExtensionsModule
     {
         using CreationArguments = SwapChainCreationArguments;
 
@@ -54,14 +58,16 @@ namespace luvk
         CreationArguments m_Arguments{};
 
     public:
-        constexpr SwapChain() = default;
+        SwapChain() = delete;
+        explicit SwapChain(const std::shared_ptr<Device>& DeviceModule,
+                           const std::shared_ptr<Memory>& MemoryModule);
 
         ~SwapChain() override
         {
             SwapChain::ClearResources();
         }
 
-        [[nodiscard]] UnorderedMap<std::string_view, Vector<std::string_view>> GetRequiredDeviceExtensions() const override
+        [[nodiscard]] ExtensionsMap GetDeviceExtensions() const override
         {
             return ToExtensionMap("", {VK_KHR_SWAPCHAIN_EXTENSION_NAME});
         }
@@ -116,15 +122,10 @@ namespace luvk
             return m_Arguments;
         }
 
-        void CreateSwapChain(const std::shared_ptr<Device>& DeviceModule,
-                             const std::shared_ptr<Memory>& MemoryModule,
-                             CreationArguments&& Arguments,
-                             void* const& pNext);
-
+        void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
         void Recreate(VkExtent2D NewExtent, void* const& pNext);
 
     private:
-        void InitializeDependencies(const std::shared_ptr<IRenderModule>& MainModule) override;
         void ClearResources() override;
         void CreateSwapChainImages(const VkDevice& LogicalDevice);
         void DestroySwapChainImages(const VkDevice& LogicalDevice);
@@ -133,7 +134,7 @@ namespace luvk
         void CreateFramebuffers(const VkDevice& LogicalDevice);
         void DestroyFramebuffers(const VkDevice& LogicalDevice);
         void CreateDepthResources();
-        void DestroyDepthResources(const VkDevice& LogicalDevice);
+        void DestroyDepthResources();
         [[nodiscard]] VkFormat SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice);
     };
 } // namespace luvk

@@ -13,11 +13,17 @@
 #include "luvk/Modules/Renderer.hpp"
 #include "luvk/Resources/Buffer.hpp"
 
-void luvk::Image::CreateImage(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule, const CreationArguments& Arguments)
-{
-    m_DeviceModule = DeviceModule;
-    m_MemoryModule = MemoryModule;
+luvk::Image::Image(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
+    : m_MemoryModule(MemoryModule),
+      m_DeviceModule(DeviceModule) {}
 
+luvk::Image::~Image()
+{
+    Destroy();
+}
+
+void luvk::Image::CreateImage(const CreationArguments& Arguments)
+{
     m_Width = Arguments.Extent.width;
     m_Height = Arguments.Extent.height;
 
@@ -54,8 +60,7 @@ void luvk::Image::CreateImage(const std::shared_ptr<Device>& DeviceModule, const
                                          .format = Arguments.Format,
                                          .subresourceRange = {Arguments.Aspect, 0, 1, 0, 1}};
 
-    if (const VkDevice& Device = DeviceModule->GetLogicalDevice();
-        !LUVK_EXECUTE(vkCreateImageView(Device, &ViewInfo, nullptr, &m_View)))
+    if (!LUVK_EXECUTE(vkCreateImageView(m_DeviceModule->GetLogicalDevice(), &ViewInfo, nullptr, &m_View)))
     {
         throw std::runtime_error("Failed to create image view.");
     }
@@ -74,7 +79,7 @@ void luvk::Image::Upload(const std::span<const std::byte>& Data) const
     vmaUnmapMemory(Allocator, m_Allocation);
 }
 
-void luvk::Image::Upload(const std::shared_ptr<Buffer>& Staging)
+void luvk::Image::Upload(const std::shared_ptr<Buffer>& Staging) const
 {
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
     const std::uint32_t QueueFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
@@ -193,11 +198,6 @@ void luvk::Image::Upload(const std::shared_ptr<Buffer>& Staging)
 
     vkFreeCommandBuffers(LogicalDevice, Pool, 1, &CommandBuffer);
     vkDestroyCommandPool(LogicalDevice, Pool, nullptr);
-}
-
-luvk::Image::~Image()
-{
-    Destroy();
 }
 
 void luvk::Image::Destroy()

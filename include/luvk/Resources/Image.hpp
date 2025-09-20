@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <cstddef>
 #include <memory>
 #include <span>
@@ -22,12 +23,14 @@ namespace luvk
         std::uint32_t m_Height{0};
         VkImage m_Image{VK_NULL_HANDLE};
         VkImageView m_View{VK_NULL_HANDLE};
-        VmaAllocation m_Allocation{nullptr};
+        VmaAllocation m_Allocation{};
         std::shared_ptr<Memory> m_MemoryModule{};
         std::shared_ptr<Device> m_DeviceModule{};
 
     public:
-        constexpr Image() = default;
+        Image() = delete;
+        explicit Image(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule);
+
         ~Image();
 
         struct CreationArguments
@@ -40,10 +43,10 @@ namespace luvk
             float Priority{1.F};
         };
 
-        void CreateImage(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule, const CreationArguments& Arguments);
+        void CreateImage(const CreationArguments& Arguments);
 
         void Upload(const std::span<const std::byte>& Data) const;
-        void Upload(const std::shared_ptr<Buffer>& Staging);
+        void Upload(const std::shared_ptr<Buffer>& Staging) const;
 
         [[nodiscard]] constexpr const VkImage& GetHandle() const
         {

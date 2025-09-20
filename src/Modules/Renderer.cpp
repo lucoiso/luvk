@@ -19,11 +19,6 @@
 
 static constinit bool s_IsVolkInitialized = false;
 
-luvk::Renderer::~Renderer()
-{
-    Renderer::ClearResources();
-}
-
 void luvk::Renderer::PreInitializeRenderer()
 {
     if (!s_IsVolkInitialized)
@@ -56,21 +51,27 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
     const void* FeatureChain = pNext;
     for (const auto& [Index, Module] : m_ModuleMap)
     {
-        for (const auto& [LayerIt, ExtensionsContainerIt] : Module->GetRequiredInstanceExtensions())
+        if (const auto* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get()))
         {
-            m_Extensions.SetLayerState(LayerIt, true);
-
-            for (const std::string_view ExtensionIt : ExtensionsContainerIt)
+            for (const auto& [LayerIt, ExtensionsContainerIt] : ExtModule->GetInstanceExtensions())
             {
-                m_Extensions.SetExtensionState(LayerIt, ExtensionIt, true);
+                m_Extensions.SetLayerState(LayerIt, true);
+
+                for (const std::string_view ExtensionIt : ExtensionsContainerIt)
+                {
+                    m_Extensions.SetExtensionState(LayerIt, ExtensionIt, true);
+                }
             }
         }
 
-        if (const auto Chain = Module->GetInstanceFeatureChain(shared_from_this()))
+        if (const auto* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get()))
         {
-            const auto Base = const_cast<VkBaseInStructure*>(static_cast<const VkBaseInStructure*>(Chain));
-            Base->pNext = static_cast<const VkBaseInStructure*>(FeatureChain);
-            FeatureChain = Chain;
+            if (const auto Chain = FeatChainModule->GetInstanceFeatureChain())
+            {
+                const auto Base = const_cast<VkBaseInStructure*>(static_cast<const VkBaseInStructure*>(Chain));
+                Base->pNext = static_cast<const VkBaseInStructure*>(FeatureChain);
+                FeatureChain = Chain;
+            }
         }
     }
 
@@ -105,19 +106,15 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
 
 void luvk::Renderer::PostInitializeRenderer()
 {
-    InitializeDependencies(nullptr);
-    GetEventSystem().Execute(RendererEvents::OnPostInitialized);
-}
-
-void luvk::Renderer::InitializeDependencies(const std::shared_ptr<IRenderModule>& MainRenderer)
-{
     std::for_each(std::execution::seq,
                   std::begin(m_ModuleMap),
                   std::end(m_ModuleMap),
-                  [this](const auto& Pair)
+                  [&](const auto& Pair)
                   {
-                      Pair.Second->InitializeDependencies(shared_from_this());
+                      Pair.Second->InitializeResources();
                   });
+
+    GetEventSystem().Execute(RendererEvents::OnPostInitialized);
 }
 
 void luvk::Renderer::ClearResources()
@@ -139,10 +136,12 @@ void luvk::Renderer::ClearResources()
     std::for_each(std::execution::seq,
                   std::begin(m_ModuleMap),
                   std::end(m_ModuleMap),
-                  [this](const auto& Pair)
+                  [](auto& Pair)
                   {
-                      Pair.Second->ClearResources();
+                      Pair.Second.reset();
                   });
+
+    m_ModuleMap.clear();
 
     if (m_Instance != VK_NULL_HANDLE)
     {
@@ -292,7 +291,7 @@ void luvk::Renderer::SetupFrames() const
     const auto SwapChainModule = FindModule<SwapChain>();
     const auto CommandPoolModule = FindModule<CommandPool>();
 
-    SyncModule->SetupFrames(SwapChainModule, CommandPoolModule);
+    SyncModule->SetupFrames();
 }
 
 void luvk::Renderer::RecordComputePass(const VkCommandBuffer& Cmd) const
@@ -394,18 +393,18 @@ void luvk::Renderer::RecordGraphicsPass(Synchronization::FrameData& Frame, std::
     const std::size_t BatchCount = (MeshCount + BatchSize - 1) / BatchSize;
 
     Frame.SecondaryBuffers.resize(BatchCount);
-    auto& SecPool = SyncModule->GetSecondaryPool();
-    SecPool.Reset();
+    const auto& SecPool = SyncModule->GetSecondaryPool();
+    SecPool->Reset();
 
     for (std::size_t BatchIndex = 0; BatchIndex < BatchCount; ++BatchIndex)
     {
-        VkCommandBuffer SecCmd = SecPool.Acquire();
+        VkCommandBuffer SecCmd = SecPool->Acquire();
         Frame.SecondaryBuffers[BatchIndex] = SecCmd;
 
         const std::size_t StartIndex = BatchIndex * BatchSize;
         const std::size_t EndIndex = std::min(MeshCount, StartIndex + BatchSize);
 
-        ThreadPoolModule->Submit([this, SwapChainModule, SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, ImageIndex]
+        ThreadPoolModule->Submit([SwapChainModule, SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, ImageIndex]
         {
             const VkCommandBufferInheritanceInfo Inherit{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
                                                          .renderPass = SwapChainModule->GetRenderPass(),
@@ -454,7 +453,7 @@ void luvk::Renderer::RecordGraphicsPass(Synchronization::FrameData& Frame, std::
         for (std::size_t BatchIndex = PreSize; BatchIndex < NewSize; ++BatchIndex)
         {
             auto& RenderCommand = m_PostRenderCommands[BatchIndex - PreSize];
-            VkCommandBuffer SecCmd = SecPool.Acquire();
+            VkCommandBuffer SecCmd = SecPool->Acquire();
             Frame.SecondaryBuffers[BatchIndex] = SecCmd;
 
             const VkCommandBufferInheritanceInfo SecRenderInherit{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,

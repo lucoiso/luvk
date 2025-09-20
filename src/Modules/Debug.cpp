@@ -3,11 +3,9 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Debug.hpp"
-
+#include <cstdio>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Renderer.hpp"
-
-#include <cstdio>
 
 VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback([[maybe_unused]] const VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
                                                             [[maybe_unused]] const VkDebugUtilsMessageTypeFlagsEXT MessageType,
@@ -18,10 +16,11 @@ VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback([[maybe_unused]] con
     return VK_FALSE;
 }
 
-void luvk::Debug::InitializeDependencies(const std::shared_ptr<IRenderModule>& MainRenderer)
-{
-    m_Instance = std::dynamic_pointer_cast<Renderer>(MainRenderer)->GetInstance();
+luvk::Debug::Debug(const std::shared_ptr<Renderer>& RendererModule)
+    : m_RendererModule(RendererModule) {}
 
+void luvk::Debug::InitializeResources()
+{
     constexpr auto Severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -39,7 +38,7 @@ void luvk::Debug::InitializeDependencies(const std::shared_ptr<IRenderModule>& M
                                                             .pfnUserCallback = &ValidationLayerDebugCallback,
                                                             .pUserData = nullptr};
 
-    if (!LUVK_EXECUTE(vkCreateDebugUtilsMessengerEXT(m_Instance, &CreateInfo, nullptr, &m_Messenger)))
+    if (!LUVK_EXECUTE(vkCreateDebugUtilsMessengerEXT(m_RendererModule->GetInstance(), &CreateInfo, nullptr, &m_Messenger)))
     {
         throw std::runtime_error("Failed to create the debug messenger.");
     }
@@ -49,8 +48,7 @@ void luvk::Debug::ClearResources()
 {
     if (m_Messenger != VK_NULL_HANDLE)
     {
-        vkDestroyDebugUtilsMessengerEXT(m_Instance, m_Messenger, nullptr);
+        vkDestroyDebugUtilsMessengerEXT(m_RendererModule->GetInstance(), m_Messenger, nullptr);
         m_Messenger = VK_NULL_HANDLE;
     }
-    m_Instance = VK_NULL_HANDLE;
 }

@@ -3,19 +3,19 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Buffer.hpp"
+#include <cstring>
+#include <iterator>
+#include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
 #include "luvk/Modules/Renderer.hpp"
-#include "luvk/Libraries/VulkanHelpers.hpp"
 
-#include <cstring>
-#include <iterator>
+luvk::Buffer::Buffer(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
+    : m_DeviceModule(DeviceModule),
+      m_MemoryModule(MemoryModule) {}
 
-void luvk::Buffer::CreateBuffer(const std::shared_ptr<Memory>& MemoryModule, const CreationArguments& Arguments)
+void luvk::Buffer::CreateBuffer(const CreationArguments& Arguments)
 {
-    m_MemoryModule = MemoryModule;
-    m_DeviceModule = std::dynamic_pointer_cast<Device>(m_MemoryModule->GetDeviceModule());
-
     const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
 
     m_Size = Arguments.Size;
@@ -36,6 +36,8 @@ void luvk::Buffer::CreateBuffer(const std::shared_ptr<Memory>& MemoryModule, con
     {
         throw std::runtime_error("Failed to create buffer.");
     }
+
+    vmaSetAllocationName(Allocator, m_Allocation, std::data(Arguments.Name));
 }
 
 void luvk::Buffer::RecreateBuffer(const CreationArguments& Arguments)
@@ -50,7 +52,7 @@ void luvk::Buffer::RecreateBuffer(const CreationArguments& Arguments)
         m_Allocation = nullptr;
     }
 
-    CreateBuffer(m_MemoryModule, Arguments);
+    CreateBuffer(Arguments);
 }
 
 void luvk::Buffer::Upload(const std::span<const std::byte>& Data) const
@@ -76,12 +78,9 @@ void luvk::Buffer::Upload(const std::span<const std::byte>& Data) const
 
 luvk::Buffer::~Buffer()
 {
-    if (m_MemoryModule)
+    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
+    if (m_Buffer != VK_NULL_HANDLE)
     {
-        const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
-        if (m_Buffer != VK_NULL_HANDLE)
-        {
-            vmaDestroyBuffer(Allocator, m_Buffer, m_Allocation);
-        }
+        vmaDestroyBuffer(Allocator, m_Buffer, m_Allocation);
     }
 }

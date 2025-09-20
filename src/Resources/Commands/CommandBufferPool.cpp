@@ -10,18 +10,22 @@
 
 using namespace luvk;
 
+CommandBufferPool::CommandBufferPool(const std::shared_ptr<Device>& DeviceModule)
+    : m_DeviceModule(DeviceModule) {}
+
 CommandBufferPool::~CommandBufferPool()
 {
     Destroy();
 }
 
-void CommandBufferPool::Create(const std::shared_ptr<Device>& DeviceModule, const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
+void CommandBufferPool::Create(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
 {
-    m_DeviceModule = DeviceModule;
-    const VkDevice& DeviceHandle = m_DeviceModule->GetLogicalDevice();
+    const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                       .pNext = nullptr,
+                                       .flags = Flags,
+                                       .queueFamilyIndex = QueueFamilyIndex};
 
-    const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .pNext = nullptr, .flags = Flags, .queueFamilyIndex = QueueFamilyIndex};
-    if (!LUVK_EXECUTE(vkCreateCommandPool(DeviceHandle, &Info, nullptr, &m_Pool)))
+    if (!LUVK_EXECUTE(vkCreateCommandPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_Pool)))
     {
         throw std::runtime_error("Failed to create command pool");
     }
@@ -29,10 +33,9 @@ void CommandBufferPool::Create(const std::shared_ptr<Device>& DeviceModule, cons
 
 void CommandBufferPool::Destroy()
 {
-    if (m_Pool != VK_NULL_HANDLE && m_DeviceModule)
+    if (m_Pool != VK_NULL_HANDLE)
     {
-        const auto& DevicePtr = m_DeviceModule;
-        const VkDevice& DeviceHandle = DevicePtr->GetLogicalDevice();
+        const VkDevice& DeviceHandle = m_DeviceModule->GetLogicalDevice();
 
         if (!std::empty(m_Buffers))
         {
@@ -43,8 +46,6 @@ void CommandBufferPool::Destroy()
         vkDestroyCommandPool(DeviceHandle, m_Pool, nullptr);
         m_Pool = VK_NULL_HANDLE;
     }
-    m_DeviceModule.reset();
-    m_Free.clear();
 }
 
 VkCommandBuffer CommandBufferPool::Acquire()
@@ -59,11 +60,9 @@ VkCommandBuffer CommandBufferPool::Acquire()
     {
         const VkCommandBuffer CommandBuffer = m_Free.back();
         m_Free.pop_back();
+
         return CommandBuffer;
     }
-
-    const auto& DevicePtr = m_DeviceModule;
-    const VkDevice& DeviceHandle = DevicePtr->GetLogicalDevice();
 
     const VkCommandBufferAllocateInfo AllocInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
                                                 .commandPool = m_Pool,
@@ -71,7 +70,7 @@ VkCommandBuffer CommandBufferPool::Acquire()
                                                 .commandBufferCount = 1};
 
     VkCommandBuffer CommandBuffer{};
-    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(DeviceHandle, &AllocInfo, &CommandBuffer)))
+    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(m_DeviceModule->GetLogicalDevice(), &AllocInfo, &CommandBuffer)))
     {
         throw std::runtime_error("Failed to allocate command buffer");
     }

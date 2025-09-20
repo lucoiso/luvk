@@ -25,7 +25,11 @@ namespace luvk
         std::shared_ptr<Memory> m_MemoryModule{};
 
     public:
-        constexpr DescriptorSet() = default;
+        DescriptorSet() = delete;
+        explicit DescriptorSet(const std::shared_ptr<Device>& DeviceModule,
+                               const std::shared_ptr<DescriptorPool>& PoolModule,
+                               const std::shared_ptr<Memory>& MemoryModule);
+
         ~DescriptorSet();
 
         struct LayoutInfo
@@ -33,14 +37,9 @@ namespace luvk
             std::span<const VkDescriptorSetLayoutBinding> Bindings{};
         };
 
-        void CreateLayout(const std::shared_ptr<Device>& DeviceModule,
-                          const LayoutInfo& Info);
-
-        void UseLayout(const std::shared_ptr<Device>& DeviceModule,
-                       const VkDescriptorSetLayout& Layout);
-
-        void Allocate(const std::shared_ptr<DescriptorPool>& PoolModule,
-                      const std::shared_ptr<Memory>& MemoryModule = nullptr);
+        void CreateLayout(const LayoutInfo& Info);
+        void UseLayout(const VkDescriptorSetLayout& Layout);
+        void Allocate();
 
         void UpdateBuffer(const VkBuffer& Buffer,
                           VkDeviceSize Size,

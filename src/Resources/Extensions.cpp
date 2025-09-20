@@ -2,6 +2,7 @@
 // Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
+#include <cstdint>
 #include "luvk/Resources/Extensions.hpp"
 #include "luvk/Libraries/Functional.hpp"
 

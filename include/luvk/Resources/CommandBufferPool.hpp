@@ -23,10 +23,12 @@ namespace luvk
         std::mutex m_Mutex{};
 
     public:
-        constexpr CommandBufferPool() = default;
+        CommandBufferPool() = delete;
+        explicit CommandBufferPool(const std::shared_ptr<Device>& DeviceModule);
+
         ~CommandBufferPool();
 
-        void Create(const std::shared_ptr<Device>& DeviceModule, std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
+        void Create(std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
         void Destroy();
         VkCommandBuffer Acquire();
         void Reset();

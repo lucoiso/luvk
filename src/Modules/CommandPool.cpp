@@ -8,14 +8,14 @@
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Renderer.hpp"
 
-void luvk::CommandPool::CreateCommandPool(const std::shared_ptr<Device>& DeviceModule, const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
-{
-    m_DeviceModule = DeviceModule;
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+luvk::CommandPool::CommandPool(const std::shared_ptr<Device>& DeviceModule)
+    : m_DeviceModule(DeviceModule) {}
 
+void luvk::CommandPool::CreateCommandPool(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
+{
     const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .pNext = nullptr, .flags = Flags, .queueFamilyIndex = QueueFamilyIndex};
 
-    if (!LUVK_EXECUTE(vkCreateCommandPool(LogicalDevice, &Info, nullptr, &m_CommandPool)))
+    if (!LUVK_EXECUTE(vkCreateCommandPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_CommandPool)))
     {
         throw std::runtime_error("Failed to create command pool.");
     }
@@ -30,21 +30,14 @@ luvk::Vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(const std::uint
                                                    .level = Level,
                                                    .commandBufferCount = Count};
 
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
     Vector<VkCommandBuffer> Buffers(Count);
-    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(LogicalDevice, &AllocateInfo, std::data(Buffers))))
+    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, std::data(Buffers))))
     {
         throw std::runtime_error("Failed to allocate command buffers.");
     }
 
     m_Buffers.insert(std::end(m_Buffers), std::begin(Buffers), std::end(Buffers));
     return Buffers;
-}
-
-void luvk::CommandPool::InitializeDependencies(const std::shared_ptr<IRenderModule>&)
-{
-    // Do nothing
 }
 
 void luvk::CommandPool::ClearResources()

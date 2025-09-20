@@ -21,10 +21,12 @@ namespace luvk
         std::shared_ptr<Device> m_DeviceModule{};
 
     public:
-        constexpr PipelineCache() = default;
+        PipelineCache() = delete;
+        explicit PipelineCache(const std::shared_ptr<Device>& DeviceModule);
+
         ~PipelineCache();
 
-        void Create(const std::shared_ptr<Device>& DeviceModule);
+        void Create();
         void Destroy();
 
         [[nodiscard]] constexpr const VkPipelineCache& GetPreRasterCache() const

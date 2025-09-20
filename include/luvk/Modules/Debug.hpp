@@ -6,30 +6,35 @@
 
 #include <volk/volk.h>
 #include "luvk/Module.hpp"
-#include "luvk/Subsystems/IRenderModule.hpp"
+#include "luvk/Interfaces/IExtensionsModule.hpp"
+#include "luvk/Interfaces/IRenderModule.hpp"
 
 namespace luvk
 {
-    class LUVKMODULE_API Debug : public IRenderModule
+    class Renderer;
+
+    class LUVKMODULE_API Debug : public IRenderModule,
+                                 public IExtensionsModule
     {
         VkDebugUtilsMessengerEXT m_Messenger{VK_NULL_HANDLE};
-        VkInstance m_Instance{VK_NULL_HANDLE};
+        std::shared_ptr<Renderer> m_RendererModule{};
 
     public:
-        constexpr Debug() = default;
+        Debug() = delete;
+        explicit Debug(const std::shared_ptr<Renderer>& RendererModule);
 
         ~Debug() override
         {
             Debug::ClearResources();
         }
 
-        [[nodiscard]] UnorderedMap<std::string_view, Vector<std::string_view>> GetRequiredInstanceExtensions() const override
+        [[nodiscard]] ExtensionsMap GetInstanceExtensions() const override
         {
             return ToExtensionMap("VK_LAYER_KHRONOS_validation", {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
         }
 
     private:
-        void InitializeDependencies(const std::shared_ptr<IRenderModule>& MainRenderer) override;
+        void InitializeResources() override;
         void ClearResources() override;
     };
 } // namespace luvk

@@ -4,6 +4,7 @@
 
 #pragma once
 
+#include <cstdint>
 #include <memory>
 #include <span>
 #include <volk/volk.h>
@@ -32,7 +33,9 @@ namespace luvk
         std::shared_ptr<Device> m_DeviceModule{};
 
     public:
-        constexpr Pipeline() = default;
+        Pipeline() = delete;
+        explicit Pipeline(const std::shared_ptr<Device>& DeviceModule);
+
         ~Pipeline();
 
         struct CreationArguments
@@ -52,7 +55,7 @@ namespace luvk
             VkFrontFace FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
             bool EnableDepthOp{true};
             VkPipelineCreateFlags Flags{0};
-            class PipelineCache* Cache{nullptr};
+            class PipelineCache* Cache{};
         };
 
         struct ComputeCreationArguments
@@ -61,7 +64,7 @@ namespace luvk
             std::span<const VkDescriptorSetLayout> SetLayouts{};
             std::span<const VkPushConstantRange> PushConstants{};
             VkPipelineCreateFlags Flags{0};
-            PipelineCache* Cache{nullptr};
+            PipelineCache* Cache{};
         };
 
         struct MeshCreationArguments
@@ -79,14 +82,14 @@ namespace luvk
             VkFrontFace FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
             bool EnableDepthOp{true};
             VkPipelineCreateFlags Flags{0};
-            PipelineCache* Cache{nullptr};
+            PipelineCache* Cache{};
         };
 
-        void CreateGraphicsPipeline(const std::shared_ptr<Device>& DeviceModule, const CreationArguments& Arguments);
+        void CreateGraphicsPipeline(const CreationArguments& Arguments);
         void RecreateGraphicsPipeline(const CreationArguments& Arguments);
-        void CreateComputePipeline(const std::shared_ptr<Device>& DeviceModule, const ComputeCreationArguments& Arguments);
+        void CreateComputePipeline(const ComputeCreationArguments& Arguments);
         void RecreateComputePipeline(const ComputeCreationArguments& Arguments);
-        void CreateMeshPipeline(const std::shared_ptr<Device>& DeviceModule, const MeshCreationArguments& Arguments);
+        void CreateMeshPipeline(const MeshCreationArguments& Arguments);
         void RecreateMeshPipeline(const MeshCreationArguments& Arguments);
 
         [[nodiscard]] constexpr const VkPipeline& GetPipeline() const
@@ -121,6 +124,6 @@ namespace luvk
         }
 
     private:
-        void ClearResources();
+        void Clear();
     };
 } // namespace luvk

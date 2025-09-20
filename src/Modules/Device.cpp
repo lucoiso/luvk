@@ -5,8 +5,13 @@
 #include "luvk/Modules/Device.hpp"
 #include <iterator>
 #include <ranges>
+
+#include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Renderer.hpp"
+
+luvk::Device::Device(const std::shared_ptr<Renderer>& RendererModule)
+    : m_RendererModule(RendererModule) {}
 
 void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice& Device)
 {
@@ -74,11 +79,11 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
 {
     const void* FeatureChain = pNext;
 
-    if (m_Renderer)
+    for (const auto& [Index, Module] : m_RendererModule->GetModules())
     {
-        for (const auto& [Index, Module] : m_Renderer->GetModules())
+        if (const auto* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get()))
         {
-            for (const auto& [LayerIt, ExtensionContainerIt] : Module->GetRequiredDeviceExtensions())
+            for (const auto& [LayerIt, ExtensionContainerIt] : ExtModule->GetDeviceExtensions())
             {
                 m_Extensions.SetLayerState(LayerIt, true);
 
@@ -87,8 +92,11 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
                     m_Extensions.SetExtensionState(LayerIt, ExtensionIt, true);
                 }
             }
+        }
 
-            if (const auto Chain = Module->GetDeviceFeatureChain(shared_from_this()))
+        if (const auto* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get()))
+        {
+            if (const auto Chain = FeatChainModule->GetDeviceFeatureChain())
             {
                 auto Base = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(Chain));
 
@@ -158,11 +166,9 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
     GetEventSystem().Execute(DeviceEvents::OnChangedLogicalDevice);
 }
 
-void luvk::Device::InitializeDependencies(const std::shared_ptr<IRenderModule>& MainRenderer)
+void luvk::Device::InitializeResources()
 {
-    m_Renderer = std::dynamic_pointer_cast<Renderer>(MainRenderer);
-    m_Instance = m_Renderer->GetInstance();
-    FetchAvailableDevices(m_Instance);
+    FetchAvailableDevices(m_RendererModule->GetInstance());
 }
 
 void luvk::Device::ClearResources()
@@ -175,7 +181,7 @@ void luvk::Device::ClearResources()
 
     if (m_Surface != VK_NULL_HANDLE)
     {
-        vkDestroySurfaceKHR(m_Instance, m_Surface, nullptr);
+        vkDestroySurfaceKHR(m_RendererModule->GetInstance(), m_Surface, nullptr);
         m_Surface = VK_NULL_HANDLE;
     }
 }

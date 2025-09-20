@@ -7,7 +7,6 @@
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Renderer.hpp"
-
 #ifndef VMA_IMPLEMENTATION
 #    define VMA_LEAK_LOG_FORMAT(format, ...)                                            \
         do                                                                              \
@@ -22,12 +21,12 @@
 #endif
 #include <vma/vk_mem_alloc.h>
 
-void luvk::Memory::InitializeAllocator(const std::shared_ptr<Device>& DeviceModule,
-                                       const VkInstance& Instance,
-                                       const VmaAllocatorCreateFlags Flags)
-{
-    m_DeviceModule = DeviceModule;
+luvk::Memory::Memory(const std::shared_ptr<Renderer>& RendererModule, const std::shared_ptr<Device>& DeviceModule)
+    : m_RendererModule(RendererModule),
+      m_DeviceModule(DeviceModule) {}
 
+void luvk::Memory::InitializeAllocator(const VmaAllocatorCreateFlags Flags)
+{
     VkPhysicalDeviceMemoryProperties MemProps{};
     vkGetPhysicalDeviceMemoryProperties(m_DeviceModule->GetPhysicalDevice(), &MemProps);
 
@@ -41,7 +40,7 @@ void luvk::Memory::InitializeAllocator(const std::shared_ptr<Device>& DeviceModu
                                                .pDeviceMemoryCallbacks = nullptr,
                                                .pHeapSizeLimit = nullptr,
                                                .pVulkanFunctions = &VulkanFunctions,
-                                               .instance = Instance,
+                                               .instance = m_RendererModule->GetInstance(),
                                                .vulkanApiVersion = VK_MAKE_API_VERSION(0, 1, 0, 0),
                                                .pTypeExternalMemoryHandleTypes = nullptr};
 
@@ -54,11 +53,6 @@ void luvk::Memory::InitializeAllocator(const std::shared_ptr<Device>& DeviceModu
     GetEventSystem().Execute(MemoryEvents::OnAllocatorCreated);
 }
 
-void luvk::Memory::InitializeDependencies(const std::shared_ptr<IRenderModule>&)
-{
-    // Do nothing
-}
-
 void luvk::Memory::ClearResources()
 {
     if (m_Allocator != VK_NULL_HANDLE)
@@ -67,7 +61,6 @@ void luvk::Memory::ClearResources()
         m_Allocator = VK_NULL_HANDLE;
         GetEventSystem().Execute(MemoryEvents::OnAllocatorDestroyed);
     }
-    m_DeviceModule.reset();
 }
 
 void luvk::Memory::QueryMemoryStats(const bool AbortOnCritical) const

@@ -10,7 +10,7 @@
 #include <queue>
 #include <thread>
 #include "luvk/Module.hpp"
-#include "luvk/Subsystems/IRenderModule.hpp"
+#include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Types/Vector.hpp"
 
 namespace luvk
@@ -26,7 +26,11 @@ namespace luvk
 
     public:
         constexpr ThreadPool() = default;
-        ~ThreadPool() override;
+
+        ~ThreadPool() override
+        {
+            ThreadPool::ClearResources();
+        }
 
         void Start(std::uint32_t ThreadCount);
         void Submit(std::function<void()> Task);
@@ -34,7 +38,6 @@ namespace luvk
 
     private:
         void Worker();
-        void InitializeDependencies(const std::shared_ptr<IRenderModule>&) override;
         void ClearResources() override;
     };
 } // namespace luvk

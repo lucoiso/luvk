@@ -4,10 +4,11 @@
 
 #pragma once
 
+#include <cstdint>
 #include <span>
 #include <volk/volk.h>
 #include "luvk/Module.hpp"
-#include "luvk/Subsystems/IRenderModule.hpp"
+#include "luvk/Interfaces/IRenderModule.hpp"
 
 namespace luvk
 {
@@ -19,15 +20,15 @@ namespace luvk
         std::shared_ptr<Device> m_DeviceModule{};
 
     public:
-        constexpr DescriptorPool() = default;
+        DescriptorPool() = delete;
+        explicit DescriptorPool(const std::shared_ptr<Device>& DeviceModule);
 
         ~DescriptorPool() override
         {
             DescriptorPool::ClearResources();
         }
 
-        void CreateDescriptorPool(const std::shared_ptr<Device>& DeviceModule,
-                                  std::uint32_t MaxSets,
+        void CreateDescriptorPool(std::uint32_t MaxSets,
                                   const std::span<const VkDescriptorPoolSize>& PoolSizes,
                                   VkDescriptorPoolCreateFlags Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
@@ -37,7 +38,6 @@ namespace luvk
         }
 
     private:
-        void InitializeDependencies(const std::shared_ptr<IRenderModule>&) override;
         void ClearResources() override;
     };
 } // namespace luvk

@@ -13,14 +13,15 @@ namespace luvk
 {
     class LUVKMODULE_API Mesh
     {
-        std::shared_ptr<MeshRegistry> m_Registry{};
+    protected:
+        std::shared_ptr<MeshRegistry> m_RegistryModule{};
         std::size_t m_Index{};
 
     public:
-        constexpr Mesh() = default;
+        Mesh() = delete;
 
-        explicit Mesh(const std::shared_ptr<MeshRegistry>& Registry, const std::size_t Index) noexcept : m_Registry(Registry),
-                                                                                                         m_Index(Index) {}
+        explicit Mesh(const std::shared_ptr<MeshRegistry>& RegistryModule, const std::size_t Index) noexcept : m_RegistryModule(RegistryModule),
+                                                                                                               m_Index(Index) {}
 
         [[nodiscard]] constexpr std::size_t GetIndex() const noexcept
         {
@@ -28,11 +29,6 @@ namespace luvk
         }
 
         void Draw(const VkCommandBuffer& CommandBuffer) const;
-
-        [[nodiscard]] constexpr const std::shared_ptr<MeshRegistry>& GetRegistry() const noexcept
-        {
-            return m_Registry;
-        }
     };
 
     class LUVKMODULE_API InstancedMesh : public Mesh

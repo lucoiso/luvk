@@ -18,7 +18,9 @@ namespace luvk
         std::shared_ptr<Device> m_DeviceModule{};
 
     public:
-        constexpr Sampler() = default;
+        Sampler() = delete;
+        explicit Sampler(const std::shared_ptr<Device>& DeviceModule);
+
         ~Sampler();
 
         struct CreationArguments
@@ -27,7 +29,7 @@ namespace luvk
             VkSamplerAddressMode AddressMode{VK_SAMPLER_ADDRESS_MODE_REPEAT};
         };
 
-        void CreateSampler(const std::shared_ptr<Device>& DeviceModule, const CreationArguments& Arguments);
+        void CreateSampler(const CreationArguments& Arguments);
 
         [[nodiscard]] constexpr const VkSampler& GetHandle() const
         {

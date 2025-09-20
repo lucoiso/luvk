@@ -16,10 +16,9 @@
 #include "luvk/Types/Texture.hpp"
 #include "luvk/Types/Vector.hpp"
 
-void luvk::MeshRegistry::Initialize(const std::shared_ptr<Memory>& MemoryModule)
-{
-    m_MemoryModule = MemoryModule;
-}
+luvk::MeshRegistry::MeshRegistry(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
+    : m_DeviceModule(DeviceModule),
+      m_MemoryModule(MemoryModule) {}
 
 std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<const std::byte>& Vertices,
                                              const std::span<const std::byte>& Indices,
@@ -29,8 +28,7 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<const std::byte>& V
                                              const std::shared_ptr<Sampler>& TexSampler,
                                              const std::shared_ptr<Buffer>& UniformBuffer,
                                              const std::span<InstanceInfo>& Instances,
-                                             const std::shared_ptr<Pipeline>& PipelineModule,
-                                             const std::shared_ptr<Device>& DeviceModule,
+                                             const std::shared_ptr<Pipeline>& PipelineObj,
                                              const std::uint32_t TaskCount)
 {
     constexpr VkBufferUsageFlags VertexUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -40,17 +38,23 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<const std::byte>& V
 
     if (!std::empty(Vertices))
     {
-        Entry.VertexBuffer = std::make_shared<Buffer>();
-        Entry.VertexBuffer->CreateBuffer(m_MemoryModule,
-                                         {.Size = std::size(Vertices), .Usage = VertexUsage, .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+        Entry.VertexBuffer = std::make_shared<Buffer>(m_DeviceModule, m_MemoryModule);
+        Entry.VertexBuffer->CreateBuffer({.Name = "Mesh VTX",
+                                          .Size = std::size(Vertices),
+                                          .Usage = VertexUsage,
+                                          .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+
         Entry.VertexBuffer->Upload(Vertices);
     }
 
     if (!std::empty(Indices))
     {
-        Entry.IndexBuffer = std::make_shared<Buffer>();
-        Entry.IndexBuffer->CreateBuffer(m_MemoryModule,
-                                        {.Size = std::size(Indices), .Usage = IndexUsage, .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+        Entry.IndexBuffer = std::make_shared<Buffer>(m_DeviceModule, m_MemoryModule);
+        Entry.IndexBuffer->CreateBuffer({.Name = "Mesh IDX",
+                                         .Size = std::size(Indices),
+                                         .Usage = IndexUsage,
+                                         .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+
         Entry.IndexBuffer->Upload(Indices);
     }
 
@@ -68,7 +72,7 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<const std::byte>& V
     Entry.DispatchY = 1;
     Entry.DispatchZ = 1;
 
-    if (PipelineModule && PipelineModule->GetType() == Pipeline::Type::Graphics)
+    if (PipelineObj && PipelineObj->GetType() == Pipeline::Type::Graphics)
     {
         Entry.IndexCount = static_cast<std::uint32_t>(std::size(Indices) / sizeof(std::uint16_t));
     }
@@ -76,7 +80,7 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<const std::byte>& V
     {
         Entry.IndexCount = 0;
     }
-    Entry.MaterialPtr->SetPipeline(PipelineModule);
+    Entry.MaterialPtr->SetPipeline(PipelineObj);
 
     if (!std::empty(Instances))
     {
@@ -85,9 +89,9 @@ std::size_t luvk::MeshRegistry::RegisterMesh(const std::span<const std::byte>& V
 
     if (Pool && Layout != VK_NULL_HANDLE)
     {
-        const auto Descriptor = std::make_shared<DescriptorSet>();
-        Descriptor->UseLayout(DeviceModule, Layout);
-        Descriptor->Allocate(Pool, m_MemoryModule);
+        const auto Descriptor = std::make_shared<DescriptorSet>(m_DeviceModule, Pool, m_MemoryModule);
+        Descriptor->UseLayout(Layout);
+        Descriptor->Allocate();
 
         if (UniformBuffer)
         {
@@ -127,7 +131,7 @@ bool luvk::MeshRegistry::RemoveMesh(const std::size_t MeshIndex)
     return true;
 }
 
-void luvk::MeshRegistry::SetPipeline(const std::size_t MeshIndex, const std::shared_ptr<Pipeline>& PipelineModule) const
+void luvk::MeshRegistry::SetPipeline(const std::size_t MeshIndex, const std::shared_ptr<Pipeline>& PipelineObj) const
 {
     if (MeshIndex >= std::size(m_Meshes))
     {
@@ -136,7 +140,7 @@ void luvk::MeshRegistry::SetPipeline(const std::size_t MeshIndex, const std::sha
 
     if (m_Meshes[MeshIndex].MaterialPtr)
     {
-        m_Meshes[MeshIndex].MaterialPtr->SetPipeline(PipelineModule);
+        m_Meshes[MeshIndex].MaterialPtr->SetPipeline(PipelineObj);
     }
 }
 
@@ -144,9 +148,11 @@ void luvk::MeshRegistry::CreateInstanceBuffer(MeshEntry& Entry, const std::span<
 {
     constexpr VkBufferUsageFlags VertexUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-    Entry.InstanceBuffer = std::make_shared<Buffer>();
-    Entry.InstanceBuffer->CreateBuffer(m_MemoryModule,
-                                       {.Size = sizeof(MeshInstance) * std::size(Instances), .Usage = VertexUsage, .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+    Entry.InstanceBuffer = std::make_shared<Buffer>(m_DeviceModule, m_MemoryModule);
+    Entry.InstanceBuffer->CreateBuffer({.Name = "Instance VTX",
+                                        .Size = sizeof(MeshInstance) * std::size(Instances),
+                                        .Usage = VertexUsage,
+                                        .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
 
     Vector<MeshInstance> InstanceData;
     InstanceData.reserve(std::size(Instances));
@@ -157,7 +163,6 @@ void luvk::MeshRegistry::CreateInstanceBuffer(MeshEntry& Entry, const std::span<
     }
 
     Entry.InstanceBuffer->Upload(std::as_bytes(std::span{InstanceData}));
-
     Entry.InstanceCount = static_cast<std::uint32_t>(std::size(Instances));
 }
 
@@ -173,7 +178,8 @@ void luvk::MeshRegistry::UpdateInstances(const std::size_t MeshIndex, const std:
         if (const VkDeviceSize RequiredSize = sizeof(MeshInstance) * std::size(Instances);
             RequiredSize > MeshIt.InstanceBuffer->GetSize())
         {
-            MeshIt.InstanceBuffer->RecreateBuffer({.Size = RequiredSize,
+            MeshIt.InstanceBuffer->RecreateBuffer({.Name = "Instance VTX",
+                                                   .Size = RequiredSize,
                                                    .Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                                    .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
         }
@@ -201,11 +207,6 @@ void luvk::MeshRegistry::UpdateUniform(const std::size_t MeshIndex, const std::s
 
     MeshIt.UniformCache.assign(std::begin(Data), std::end(Data));
     MeshIt.UniformBuffer->Upload(Data);
-}
-
-void luvk::MeshRegistry::InitializeDependencies(const std::shared_ptr<IRenderModule>& /*MainRenderer*/)
-{
-    // Do nothing
 }
 
 void luvk::MeshRegistry::ClearResources()

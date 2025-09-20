@@ -7,9 +7,16 @@
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Renderer.hpp"
 
-void luvk::Sampler::CreateSampler(const std::shared_ptr<Device>& DeviceModule, const CreationArguments& Arguments)
+luvk::Sampler::Sampler(const std::shared_ptr<Device>& DeviceModule)
+    : m_DeviceModule(DeviceModule) {}
+
+luvk::Sampler::~Sampler()
 {
-    m_DeviceModule = DeviceModule;
+    Destroy();
+}
+
+void luvk::Sampler::CreateSampler(const CreationArguments& Arguments)
+{
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     const VkSamplerCreateInfo Info{.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -37,17 +44,11 @@ void luvk::Sampler::CreateSampler(const std::shared_ptr<Device>& DeviceModule, c
     }
 }
 
-luvk::Sampler::~Sampler()
-{
-    Destroy();
-}
-
 void luvk::Sampler::Destroy()
 {
-    if (m_DeviceModule && m_Sampler != VK_NULL_HANDLE)
+    if (m_Sampler != VK_NULL_HANDLE)
     {
-        const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
-        vkDestroySampler(LogicalDevice, m_Sampler, nullptr);
+        vkDestroySampler(m_DeviceModule->GetLogicalDevice(), m_Sampler, nullptr);
         m_Sampler = VK_NULL_HANDLE;
     }
 }

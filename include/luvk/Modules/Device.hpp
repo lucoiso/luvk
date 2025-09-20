@@ -8,8 +8,10 @@
 #include <optional>
 #include <volk/volk.h>
 #include "luvk/Module.hpp"
+#include "luvk/Interfaces/IEventModule.hpp"
+#include "luvk/Interfaces/IFeatureChainModule.hpp"
+#include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Resources/Extensions.hpp"
-#include "luvk/Subsystems/IRenderModule.hpp"
 #include "luvk/Types/UnorderedMap.hpp"
 #include "luvk/Types/Vector.hpp"
 
@@ -24,7 +26,8 @@ namespace luvk
     };
 
     class LUVKMODULE_API Device : public IRenderModule,
-                                  public std::enable_shared_from_this<Device>
+                                  public IEventModule,
+                                  public IFeatureChainModule
     {
         VkDevice m_LogicalDevice{VK_NULL_HANDLE};
         VkPhysicalDevice m_PhysicalDevice{VK_NULL_HANDLE};
@@ -41,11 +44,11 @@ namespace luvk
         Vector<VkSurfaceFormatKHR> m_SurfaceFormat{};
         Vector<VkQueueFamilyProperties> m_DeviceQueueFamilyProperties{};
         UnorderedMap<std::uint32_t, Vector<VkQueue>> m_Queues{};
-        VkInstance m_Instance{VK_NULL_HANDLE};
-        std::shared_ptr<Renderer> m_Renderer{nullptr};
+        std::shared_ptr<Renderer> m_RendererModule{};
 
     public:
-        constexpr Device() = default;
+        Device() = delete;
+        explicit Device(const std::shared_ptr<Renderer>& RendererModule);
 
         ~Device() override
         {
@@ -133,7 +136,7 @@ namespace luvk
             return m_AvailableDevices;
         }
 
-        [[nodiscard]] const void* GetDeviceFeatureChain(const std::shared_ptr<IRenderModule>&) const noexcept override
+        [[nodiscard]] const void* GetDeviceFeatureChain() const override
         {
             return &m_FeatureChain;
         }
@@ -146,7 +149,7 @@ namespace luvk
         void Wait(const VkFence& Fence, VkBool32 WaitAll = VK_TRUE, std::uint64_t Timeout = UINT64_MAX) const;
 
     private:
-        void InitializeDependencies(const std::shared_ptr<IRenderModule>& MainRenderer) override;
+        void InitializeResources() override;
         void ClearResources() override;
         void FetchAvailableDevices(const VkInstance& Instance);
     };

@@ -7,8 +7,8 @@
 #include <iterator>
 #include <memory>
 #include <volk/volk.h>
+#include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Resources/CommandBufferPool.hpp"
-#include "luvk/Subsystems/IRenderModule.hpp"
 #include "luvk/Types/Vector.hpp"
 
 namespace luvk
@@ -32,19 +32,27 @@ namespace luvk
     private:
         Vector<FrameData> m_Frames{};
         Vector<VkSemaphore> m_RenderFinished{};
-        CommandBufferPool m_SecondaryPool{};
+        std::size_t m_FrameCount{0};
         std::size_t m_CurrentFrame{0};
-        std::size_t m_ThreadCount{1};
+        std::shared_ptr<CommandBufferPool> m_SecondaryPool{};
         std::shared_ptr<Device> m_DeviceModule{};
+        std::shared_ptr<SwapChain> m_SwapChainModule{};
+        std::shared_ptr<CommandPool> m_CommandPoolModule{};
 
     public:
-        constexpr Synchronization() = default;
-        ~Synchronization() override = default;
+        Synchronization() = delete;
+        Synchronization(const std::shared_ptr<Device>& DeviceModule,
+                        const std::shared_ptr<SwapChain>& SwapChainModule,
+                        const std::shared_ptr<CommandPool>& CommandPoolModule,
+                        std::size_t FrameCount);
 
-        void Initialize(const std::shared_ptr<Device>& DeviceModule, std::size_t FrameCount);
+        ~Synchronization() override
+        {
+            Synchronization::ClearResources();
+        }
 
-        void SetupFrames(const std::shared_ptr<SwapChain>& SwapChainModule,
-                         const std::shared_ptr<CommandPool>& CommandPoolModule);
+        void Initialize();
+        void SetupFrames();
 
         [[nodiscard]] constexpr std::size_t GetFrameCount() const
         {
@@ -66,12 +74,7 @@ namespace luvk
             return m_CurrentFrame;
         }
 
-        [[nodiscard]] constexpr std::size_t GetThreadCount() const
-        {
-            return m_ThreadCount;
-        }
-
-        [[nodiscard]] constexpr CommandBufferPool& GetSecondaryPool()
+        [[nodiscard]] constexpr const std::shared_ptr<CommandBufferPool>& GetSecondaryPool()
         {
             return m_SecondaryPool;
         }
@@ -82,7 +85,6 @@ namespace luvk
         }
 
     private:
-        void InitializeDependencies(const std::shared_ptr<IRenderModule>&) override {}
         void ClearResources() override;
     };
 } // namespace luvk

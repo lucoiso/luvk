@@ -25,14 +25,16 @@ static VkShaderModule CreateShader(const VkDevice& Device, std::span<const std::
     return Module;
 }
 
+luvk::Pipeline::Pipeline(const std::shared_ptr<Device>& DeviceModule)
+    : m_DeviceModule(DeviceModule) {}
+
 luvk::Pipeline::~Pipeline()
 {
-    ClearResources();
+    Clear();
 }
 
-void luvk::Pipeline::CreateGraphicsPipeline(const std::shared_ptr<Device>& DeviceModule, const CreationArguments& Arguments)
+void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
 {
-    m_DeviceModule = DeviceModule;
     m_Type = Type::Graphics;
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
@@ -177,13 +179,12 @@ void luvk::Pipeline::CreateGraphicsPipeline(const std::shared_ptr<Device>& Devic
 
 void luvk::Pipeline::RecreateGraphicsPipeline(const CreationArguments& Arguments)
 {
-    ClearResources();
-    CreateGraphicsPipeline(m_DeviceModule, Arguments);
+    Clear();
+    CreateGraphicsPipeline(Arguments);
 }
 
-void luvk::Pipeline::CreateComputePipeline(const std::shared_ptr<Device>& DeviceModule, const ComputeCreationArguments& Arguments)
+void luvk::Pipeline::CreateComputePipeline(const ComputeCreationArguments& Arguments)
 {
-    m_DeviceModule = DeviceModule;
     m_Type = Type::Compute;
 
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
@@ -238,13 +239,12 @@ void luvk::Pipeline::CreateComputePipeline(const std::shared_ptr<Device>& Device
 
 void luvk::Pipeline::RecreateComputePipeline(const ComputeCreationArguments& Arguments)
 {
-    ClearResources();
-    CreateComputePipeline(m_DeviceModule, Arguments);
+    Clear();
+    CreateComputePipeline(Arguments);
 }
 
-void luvk::Pipeline::CreateMeshPipeline(const std::shared_ptr<Device>& DeviceModule, const MeshCreationArguments& Arguments)
+void luvk::Pipeline::CreateMeshPipeline(const MeshCreationArguments& Arguments)
 {
-    m_DeviceModule = DeviceModule;
     m_Type = Type::Mesh;
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
@@ -427,11 +427,11 @@ void luvk::Pipeline::CreateMeshPipeline(const std::shared_ptr<Device>& DeviceMod
 
 void luvk::Pipeline::RecreateMeshPipeline(const MeshCreationArguments& Arguments)
 {
-    ClearResources();
-    CreateMeshPipeline(m_DeviceModule, Arguments);
+    Clear();
+    CreateMeshPipeline(Arguments);
 }
 
-void luvk::Pipeline::ClearResources()
+void luvk::Pipeline::Clear()
 {
     if (!m_DeviceModule)
     {
