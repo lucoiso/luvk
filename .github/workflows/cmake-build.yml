@@ -65,8 +65,27 @@ jobs:
       - name: Install Vulkan SDK
         uses: humbletim/install-vulkan-sdk@033219e2d69dd4d3e873e217eb385fdd4b4438f4
         with:
-          version: 1.4.321.1
+          version: 1.4.321.0
           cache: true
+
+      - name: (Windows) List Vulkan SDK libs
+        if: matrix.os == 'windows-latest'
+        run: |
+          echo "VULKAN_SDK = $env:VULKAN_SDK"
+          dir "$env:VULKAN_SDK\Bin"
+          dir "$env:VULKAN_SDK\Lib"
+
+      - name: (Ubuntu) List Vulkan SDK libs
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          echo "VULKAN_SDK = $VULKAN_SDK"
+          ls -lh "$VULKAN_SDK/lib"
+
+      - name: (Mac) List Vulkan SDK libs
+        if: matrix.os == 'macos-latest'
+        run: |
+          echo "VULKAN_SDK = $VULKAN_SDK"
+          ls -lh "$VULKAN_SDK/lib"
 
       - name: Configure
         run: cmake -S . -B ${{ steps.strings.outputs.build-output-dir }} -G Ninja -DCMAKE_BUILD_TYPE=Release
