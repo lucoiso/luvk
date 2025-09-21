@@ -63,13 +63,10 @@ jobs:
             libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev
 
       - name: Install Vulkan SDK
-        uses: jakoch/install-vulkan-sdk-action@v1.0.0
+        uses: humbletim/install-vulkan-sdk@v1.2
         with:
-          vulkan_version: 1.4.321.0
-          optional_components: com.lunarg.vulkan.vma, com.lunarg.vulkan.volk, com.lunarg.vulkan.glm
-          install_runtime: true
+          version: 1.4.321.1
           cache: true
-          stripdown: true
 
       - name: Configure
         run: cmake -S . -B ${{ steps.strings.outputs.build-output-dir }} -G Ninja -DCMAKE_BUILD_TYPE=Release
