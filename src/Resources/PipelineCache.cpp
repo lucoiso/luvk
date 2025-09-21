@@ -14,26 +14,6 @@ PipelineCache::PipelineCache(const std::shared_ptr<Device>& DeviceModule)
 
 PipelineCache::~PipelineCache()
 {
-    Destroy();
-}
-
-void PipelineCache::Create()
-{
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
-    constexpr VkPipelineCacheCreateInfo info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
-    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_PreRaster)) ||
-        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Fragment)) ||
-        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Output)) ||
-        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Composite)))
-    {
-        Destroy();
-        throw std::runtime_error("Failed to create pipeline caches");
-    }
-}
-
-void PipelineCache::Destroy()
-{
     const VkDevice& Device = m_DeviceModule->GetLogicalDevice();
     if (m_PreRaster != VK_NULL_HANDLE)
     {
@@ -54,5 +34,19 @@ void PipelineCache::Destroy()
     {
         vkDestroyPipelineCache(Device, m_Composite, nullptr);
         m_Composite = VK_NULL_HANDLE;
+    }
+}
+
+void PipelineCache::Create()
+{
+    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+
+    constexpr VkPipelineCacheCreateInfo info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_PreRaster)) ||
+        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Fragment)) ||
+        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Output)) ||
+        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Composite)))
+    {
+        throw std::runtime_error("Failed to create pipeline caches");
     }
 }

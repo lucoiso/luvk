@@ -35,8 +35,5 @@ namespace luvk
         {
             return m_Sampler;
         }
-
-    private:
-        void Destroy();
     };
 } // namespace luvk

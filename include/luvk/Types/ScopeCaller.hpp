@@ -4,11 +4,14 @@
 
 #pragma once
 
-#include <tuple>
-#include "luvk/Module.hpp"
-
 namespace luvk
 {
-    template <typename... Types>
-    using Tuple = std::tuple<Types...>;
+    template <auto Functor>
+    struct ScopeCaller
+    {
+        ~ScopeCaller()
+        {
+            Functor();
+        }
+    };
 } // namespace luvk

@@ -29,7 +29,6 @@ namespace luvk
         ~CommandBufferPool();
 
         void Create(std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
-        void Destroy();
         VkCommandBuffer Acquire();
         void Reset();
     };

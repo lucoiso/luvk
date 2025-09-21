@@ -19,7 +19,21 @@ luvk::Image::Image(const std::shared_ptr<Device>& DeviceModule, const std::share
 
 luvk::Image::~Image()
 {
-    Destroy();
+    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
+    const VkDevice& Device = m_DeviceModule->GetLogicalDevice();
+
+    if (m_View != VK_NULL_HANDLE)
+    {
+        vkDestroyImageView(Device, m_View, nullptr);
+        m_View = VK_NULL_HANDLE;
+    }
+
+    if (m_Image != VK_NULL_HANDLE)
+    {
+        vmaDestroyImage(Allocator, m_Image, m_Allocation);
+        m_Image = VK_NULL_HANDLE;
+        m_Allocation = nullptr;
+    }
 }
 
 void luvk::Image::CreateImage(const CreationArguments& Arguments)
@@ -198,26 +212,4 @@ void luvk::Image::Upload(const std::shared_ptr<Buffer>& Staging) const
 
     vkFreeCommandBuffers(LogicalDevice, Pool, 1, &CommandBuffer);
     vkDestroyCommandPool(LogicalDevice, Pool, nullptr);
-}
-
-void luvk::Image::Destroy()
-{
-    if (m_DeviceModule && m_MemoryModule)
-    {
-        const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
-        const VkDevice& Device = m_DeviceModule->GetLogicalDevice();
-
-        if (m_View != VK_NULL_HANDLE)
-        {
-            vkDestroyImageView(Device, m_View, nullptr);
-            m_View = VK_NULL_HANDLE;
-        }
-
-        if (m_Image != VK_NULL_HANDLE)
-        {
-            vmaDestroyImage(Allocator, m_Image, m_Allocation);
-            m_Image = VK_NULL_HANDLE;
-            m_Allocation = nullptr;
-        }
-    }
 }

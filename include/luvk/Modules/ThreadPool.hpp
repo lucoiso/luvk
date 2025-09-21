@@ -36,8 +36,10 @@ namespace luvk
         void Submit(std::function<void()> Task);
         void WaitIdle();
 
+    protected:
+        void ClearResources() override;
+
     private:
         void Worker();
-        void ClearResources() override;
     };
 } // namespace luvk

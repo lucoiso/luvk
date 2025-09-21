@@ -1,3 +1,7 @@
+// Author: Lucas Vilas-Boas
+// Year: 2025
+// Repo : https://github.com/lucoiso/luvk
+
 #pragma once
 
 #include <algorithm>
@@ -139,6 +143,11 @@ namespace luvk
         [[nodiscard]] constexpr std::size_t size() const noexcept
         {
             return std::size(m_Data);
+        }
+
+        [[nodiscard]] constexpr bool empty() const noexcept
+        {
+            return std::empty(m_Data);
         }
 
         [[nodiscard]] constexpr T& operator[](const Key& KeyValue)

@@ -2,8 +2,8 @@
 // Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
-#include <cstdint>
 #include "luvk/Resources/DescriptorSet.hpp"
+#include <cstdint>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/DescriptorPool.hpp"
 #include "luvk/Modules/Device.hpp"
@@ -19,7 +19,19 @@ luvk::DescriptorSet::DescriptorSet(const std::shared_ptr<Device>& DeviceModule,
 
 luvk::DescriptorSet::~DescriptorSet()
 {
-    Destroy();
+    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+
+    if (m_Set != VK_NULL_HANDLE && m_PoolModule)
+    {
+        vkFreeDescriptorSets(LogicalDevice, m_PoolModule->GetHandle(), 1, &m_Set);
+        m_Set = VK_NULL_HANDLE;
+    }
+
+    if (m_Layout != VK_NULL_HANDLE && m_OwnsLayout)
+    {
+        vkDestroyDescriptorSetLayout(LogicalDevice, m_Layout, nullptr);
+        m_Layout = VK_NULL_HANDLE;
+    }
 }
 
 void luvk::DescriptorSet::CreateLayout(const LayoutInfo& Info)
@@ -91,25 +103,4 @@ void luvk::DescriptorSet::UpdateImage(const VkImageView& View,
                                      .pImageInfo = &ImageInfo};
 
     vkUpdateDescriptorSets(m_DeviceModule->GetLogicalDevice(), 1, &Write, 0, nullptr);
-}
-
-void luvk::DescriptorSet::Destroy()
-{
-    if (m_DeviceModule)
-    {
-        const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
-        if (m_Set != VK_NULL_HANDLE && m_PoolModule)
-        {
-            const auto& Pool = m_PoolModule;
-            vkFreeDescriptorSets(LogicalDevice, Pool->GetHandle(), 1, &m_Set);
-            m_Set = VK_NULL_HANDLE;
-        }
-
-        if (m_Layout != VK_NULL_HANDLE && m_OwnsLayout)
-        {
-            vkDestroyDescriptorSetLayout(LogicalDevice, m_Layout, nullptr);
-            m_Layout = VK_NULL_HANDLE;
-        }
-    }
 }

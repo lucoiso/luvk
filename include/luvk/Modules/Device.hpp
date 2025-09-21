@@ -22,7 +22,8 @@ namespace luvk
     enum class DeviceEvents : std::uint8_t
     {
         OnSelectedPhysicalDevice,
-        OnChangedLogicalDevice
+        OnCreatedLogicalDevice,
+        OnSetSurface,
     };
 
     class LUVKMODULE_API Device : public IRenderModule,
@@ -148,9 +149,11 @@ namespace luvk
         void Wait(const VkQueue& Queue) const;
         void Wait(const VkFence& Fence, VkBool32 WaitAll = VK_TRUE, std::uint64_t Timeout = UINT64_MAX) const;
 
-    private:
+    protected:
         void InitializeResources() override;
         void ClearResources() override;
+
+    private:
         void FetchAvailableDevices(const VkInstance& Instance);
     };
 } // namespace luvk

@@ -67,7 +67,7 @@ namespace luvk
             return {std::data(m_Meshes), std::size(m_Meshes)};
         }
 
-    private:
+    protected:
         void ClearResources() override;
     };
 } // namespace luvk

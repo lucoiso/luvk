@@ -44,9 +44,7 @@ namespace luvk
             return m_Allocator;
         }
 
-        void QueryMemoryStats(bool AbortOnCritical = false) const;
-
-    private:
+    protected:
         void ClearResources() override;
     };
 } // namespace luvk

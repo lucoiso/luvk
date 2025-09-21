@@ -49,7 +49,6 @@ void luvk::Memory::InitializeAllocator(const VmaAllocatorCreateFlags Flags)
         throw std::runtime_error("Failed to initialize the allocator.");
     }
 
-    QueryMemoryStats(true);
     GetEventSystem().Execute(MemoryEvents::OnAllocatorCreated);
 }
 
@@ -59,32 +58,7 @@ void luvk::Memory::ClearResources()
     {
         vmaDestroyAllocator(m_Allocator);
         m_Allocator = VK_NULL_HANDLE;
+
         GetEventSystem().Execute(MemoryEvents::OnAllocatorDestroyed);
-    }
-}
-
-void luvk::Memory::QueryMemoryStats(const bool AbortOnCritical) const
-{
-    if (!m_DeviceModule)
-    {
-        return;
-    }
-
-    VkPhysicalDeviceMemoryProperties MemProps{};
-    vkGetPhysicalDeviceMemoryProperties(m_DeviceModule->GetPhysicalDevice(), &MemProps);
-
-    for (std::uint32_t HeapIndex = 0; HeapIndex < MemProps.memoryHeapCount; ++HeapIndex)
-    {
-        constexpr VkDeviceSize Used = 0;
-        const VkDeviceSize Total = MemProps.memoryHeaps[HeapIndex].size;
-        constexpr double UsedMB = static_cast<double>(Used) / (1024.0 * 1024.0);
-        const double TotalMB = static_cast<double>(Total) / (1024.0 * 1024.0);
-
-        std::fprintf(stderr, "[Memory] Heap %u: %.2f / %.2f MiB used\n", HeapIndex, UsedMB, TotalMB);
-
-        if (AbortOnCritical)
-        {
-            // TODO : Warn & abort
-        }
     }
 }

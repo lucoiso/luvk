@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <cstdint>
 #include <memory>
 #include <span>
 #include <volk/volk.h>
@@ -123,7 +122,7 @@ namespace luvk
             }
         }
 
-    private:
+    protected:
         void Clear();
     };
 } // namespace luvk

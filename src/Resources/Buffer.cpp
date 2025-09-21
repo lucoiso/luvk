@@ -14,6 +14,15 @@ luvk::Buffer::Buffer(const std::shared_ptr<Device>& DeviceModule, const std::sha
     : m_DeviceModule(DeviceModule),
       m_MemoryModule(MemoryModule) {}
 
+luvk::Buffer::~Buffer()
+{
+    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
+    if (m_Buffer != VK_NULL_HANDLE)
+    {
+        vmaDestroyBuffer(Allocator, m_Buffer, m_Allocation);
+    }
+}
+
 void luvk::Buffer::CreateBuffer(const CreationArguments& Arguments)
 {
     const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
@@ -37,7 +46,10 @@ void luvk::Buffer::CreateBuffer(const CreationArguments& Arguments)
         throw std::runtime_error("Failed to create buffer.");
     }
 
-    vmaSetAllocationName(Allocator, m_Allocation, std::data(Arguments.Name));
+    if (!std::empty(Arguments.Name))
+    {
+        vmaSetAllocationName(Allocator, m_Allocation, std::data(Arguments.Name));
+    }
 }
 
 void luvk::Buffer::RecreateBuffer(const CreationArguments& Arguments)
@@ -74,13 +86,4 @@ void luvk::Buffer::Upload(const std::span<const std::byte>& Data) const
     std::memcpy(Mapping, std::data(Data), std::size(Data));
     vmaFlushAllocation(Allocator, m_Allocation, 0, std::size(Data));
     vmaUnmapMemory(Allocator, m_Allocation);
-}
-
-luvk::Buffer::~Buffer()
-{
-    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
-    if (m_Buffer != VK_NULL_HANDLE)
-    {
-        vmaDestroyBuffer(Allocator, m_Buffer, m_Allocation);
-    }
 }

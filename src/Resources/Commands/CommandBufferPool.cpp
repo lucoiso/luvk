@@ -15,24 +15,6 @@ CommandBufferPool::CommandBufferPool(const std::shared_ptr<Device>& DeviceModule
 
 CommandBufferPool::~CommandBufferPool()
 {
-    Destroy();
-}
-
-void CommandBufferPool::Create(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
-{
-    const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                                       .pNext = nullptr,
-                                       .flags = Flags,
-                                       .queueFamilyIndex = QueueFamilyIndex};
-
-    if (!LUVK_EXECUTE(vkCreateCommandPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_Pool)))
-    {
-        throw std::runtime_error("Failed to create command pool");
-    }
-}
-
-void CommandBufferPool::Destroy()
-{
     if (m_Pool != VK_NULL_HANDLE)
     {
         const VkDevice& DeviceHandle = m_DeviceModule->GetLogicalDevice();
@@ -45,6 +27,19 @@ void CommandBufferPool::Destroy()
 
         vkDestroyCommandPool(DeviceHandle, m_Pool, nullptr);
         m_Pool = VK_NULL_HANDLE;
+    }
+}
+
+void CommandBufferPool::Create(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
+{
+    const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                       .pNext = nullptr,
+                                       .flags = Flags,
+                                       .queueFamilyIndex = QueueFamilyIndex};
+
+    if (!LUVK_EXECUTE(vkCreateCommandPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_Pool)))
+    {
+        throw std::runtime_error("Failed to create command pool");
     }
 }
 

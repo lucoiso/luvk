@@ -17,21 +17,21 @@
 #include "luvk/Modules/ThreadPool.hpp"
 #include "luvk/Types/Material.hpp"
 
-static constinit bool s_IsVolkInitialized = false;
-
-void luvk::Renderer::PreInitializeRenderer()
-{
-    if (!s_IsVolkInitialized)
-    {
-        volkInitialize();
-        s_IsVolkInitialized = true;
-    }
-
-    m_Extensions.FillExtensionsContainer();
-}
+static constinit std::atomic_bool s_IsVolkInitialized = false;
 
 void luvk::Renderer::RegisterModules(Vector<std::shared_ptr<IRenderModule>>&& Modules)
 {
+    if (!s_IsVolkInitialized.load())
+    {
+        volkInitialize();
+        s_IsVolkInitialized.store(true);
+    }
+
+    if (m_Extensions.IsEmpty())
+    {
+        m_Extensions.FillExtensionsContainer();
+    }
+
     m_ModuleMap.clear();
     m_ModuleMap.reserve(std::size(Modules));
 
@@ -39,13 +39,15 @@ void luvk::Renderer::RegisterModules(Vector<std::shared_ptr<IRenderModule>>&& Mo
     {
         m_ModuleMap.emplace(std::type_index(typeid(*ModuleIt)), ModuleIt);
     }
+
+    GetEventSystem().Execute(RendererEvents::OnModulesRegistered);
 }
 
 bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext)
 {
-    if (!s_IsVolkInitialized)
+    if (std::empty(m_ModuleMap))
     {
-        throw std::runtime_error("Volk is not initialized, ensure that you call PreInitializeRenderer() before executing this function.");
+        throw std::runtime_error("No modules were registered for this renderer");
     }
 
     const void* FeatureChain = pNext;
@@ -98,23 +100,21 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
     if (m_Instance != nullptr)
     {
         volkLoadInstance(m_Instance);
+
+        std::for_each(std::execution::seq,
+                      std::begin(m_ModuleMap),
+                      std::end(m_ModuleMap),
+                      [&](const auto& Pair)
+                      {
+                          Pair.Second->InitializeResources();
+                      });
+
+        GetEventSystem().Execute(RendererEvents::OnInitialized);
+
         return true;
     }
 
     return false;
-}
-
-void luvk::Renderer::PostInitializeRenderer()
-{
-    std::for_each(std::execution::seq,
-                  std::begin(m_ModuleMap),
-                  std::end(m_ModuleMap),
-                  [&](const auto& Pair)
-                  {
-                      Pair.Second->InitializeResources();
-                  });
-
-    GetEventSystem().Execute(RendererEvents::OnPostInitialized);
 }
 
 void luvk::Renderer::ClearResources()
@@ -126,12 +126,6 @@ void luvk::Renderer::ClearResources()
     {
         vkDeviceWaitIdle(LogicalDevice);
     }
-
-    for (auto& Destructor : m_ExternalDestructors)
-    {
-        Destructor();
-    }
-    m_ExternalDestructors.clear();
 
     std::for_each(std::execution::seq,
                   std::begin(m_ModuleMap),
@@ -149,10 +143,10 @@ void luvk::Renderer::ClearResources()
         m_Instance = VK_NULL_HANDLE;
     }
 
-    if (s_IsVolkInitialized)
+    if (s_IsVolkInitialized.load())
     {
         volkFinalize();
-        s_IsVolkInitialized = false;
+        s_IsVolkInitialized.store(false);
     }
 }
 
@@ -207,15 +201,22 @@ void luvk::Renderer::DrawFrame()
         throw std::runtime_error("Failed to reset command buffer.");
     }
 
-    BeginExternalFrame();
     RecordCommands(Frame, ImageIndex);
     SubmitFrame(Frame, ImageIndex);
-    EndExternalFrame();
 }
 
 void luvk::Renderer::SetPaused(const bool Paused)
 {
     m_Paused = Paused;
+
+    if (m_Paused)
+    {
+        GetEventSystem().Execute(RendererEvents::OnPaused);
+    }
+    else
+    {
+        GetEventSystem().Execute(RendererEvents::OnResumed);
+    }
 }
 
 void luvk::Renderer::Refresh(const VkExtent2D& Extent) const
@@ -227,63 +228,14 @@ void luvk::Renderer::Refresh(const VkExtent2D& Extent) const
     SwapChainModule->Recreate(Extent, nullptr);
 
     SetupFrames();
+
+    GetEventSystem().Execute(RendererEvents::OnRefreshed);
 }
 
 void luvk::Renderer::EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd)
 {
     m_PostRenderCommands.emplace_back(std::move(Cmd));
 }
-
-void luvk::Renderer::EnqueueDestructor(std::function<void()>&& Destructor)
-{
-    m_ExternalDestructors.emplace_back(std::move(Destructor));
-}
-
-VkDescriptorPool luvk::Renderer::CreateExternalDescriptorPool(const std::uint32_t MaxSets,
-                                                              std::span<const VkDescriptorPoolSize> PoolSizes,
-                                                              const VkDescriptorPoolCreateFlags Flags)
-{
-    const auto DeviceModule = FindModule<Device>();
-    const VkDevice& LogicalDevice = DeviceModule->GetLogicalDevice();
-
-    VkDescriptorPool Pool{VK_NULL_HANDLE};
-    const VkDescriptorPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                          .pNext = nullptr,
-                                          .flags = Flags,
-                                          .maxSets = MaxSets,
-                                          .poolSizeCount = static_cast<std::uint32_t>(std::size(PoolSizes)),
-                                          .pPoolSizes = std::data(PoolSizes)};
-
-    if (!LUVK_EXECUTE(vkCreateDescriptorPool(LogicalDevice, &Info, nullptr, &Pool)))
-    {
-        throw std::runtime_error("Failed to create descriptor pool.");
-    }
-
-    EnqueueDestructor([=]
-    {
-        vkDestroyDescriptorPool(LogicalDevice, Pool, nullptr);
-    });
-
-    return Pool;
-}
-
-void luvk::Renderer::DestroyExternalDescriptorPool(VkDescriptorPool& Pool) const
-{
-    if (Pool == VK_NULL_HANDLE)
-    {
-        return;
-    }
-
-    const auto DeviceModule = FindModule<Device>();
-    const VkDevice& LogicalDevice = DeviceModule->GetLogicalDevice();
-
-    vkDestroyDescriptorPool(LogicalDevice, Pool, nullptr);
-    Pool = VK_NULL_HANDLE;
-}
-
-void luvk::Renderer::BeginExternalFrame() {}
-
-void luvk::Renderer::EndExternalFrame() {}
 
 void luvk::Renderer::SetupFrames() const
 {

@@ -84,7 +84,7 @@ namespace luvk
             m_CurrentFrame = (m_CurrentFrame + 1) % std::size(m_Frames);
         }
 
-    private:
+    protected:
         void ClearResources() override;
     };
 } // namespace luvk

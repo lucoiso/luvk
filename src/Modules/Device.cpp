@@ -4,8 +4,6 @@
 
 #include "luvk/Modules/Device.hpp"
 #include <iterator>
-#include <ranges>
-
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Renderer.hpp"
@@ -73,6 +71,8 @@ void luvk::Device::SetSurface(const VkSurfaceKHR& Surface)
 
     m_SurfaceFormat.resize(NumFormats);
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &NumFormats, std::data(m_SurfaceFormat));
+
+    GetEventSystem().Execute(DeviceEvents::OnSetSurface);
 }
 
 void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t>&& QueueIndices, const void* pNext)
@@ -163,7 +163,7 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
         m_Queues.emplace(QueueCreateInfoIt.queueFamilyIndex, QueueList);
     }
 
-    GetEventSystem().Execute(DeviceEvents::OnChangedLogicalDevice);
+    GetEventSystem().Execute(DeviceEvents::OnCreatedLogicalDevice);
 }
 
 void luvk::Device::InitializeResources()

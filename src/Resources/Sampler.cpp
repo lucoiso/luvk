@@ -12,7 +12,11 @@ luvk::Sampler::Sampler(const std::shared_ptr<Device>& DeviceModule)
 
 luvk::Sampler::~Sampler()
 {
-    Destroy();
+    if (m_Sampler != VK_NULL_HANDLE)
+    {
+        vkDestroySampler(m_DeviceModule->GetLogicalDevice(), m_Sampler, nullptr);
+        m_Sampler = VK_NULL_HANDLE;
+    }
 }
 
 void luvk::Sampler::CreateSampler(const CreationArguments& Arguments)
@@ -41,14 +45,5 @@ void luvk::Sampler::CreateSampler(const CreationArguments& Arguments)
     if (!LUVK_EXECUTE(vkCreateSampler(LogicalDevice, &Info, nullptr, &m_Sampler)))
     {
         throw std::runtime_error("Failed to create sampler.");
-    }
-}
-
-void luvk::Sampler::Destroy()
-{
-    if (m_Sampler != VK_NULL_HANDLE)
-    {
-        vkDestroySampler(m_DeviceModule->GetLogicalDevice(), m_Sampler, nullptr);
-        m_Sampler = VK_NULL_HANDLE;
     }
 }

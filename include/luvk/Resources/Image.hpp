@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <cstdint>
 #include <cstddef>
 #include <memory>
 #include <span>
@@ -57,8 +56,5 @@ namespace luvk
         {
             return m_View;
         }
-
-    private:
-        void Destroy();
     };
 } // namespace luvk

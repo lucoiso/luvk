@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <cstdint>
 #include <span>
 #include <volk/volk.h>
 #include "luvk/Module.hpp"
@@ -37,7 +36,7 @@ namespace luvk
             return m_Pool;
         }
 
-    private:
+    protected:
         void ClearResources() override;
     };
 } // namespace luvk

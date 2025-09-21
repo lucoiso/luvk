@@ -25,6 +25,9 @@ void luvk::Synchronization::Initialize()
     m_SecondaryPool = std::make_shared<CommandBufferPool>(m_DeviceModule);
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
+    const std::uint32_t GraphicsFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
+    m_SecondaryPool->Create(GraphicsFamily, 0);
+
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
     constexpr VkFenceCreateInfo FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
@@ -53,10 +56,8 @@ void luvk::Synchronization::SetupFrames()
     const std::size_t ImageCount = std::size(m_SwapChainModule->GetImageViews());
 
     const Vector<VkCommandBuffer> Buffers = m_CommandPoolModule->AllocateBuffers(static_cast<std::uint32_t>(ImageCount));
-    const std::uint32_t GraphicsFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
 
-    m_SecondaryPool->Destroy();
-    m_SecondaryPool->Create(GraphicsFamily, 0);
+    m_SecondaryPool->Reset();
 
     for (std::size_t Index = 0; Index < ImageCount; ++Index)
     {
@@ -109,8 +110,6 @@ void luvk::Synchronization::ClearResources()
             Sem = VK_NULL_HANDLE;
         }
     }
-
-    m_SecondaryPool->Destroy();
 
     m_Frames.clear();
     m_RenderFinished.clear();

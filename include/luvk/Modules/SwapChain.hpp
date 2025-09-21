@@ -34,7 +34,6 @@ namespace luvk
     enum class SwapChainEvents : std::uint8_t
     {
         OnCreated,
-        OnRecreated,
         OnChangedNumberOfImages
     };
 
@@ -125,8 +124,10 @@ namespace luvk
         void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
         void Recreate(VkExtent2D NewExtent, void* const& pNext);
 
-    private:
+    protected:
         void ClearResources() override;
+
+    private:
         void CreateSwapChainImages(const VkDevice& LogicalDevice);
         void DestroySwapChainImages(const VkDevice& LogicalDevice);
         void CreateRenderPass(const VkDevice& LogicalDevice);

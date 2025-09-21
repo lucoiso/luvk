@@ -16,35 +16,6 @@ void luvk::ThreadPool::Start(const std::uint32_t ThreadCount)
     }
 }
 
-void luvk::ThreadPool::Worker()
-{
-    while (true)
-    {
-        std::function<void()> Task;
-        {
-            std::unique_lock Lock(m_Mutex);
-            m_Condition.wait(Lock,
-                             [this]
-                             {
-                                 return m_Stop || !std::empty(m_Tasks);
-                             });
-            if (m_Stop && std::empty(m_Tasks))
-            {
-                return;
-            }
-            Task = std::move(m_Tasks.front());
-            m_Tasks.pop();
-            ++m_Active;
-        }
-        Task();
-        {
-            std::lock_guard Lock(m_Mutex);
-            --m_Active;
-        }
-        m_Condition.notify_all();
-    }
-}
-
 void luvk::ThreadPool::Submit(std::function<void()> Task)
 {
     {
@@ -79,4 +50,33 @@ void luvk::ThreadPool::ClearResources()
         }
     }
     m_Threads.clear();
+}
+
+void luvk::ThreadPool::Worker()
+{
+    while (true)
+    {
+        std::function<void()> Task;
+        {
+            std::unique_lock Lock(m_Mutex);
+            m_Condition.wait(Lock,
+                             [this]
+                             {
+                                 return m_Stop || !std::empty(m_Tasks);
+                             });
+            if (m_Stop && std::empty(m_Tasks))
+            {
+                return;
+            }
+            Task = std::move(m_Tasks.front());
+            m_Tasks.pop();
+            ++m_Active;
+        }
+        Task();
+        {
+            std::lock_guard Lock(m_Mutex);
+            --m_Active;
+        }
+        m_Condition.notify_all();
+    }
 }

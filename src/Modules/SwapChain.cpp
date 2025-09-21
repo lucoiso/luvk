@@ -112,7 +112,6 @@ void luvk::SwapChain::Recreate(const VkExtent2D NewExtent,
 {
     m_Arguments.Extent = NewExtent;
     CreateSwapChain(CreationArguments(m_Arguments), pNext);
-    GetEventSystem().Execute(SwapChainEvents::OnRecreated);
 }
 
 void luvk::SwapChain::CreateSwapChainImages(const VkDevice& LogicalDevice)

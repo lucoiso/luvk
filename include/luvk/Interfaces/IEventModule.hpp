@@ -7,10 +7,10 @@ namespace luvk
 {
     class LUVKMODULE_API IEventModule
     {
-        EventGraph m_EventGraph{};
+        mutable EventGraph m_EventGraph{};
 
     public:
-        [[nodiscard]] EventGraph& GetEventSystem()
+        [[nodiscard]] EventGraph& GetEventSystem() const
         {
             return m_EventGraph;
         }

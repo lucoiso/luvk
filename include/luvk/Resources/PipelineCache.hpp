@@ -27,7 +27,6 @@ namespace luvk
         ~PipelineCache();
 
         void Create();
-        void Destroy();
 
         [[nodiscard]] constexpr const VkPipelineCache& GetPreRasterCache() const
         {

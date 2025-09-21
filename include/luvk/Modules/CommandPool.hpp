@@ -17,6 +17,7 @@ namespace luvk
     enum class CommandPoolEvents : std::uint8_t
     {
         OnCreatedPool,
+        OnAllocatedBuffers,
         OnDestroyedPool
     };
 
@@ -47,6 +48,7 @@ namespace luvk
             return m_CommandPool;
         }
 
+    protected:
         void ClearResources() override;
     };
 } // namespace luvk

@@ -20,7 +20,11 @@ namespace luvk
 {
     enum class RendererEvents : std::uint8_t
     {
-        OnPostInitialized,
+        OnModulesRegistered,
+        OnInitialized,
+        OnRefreshed,
+        OnPaused,
+        OnResumed,
         OnRenderLoopInitialized
     };
 
@@ -30,7 +34,6 @@ namespace luvk
         VkInstance m_Instance{VK_NULL_HANDLE};
         InstanceExtensions m_Extensions{};
         Vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
-        Vector<std::function<void()>> m_ExternalDestructors{};
         UnorderedMap<std::type_index, std::shared_ptr<IRenderModule>> m_ModuleMap{};
         bool m_Paused{false};
 
@@ -68,7 +71,6 @@ namespace luvk
             return nullptr;
         }
 
-        void PreInitializeRenderer();
         void RegisterModules(Vector<std::shared_ptr<IRenderModule>>&& Modules);
 
         struct InstanceCreationArguments
@@ -81,7 +83,6 @@ namespace luvk
 
         [[nodiscard]] bool InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext);
 
-        void PostInitializeRenderer();
         void InitializeRenderLoop();
 
         void DrawFrame();
@@ -89,19 +90,11 @@ namespace luvk
         void Refresh(const VkExtent2D& Extent) const;
 
         void EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd);
-        void EnqueueDestructor(std::function<void()>&& Destructor);
 
-        [[nodiscard]] VkDescriptorPool CreateExternalDescriptorPool(std::uint32_t MaxSets,
-                                                                    std::span<const VkDescriptorPoolSize> PoolSizes,
-                                                                    VkDescriptorPoolCreateFlags Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
-
-        void DestroyExternalDescriptorPool(VkDescriptorPool& Pool) const;
-
-        void BeginExternalFrame();
-        void EndExternalFrame();
+    protected:
+        void ClearResources() override;
 
     private:
-        void ClearResources() override;
         void SetupFrames() const;
         void RecordComputePass(const VkCommandBuffer& Cmd) const;
         void RecordGraphicsPass(Synchronization::FrameData& Frame, std::uint32_t ImageIndex);

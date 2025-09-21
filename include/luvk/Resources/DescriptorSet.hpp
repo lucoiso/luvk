@@ -60,8 +60,5 @@ namespace luvk
         {
             return m_Set;
         }
-
-    private:
-        void Destroy();
     };
 } // namespace luvk

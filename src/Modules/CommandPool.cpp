@@ -37,6 +37,8 @@ luvk::Vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(const std::uint
     }
 
     m_Buffers.insert(std::end(m_Buffers), std::begin(Buffers), std::end(Buffers));
+
+    GetEventSystem().Execute(CommandPoolEvents::OnAllocatedBuffers);
     return Buffers;
 }
 
@@ -59,6 +61,7 @@ void luvk::CommandPool::ClearResources()
     {
         vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
         m_CommandPool = VK_NULL_HANDLE;
+
         GetEventSystem().Execute(CommandPoolEvents::OnDestroyedPool);
     }
 }

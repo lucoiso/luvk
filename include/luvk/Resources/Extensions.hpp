@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
-#include "luvk/Libraries/CompileTime.hpp"
-#include "luvk/Types/Layer.hpp"
 #include <execution>
 #include <string>
 #include <volk/volk.h>
+#include "luvk/Module.hpp"
+#include "luvk/Libraries/CompileTime.hpp"
+#include "luvk/Types/Layer.hpp"
 #include "luvk/Types/Vector.hpp"
 
 namespace luvk
@@ -21,6 +21,11 @@ namespace luvk
     public:
         constexpr IExtensions() = default;
         virtual ~IExtensions() = default;
+
+        [[nodiscard]] constexpr bool IsEmpty() const
+        {
+            return std::empty(m_Layers);
+        }
 
         [[nodiscard]] constexpr bool HasAvailableLayer(const std::string_view LayerName) const noexcept
         {
