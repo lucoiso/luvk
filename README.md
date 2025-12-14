@@ -1,20 +1,20 @@
 [![CMake Build Workflow](https://github.com/lucoiso/luvk/actions/workflows/cmake-build.yml/badge.svg)](https://github.com/lucoiso/luvk/actions/workflows/cmake-build.yml)
 
-# About
-New Vulkan Renderer being made from scratch with the objective of being modern while aiming modularity, performance and a better structurization.
+# LuVK
 
-The idea started from problems that started to occur [in this project](https://github.com/lucoiso/vulkan-renderer) where I used to start learning about how to use Vulkan with C++ while trying some extensions, but without defining how the implementations would be inserted in the project, resulting in hard maintainability and debugging.
+<img width="811" height="641" alt="image" src="https://github.com/user-attachments/assets/ae0464c0-64e0-4c93-8168-c9250935b233" />
 
-This new library will focus on designing the renderer to be reusable on other projects that I will start on the future, having less dependencies than the other one. I'll try to not rush and implement the modules with patience.
+A modular Vulkan-based rendering framework implemented in C++, providing a flexible foundation for graphics applications and engines, structured with distinct modules.
 
-## Notes
-- I'll avoid using C++20 modules: Some IDEs still doesn't support well and it is terrible to read with so many false errors.
-- I'll avoid third party libraries: Will rely on third party only when strictly necessary.
-- Descriptor Buffers will be optional: For debugging purpose. Many tools still does not support this extension.
-- Mesh and Compute Shaders are supported.
+- Sample Project: [luvk example](https://github.com/lucoiso/luvk_example)
+  
+---
 
-# Dependencies
+## Requirements
 
-1. Compiler w/ support for C++23
-2. CMake +3.28
-3. Vulkan SDK +1.4 (used while developing)
+| Dependency           | Minimum Version | Notes                                      |
+|----------------------|-----------------|--------------------------------------------|
+| C++ Compiler         | C++23           | Any modern compiler (MSVC, Clang, GCC)    |
+| CMake                | 3.28+           | Build system configuration                 |
+| Conan                | 2.x             | Dependency management                      |
+| Vulkan SDK           | 1.4+            | For headers, libraries, and validation layers |
