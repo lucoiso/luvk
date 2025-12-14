@@ -16,7 +16,7 @@ namespace luvk
     class LUVKMODULE_API Debug : public IRenderModule,
                                  public IExtensionsModule
     {
-        VkDebugUtilsMessengerEXT m_Messenger{VK_NULL_HANDLE};
+        VkDebugUtilsMessengerEXT  m_Messenger{VK_NULL_HANDLE};
         std::shared_ptr<Renderer> m_RendererModule{};
 
     public:

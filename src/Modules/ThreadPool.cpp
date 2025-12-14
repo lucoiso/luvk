@@ -5,8 +5,6 @@
 #include "luvk/Modules/ThreadPool.hpp"
 #include <iterator>
 
-using namespace std::literals;
-
 void luvk::ThreadPool::Start(const std::uint32_t ThreadCount)
 {
     m_Stop = false;

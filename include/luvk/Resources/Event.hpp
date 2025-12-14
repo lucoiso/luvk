@@ -15,13 +15,13 @@ namespace luvk
 {
     class LUVKMODULE_API EventNode : public std::enable_shared_from_this<EventNode>
     {
-        bool m_OneTime{false};
-        std::function<void()> m_Binding{};
+        bool                               m_OneTime{false};
+        std::function<void()>              m_Binding{};
         Vector<std::shared_ptr<EventNode>> m_SubNodes{};
 
     public:
         constexpr EventNode() = default;
-        ~EventNode() = default;
+        ~EventNode()          = default;
 
         explicit EventNode(std::function<void()>&& Function, const bool OneTime = false)
             : m_OneTime(OneTime),
@@ -35,7 +35,7 @@ namespace luvk
         }
 
         [[nodiscard]] static std::shared_ptr<EventNode> NewNode(std::function<void()>&& Function, bool OneTime = false);
-        [[nodiscard]] std::shared_ptr<EventNode> Then(std::function<void()>&& Function, bool OneTime = false);
+        [[nodiscard]] std::shared_ptr<EventNode>        Then(std::function<void()>&& Function, bool OneTime = false);
     };
 
     class LUVKMODULE_API EventGraph
@@ -44,11 +44,12 @@ namespace luvk
 
     public:
         constexpr EventGraph() = default;
-        ~EventGraph() = default;
+        ~EventGraph()          = default;
 
         void AddNode(std::shared_ptr<EventNode>&& Node, std::size_t Key);
 
-        template <typename KeyType> requires std::is_enum_v<KeyType>
+        template <typename KeyType>
+            requires std::is_enum_v<KeyType>
         constexpr void AddNode(std::shared_ptr<EventNode>&& Node, KeyType Key)
         {
             AddNode(std::move(Node), static_cast<std::size_t>(Key));
@@ -56,7 +57,8 @@ namespace luvk
 
         void Execute(std::size_t Key);
 
-        template <typename KeyType> requires std::is_enum_v<KeyType>
+        template <typename KeyType>
+            requires std::is_enum_v<KeyType>
         constexpr void Execute(KeyType Key)
         {
             Execute(static_cast<std::size_t>(Key));

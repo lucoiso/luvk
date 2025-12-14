@@ -15,7 +15,7 @@ namespace luvk
 
     class LUVKMODULE_API DescriptorPool : public IRenderModule
     {
-        VkDescriptorPool m_Pool{VK_NULL_HANDLE};
+        VkDescriptorPool        m_Pool{VK_NULL_HANDLE};
         std::shared_ptr<Device> m_DeviceModule{};
 
     public:
@@ -27,9 +27,9 @@ namespace luvk
             DescriptorPool::ClearResources();
         }
 
-        void CreateDescriptorPool(std::uint32_t MaxSets,
+        void CreateDescriptorPool(std::uint32_t                                MaxSets,
                                   const std::span<const VkDescriptorPoolSize>& PoolSizes,
-                                  VkDescriptorPoolCreateFlags Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+                                  VkDescriptorPoolCreateFlags                  Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
         [[nodiscard]] constexpr const VkDescriptorPool& GetHandle() const
         {

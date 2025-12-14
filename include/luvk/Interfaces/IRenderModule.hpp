@@ -1,3 +1,7 @@
+// Author: Lucas Vilas-Boas
+// Year: 2025
+// Repo : https://github.com/lucoiso/luvk
+
 #pragma once
 
 #include <memory>
@@ -8,7 +12,7 @@ namespace luvk
     class LUVKMODULE_API IRenderModule
     {
     public:
-        virtual ~IRenderModule() = default;
+        virtual      ~IRenderModule() = default;
         virtual void InitializeResources() {}
         virtual void ClearResources() {}
     };

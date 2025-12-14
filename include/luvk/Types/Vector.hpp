@@ -35,10 +35,10 @@ namespace luvk
             requires std::constructible_from<base, Args...>
         explicit Vector(Args&&... ArgsIn) : base(std::forward<Args>(ArgsIn)...) {}
 
-        Vector(const Vector&) = default;
-        Vector(Vector&&) = default;
+        Vector(const Vector&)            = default;
+        Vector(Vector&&)                 = default;
         Vector& operator=(const Vector&) = default;
-        Vector& operator=(Vector&&) = default;
+        Vector& operator=(Vector&&)      = default;
         using base::operator=;
     };
 } // namespace luvk

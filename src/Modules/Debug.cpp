@@ -4,13 +4,14 @@
 
 #include "luvk/Modules/Debug.hpp"
 #include <cstdio>
+#include <stdexcept>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Renderer.hpp"
 
 VKAPI_ATTR VkBool32 VKAPI_CALL ValidationLayerDebugCallback([[maybe_unused]] const VkDebugUtilsMessageSeverityFlagBitsEXT MessageSeverity,
-                                                            [[maybe_unused]] const VkDebugUtilsMessageTypeFlagsEXT MessageType,
-                                                            const VkDebugUtilsMessengerCallbackDataEXT* const CallbackData,
-                                                            [[maybe_unused]] void* UserData)
+                                                            [[maybe_unused]] const VkDebugUtilsMessageTypeFlagsEXT        MessageType,
+                                                            const VkDebugUtilsMessengerCallbackDataEXT* const             CallbackData,
+                                                            [[maybe_unused]] void*                                        UserData)
 {
     std::fprintf(stderr, "[%s] [%s]: %s\n", __func__, luvk::SeverityToString(MessageSeverity), CallbackData->pMessage);
     return VK_FALSE;

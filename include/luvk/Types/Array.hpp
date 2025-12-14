@@ -5,6 +5,7 @@
 #pragma once
 
 #include <array>
+#include <iterator>
 #include "luvk/Module.hpp"
 
 namespace luvk
@@ -15,7 +16,7 @@ namespace luvk
         using value_type = Type;
 
         std::array<Type, Capacity> Data{};
-        std::size_t Size{0U};
+        std::size_t                Size{0U};
 
         [[nodiscard]] constexpr std::size_t size() const noexcept
         {

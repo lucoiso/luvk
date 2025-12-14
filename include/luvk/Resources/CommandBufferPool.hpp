@@ -16,11 +16,11 @@ namespace luvk
 
     class LUVKMODULE_API CommandBufferPool
     {
-        VkCommandPool m_Pool{VK_NULL_HANDLE};
+        VkCommandPool           m_Pool{VK_NULL_HANDLE};
         Vector<VkCommandBuffer> m_Buffers{};
         Vector<VkCommandBuffer> m_Free{};
         std::shared_ptr<Device> m_DeviceModule{};
-        std::mutex m_Mutex{};
+        std::mutex              m_Mutex{};
 
     public:
         CommandBufferPool() = delete;
@@ -28,8 +28,8 @@ namespace luvk
 
         ~CommandBufferPool();
 
-        void Create(std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
+        void            Create(std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
         VkCommandBuffer Acquire();
-        void Reset();
+        void            Reset();
     };
 } // namespace luvk

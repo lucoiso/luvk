@@ -42,6 +42,7 @@ void PipelineCache::Create()
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     constexpr VkPipelineCacheCreateInfo info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+
     if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_PreRaster)) ||
         !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Fragment)) ||
         !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Output)) ||

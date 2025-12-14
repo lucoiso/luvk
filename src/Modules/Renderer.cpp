@@ -5,17 +5,9 @@
 #include "luvk/Modules/Renderer.hpp"
 #include <algorithm>
 #include <execution>
-#include <future>
-#include <iterator>
-#include <limits>
-#include "luvk/Libraries/MeshDraw.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
-#include "luvk/Modules/CommandPool.hpp"
 #include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/MeshRegistry.hpp"
 #include "luvk/Modules/SwapChain.hpp"
-#include "luvk/Modules/ThreadPool.hpp"
-#include "luvk/Types/Material.hpp"
 
 static constinit std::atomic_bool s_IsVolkInitialized = false;
 
@@ -33,13 +25,10 @@ void luvk::Renderer::RegisterModules(Vector<std::shared_ptr<IRenderModule>>&& Mo
     }
 
     m_ModuleMap.clear();
-    m_ModuleMap.reserve(std::size(Modules));
-
     for (const auto& ModuleIt : Modules)
     {
         m_ModuleMap.emplace(std::type_index(typeid(*ModuleIt)), ModuleIt);
     }
-
     GetEventSystem().Execute(RendererEvents::OnModulesRegistered);
 }
 
@@ -47,7 +36,7 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
 {
     if (std::empty(m_ModuleMap))
     {
-        throw std::runtime_error("No modules were registered for this renderer");
+        throw std::runtime_error("No modules were registered");
     }
 
     const void* FeatureChain = pNext;
@@ -58,7 +47,6 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
             for (const auto& [LayerIt, ExtensionsContainerIt] : ExtModule->GetInstanceExtensions())
             {
                 m_Extensions.SetLayerState(LayerIt, true);
-
                 for (const std::string_view ExtensionIt : ExtensionsContainerIt)
                 {
                     m_Extensions.SetExtensionState(LayerIt, ExtensionIt, true);
@@ -71,8 +59,8 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
             if (const auto Chain = FeatChainModule->GetInstanceFeatureChain())
             {
                 const auto Base = const_cast<VkBaseInStructure*>(static_cast<const VkBaseInStructure*>(Chain));
-                Base->pNext = static_cast<const VkBaseInStructure*>(FeatureChain);
-                FeatureChain = Chain;
+                Base->pNext     = static_cast<const VkBaseInStructure*>(FeatureChain);
+                FeatureChain    = Chain;
             }
         }
     }
@@ -84,7 +72,7 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
                                     .engineVersion = Arguments.EngineVersion,
                                     .apiVersion = VK_API_VERSION_1_4};
 
-    const auto Layers = m_Extensions.GetEnabledLayersNames();
+    const auto Layers     = m_Extensions.GetEnabledLayersNames();
     const auto Extensions = m_Extensions.GetEnabledExtensionsNames();
 
     const VkInstanceCreateInfo InstanceCreateInfo{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -100,7 +88,6 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
     if (m_Instance != nullptr)
     {
         volkLoadInstance(m_Instance);
-
         std::for_each(std::execution::seq,
                       std::begin(m_ModuleMap),
                       std::end(m_ModuleMap),
@@ -108,19 +95,15 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
                       {
                           Pair.Second->InitializeResources();
                       });
-
         GetEventSystem().Execute(RendererEvents::OnInitialized);
-
         return true;
     }
-
     return false;
 }
 
 void luvk::Renderer::ClearResources()
 {
     const auto DeviceModule = FindModule<Device>();
-
     if (const VkDevice& LogicalDevice = DeviceModule->GetLogicalDevice();
         LogicalDevice != VK_NULL_HANDLE)
     {
@@ -134,7 +117,6 @@ void luvk::Renderer::ClearResources()
                   {
                       Pair.Second.reset();
                   });
-
     m_ModuleMap.clear();
 
     if (m_Instance != VK_NULL_HANDLE)
@@ -150,7 +132,7 @@ void luvk::Renderer::ClearResources()
     }
 }
 
-void luvk::Renderer::InitializeRenderLoop()
+void luvk::Renderer::InitializeRenderLoop() const
 {
     SetupFrames();
     GetEventSystem().Execute(RendererEvents::OnRenderLoopInitialized);
@@ -163,37 +145,38 @@ void luvk::Renderer::DrawFrame()
         return;
     }
 
-    const auto DeviceModule = FindModule<Device>();
-    const auto SwapChainModule = FindModule<SwapChain>();
-
-    const VkDevice& LogicalDevice = DeviceModule->GetLogicalDevice();
+    const auto      DeviceModule    = FindModule<Device>();
+    const auto      SwapChainModule = FindModule<SwapChain>();
+    const VkDevice& LogicalDevice   = DeviceModule->GetLogicalDevice();
 
     const auto Sync = FindModule<Synchronization>();
+
     auto& Frame = Sync->GetFrame(Sync->GetCurrentFrame());
 
     if (Frame.Submitted)
     {
-        DeviceModule->Wait(Frame.InFlight, VK_TRUE, std::numeric_limits<std::uint64_t>::max());
+        DeviceModule->Wait(Frame.InFlight, VK_TRUE, UINT64_MAX);
         vkResetFences(LogicalDevice, 1, &Frame.InFlight);
+        Frame.Submitted = false;
     }
 
-    constexpr std::uint64_t AcquireTimeout = 0;
     std::uint32_t ImageIndex = 0;
+
     const VkResult AcquireResult = vkAcquireNextImageKHR(LogicalDevice,
                                                          SwapChainModule->GetHandle(),
-                                                         AcquireTimeout,
+                                                         UINT64_MAX,
                                                          Frame.ImageAvailable,
                                                          VK_NULL_HANDLE,
                                                          &ImageIndex);
 
-    if (AcquireResult == VK_NOT_READY || AcquireResult == VK_TIMEOUT || AcquireResult == VK_ERROR_OUT_OF_DATE_KHR || AcquireResult == VK_SUBOPTIMAL_KHR)
+    if (AcquireResult == VK_ERROR_OUT_OF_DATE_KHR)
     {
         return;
     }
 
-    if (AcquireResult != VK_SUCCESS)
+    if (AcquireResult != VK_SUCCESS && AcquireResult != VK_SUBOPTIMAL_KHR)
     {
-        throw std::runtime_error("Failed to acquire swapchain image.");
+        throw std::runtime_error("Failed to acquire swap chain image.");
     }
 
     if (!LUVK_EXECUTE(vkResetCommandBuffer(Frame.CommandBuffer, 0)))
@@ -208,27 +191,20 @@ void luvk::Renderer::DrawFrame()
 void luvk::Renderer::SetPaused(const bool Paused)
 {
     m_Paused = Paused;
-
-    if (m_Paused)
-    {
-        GetEventSystem().Execute(RendererEvents::OnPaused);
-    }
-    else
-    {
-        GetEventSystem().Execute(RendererEvents::OnResumed);
-    }
+    GetEventSystem().Execute(m_Paused
+                                 ? RendererEvents::OnPaused
+                                 : RendererEvents::OnResumed);
 }
 
 void luvk::Renderer::Refresh(const VkExtent2D& Extent) const
 {
-    const auto DeviceModule = FindModule<Device>();
+    const auto DeviceModule    = FindModule<Device>();
     const auto SwapChainModule = FindModule<SwapChain>();
 
     DeviceModule->WaitIdle();
     SwapChainModule->Recreate(Extent, nullptr);
 
     SetupFrames();
-
     GetEventSystem().Execute(RendererEvents::OnRefreshed);
 }
 
@@ -237,278 +213,104 @@ void luvk::Renderer::EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd)
     m_PostRenderCommands.emplace_back(std::move(Cmd));
 }
 
+void luvk::Renderer::SetPreRenderCallback(std::function<void(VkCommandBuffer)>&& Callback)
+{
+    m_PreRenderCallback = std::move(Callback);
+}
+
+void luvk::Renderer::SetDrawCallback(std::function<void(VkCommandBuffer)>&& Callback)
+{
+    m_DrawCallback = std::move(Callback);
+}
+
 void luvk::Renderer::SetupFrames() const
 {
-    const auto SyncModule = FindModule<Synchronization>();
-    const auto SwapChainModule = FindModule<SwapChain>();
-    const auto CommandPoolModule = FindModule<CommandPool>();
-
-    SyncModule->SetupFrames();
+    FindModule<Synchronization>()->SetupFrames();
 }
 
-void luvk::Renderer::RecordComputePass(const VkCommandBuffer& Cmd) const
+void luvk::Renderer::RecordCommands(const Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)
 {
-    const auto MeshRegistryModule = FindModule<MeshRegistry>();
+    constexpr VkCommandBufferBeginInfo Begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+                                             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-    for (const auto& Meshes = MeshRegistryModule->GetMeshes();
-         const auto& MeshIt : Meshes)
+    LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin));
+
+    if (m_PreRenderCallback)
     {
-        const auto& Mat = MeshIt.MaterialPtr;
-        if (!Mat || !Mat->GetPipeline())
-        {
-            continue;
-        }
-
-        if (Mat->GetPipeline()->GetType() != Pipeline::Type::Compute)
-        {
-            continue;
-        }
-
-        RecordMeshCommands(Cmd, MeshIt);
+        m_PreRenderCallback(Frame.CommandBuffer);
     }
-}
 
-void luvk::Renderer::RecordGraphicsPass(Synchronization::FrameData& Frame, std::uint32_t ImageIndex)
-{
-    const auto SwapChainModule = FindModule<SwapChain>();
-    const auto SyncModule = FindModule<Synchronization>();
-    const auto MeshRegistryModule = FindModule<MeshRegistry>();
-    const auto ThreadPoolModule = FindModule<ThreadPool>();
+    const auto       SwapChainModule = FindModule<SwapChain>();
+    const VkExtent2D Extent          = SwapChainModule->GetExtent();
 
-    const VkExtent2D Extent = SwapChainModule->GetExtent();
-
-    constexpr std::array Clear{VkClearValue{.color = {0.F, 0.F, 0.F, 1.F}}, VkClearValue{.depthStencil = {1.F, 0}}};
-    const VkRenderPassBeginInfo BeginInfo{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+    constexpr std::array        Clear{VkClearValue{.color = {0.1F, 0.1F, 0.1F, 1.F}}, VkClearValue{.depthStencil = {1.F, 0}}};
+    const VkRenderPassBeginInfo BeginPass{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                           .renderPass = SwapChainModule->GetRenderPass(),
                                           .framebuffer = SwapChainModule->GetFramebuffer(ImageIndex),
                                           .renderArea = {{0, 0}, {Extent.width, Extent.height}},
                                           .clearValueCount = static_cast<std::uint32_t>(std::size(Clear)),
                                           .pClearValues = std::data(Clear)};
 
-    bool HasGraphics = false;
-    for (const auto& MeshIt : MeshRegistryModule->GetMeshes())
-    {
-        const auto& Mat = MeshIt.MaterialPtr;
-        if (!Mat || !Mat->GetPipeline())
-        {
-            continue;
-        }
-        if (Mat->GetPipeline()->GetType() != Pipeline::Type::Compute)
-        {
-            HasGraphics = true;
-            break;
-        }
-    }
-
-    if (!HasGraphics)
-    {
-        return;
-    }
-
-    const VkImage& DepthImage = SwapChainModule->GetDepthImage(ImageIndex)->GetHandle();
-    const VkImageAspectFlags DepthAspect = SwapChainModule->GetDepthFormat() == VK_FORMAT_D24_UNORM_S8_UINT ||
-                                           SwapChainModule->GetDepthFormat() == VK_FORMAT_D32_SFLOAT_S8_UINT ||
-                                           SwapChainModule->GetDepthFormat() == VK_FORMAT_D16_UNORM_S8_UINT
-                                               ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
-                                               : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT);
-
-    const VkImageMemoryBarrier2 DepthBarrier{.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
-                                             .pNext = nullptr,
-                                             .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-                                             .srcAccessMask = 0,
-                                             .dstStageMask = VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                                             .dstAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
-                                             .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                             .newLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-                                             .image = DepthImage,
-                                             .subresourceRange = {DepthAspect, 0, 1, 0, 1}};
-
-    const VkDependencyInfo DepInfo{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
-                                   .pNext = nullptr,
-                                   .dependencyFlags = 0,
-                                   .memoryBarrierCount = 0,
-                                   .pMemoryBarriers = nullptr,
-                                   .bufferMemoryBarrierCount = 0,
-                                   .pBufferMemoryBarriers = nullptr,
-                                   .imageMemoryBarrierCount = 1,
-                                   .pImageMemoryBarriers = &DepthBarrier};
-
-    vkCmdPipelineBarrier2(Frame.CommandBuffer, &DepInfo);
-    vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginInfo, VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
+    vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginPass, VK_SUBPASS_CONTENTS_INLINE);
 
     const VkViewport Viewport{0.F, 0.F, static_cast<float>(Extent.width), static_cast<float>(Extent.height), 0.F, 1.F};
-    const VkRect2D Scissor{{0, 0}, Extent};
+    const VkRect2D   Scissor{{0, 0}, Extent};
 
-    const auto& Meshes = MeshRegistryModule->GetMeshes();
-    constexpr std::size_t BatchSize = 10;
-    const std::size_t MeshCount = std::size(Meshes);
-    const std::size_t BatchCount = (MeshCount + BatchSize - 1) / BatchSize;
+    vkCmdSetViewport(Frame.CommandBuffer, 0, 1, &Viewport);
+    vkCmdSetScissor(Frame.CommandBuffer, 0, 1, &Scissor);
 
-    Frame.SecondaryBuffers.resize(BatchCount);
-    const auto& SecPool = SyncModule->GetSecondaryPool();
-    SecPool->Reset();
-
-    for (std::size_t BatchIndex = 0; BatchIndex < BatchCount; ++BatchIndex)
+    if (m_DrawCallback)
     {
-        VkCommandBuffer SecCmd = SecPool->Acquire();
-        Frame.SecondaryBuffers[BatchIndex] = SecCmd;
-
-        const std::size_t StartIndex = BatchIndex * BatchSize;
-        const std::size_t EndIndex = std::min(MeshCount, StartIndex + BatchSize);
-
-        ThreadPoolModule->Submit([SwapChainModule, SecCmd, StartIndex, EndIndex, &Viewport, &Scissor, &Meshes, ImageIndex]
-        {
-            const VkCommandBufferInheritanceInfo Inherit{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-                                                         .renderPass = SwapChainModule->GetRenderPass(),
-                                                         .subpass = 0,
-                                                         .framebuffer = SwapChainModule->GetFramebuffer(ImageIndex)};
-
-            const VkCommandBufferBeginInfo BufferBeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                                           .pNext = nullptr,
-                                                           .flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-                                                           .pInheritanceInfo = &Inherit};
-
-            vkBeginCommandBuffer(SecCmd, &BufferBeginInfo);
-            {
-                vkCmdSetViewport(SecCmd, 0, 1, &Viewport);
-                vkCmdSetScissor(SecCmd, 0, 1, &Scissor);
-
-                for (std::size_t MeshIndex = StartIndex; MeshIndex < EndIndex; ++MeshIndex)
-                {
-                    const auto& MeshIt = Meshes[MeshIndex];
-
-                    const auto& Mat = MeshIt.MaterialPtr;
-                    if (!Mat || !Mat->GetPipeline())
-                    {
-                        continue;
-                    }
-                    if (Mat->GetPipeline()->GetType() == Pipeline::Type::Compute)
-                    {
-                        continue;
-                    }
-
-                    RecordMeshCommands(SecCmd, MeshIt);
-                }
-            }
-            vkEndCommandBuffer(SecCmd);
-        });
+        m_DrawCallback(Frame.CommandBuffer);
     }
 
-    ThreadPoolModule->WaitIdle();
-
-    if (!std::empty(m_PostRenderCommands))
+    for (const auto& Cmd : m_PostRenderCommands)
     {
-        const std::size_t PreSize = std::size(Frame.SecondaryBuffers);
-        Frame.SecondaryBuffers.resize(PreSize + std::size(m_PostRenderCommands));
-        const std::size_t NewSize = std::size(Frame.SecondaryBuffers);
-
-        for (std::size_t BatchIndex = PreSize; BatchIndex < NewSize; ++BatchIndex)
-        {
-            auto& RenderCommand = m_PostRenderCommands[BatchIndex - PreSize];
-            VkCommandBuffer SecCmd = SecPool->Acquire();
-            Frame.SecondaryBuffers[BatchIndex] = SecCmd;
-
-            const VkCommandBufferInheritanceInfo SecRenderInherit{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO,
-                                                                  .renderPass = SwapChainModule->GetRenderPass(),
-                                                                  .subpass = 0,
-                                                                  .framebuffer = SwapChainModule->GetFramebuffer(ImageIndex)};
-
-            const VkCommandBufferBeginInfo SecRenderBeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                                              .pNext = nullptr,
-                                                              .flags = VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT | VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-                                                              .pInheritanceInfo = &SecRenderInherit};
-
-            vkBeginCommandBuffer(SecCmd, &SecRenderBeginInfo);
-            {
-                vkCmdSetViewport(SecCmd, 0, 1, &Viewport);
-                vkCmdSetScissor(SecCmd, 0, 1, &Scissor);
-
-                RenderCommand(SecCmd);
-            }
-            vkEndCommandBuffer(SecCmd);
-        }
-        m_PostRenderCommands.clear();
+        Cmd(Frame.CommandBuffer);
     }
-
-    if (!std::empty(Frame.SecondaryBuffers))
-    {
-        vkCmdExecuteCommands(Frame.CommandBuffer, static_cast<std::uint32_t>(std::size(Frame.SecondaryBuffers)), std::data(Frame.SecondaryBuffers));
-    }
+    m_PostRenderCommands.clear();
 
     vkCmdEndRenderPass(Frame.CommandBuffer);
-}
-
-void luvk::Renderer::RecordCommands(Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)
-{
-    constexpr VkCommandBufferBeginInfo Begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                             .pNext = nullptr,
-                                             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-                                             .pInheritanceInfo = nullptr};
-
-    if (!LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin)))
-    {
-        throw std::runtime_error("Failed to begin command buffer.");
-    }
-
-    RecordComputePass(Frame.CommandBuffer);
-    RecordGraphicsPass(Frame, ImageIndex);
+    LUVK_EXECUTE(vkEndCommandBuffer(Frame.CommandBuffer));
 }
 
 void luvk::Renderer::SubmitFrame(Synchronization::FrameData& Frame, const std::uint32_t ImageIndex) const
 {
-    const auto SyncModule = FindModule<Synchronization>();
-    const auto DeviceModule = FindModule<Device>();
+    const auto SyncModule      = FindModule<Synchronization>();
+    const auto DeviceModule    = FindModule<Device>();
     const auto SwapChainModule = FindModule<SwapChain>();
 
-    if (!LUVK_EXECUTE(vkEndCommandBuffer(Frame.CommandBuffer)))
-    {
-        throw std::runtime_error("Failed to record command buffer.");
-    }
-
-    const std::array WaitSemaphores{Frame.ImageAvailable};
-    constexpr std::array<VkPipelineStageFlags, 1> WaitStages{VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
+    constexpr VkPipelineStageFlags WaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     const VkSubmitInfo Submit{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                              .pNext = nullptr,
                               .waitSemaphoreCount = 1,
-                              .pWaitSemaphores = std::data(WaitSemaphores),
-                              .pWaitDstStageMask = std::data(WaitStages),
+                              .pWaitSemaphores = &Frame.ImageAvailable,
+                              .pWaitDstStageMask = &WaitStages,
                               .commandBufferCount = 1,
                               .pCommandBuffers = &Frame.CommandBuffer,
                               .signalSemaphoreCount = 1,
                               .pSignalSemaphores = &SyncModule->GetRenderFinished(ImageIndex)};
 
-    const std::uint32_t GraphicsFamily = DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
-    const VkQueue GraphicsQueue = DeviceModule->GetQueue(GraphicsFamily);
+    const VkQueue GraphicsQueue = DeviceModule->GetQueue(DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value());
 
-    if (!LUVK_EXECUTE(vkQueueSubmit(GraphicsQueue, 1, &Submit, VK_NULL_HANDLE)))
-    {
-        throw std::runtime_error("Failed to submit draw command buffer.");
-    }
+    LUVK_EXECUTE(vkQueueSubmit(GraphicsQueue, 1, &Submit, Frame.InFlight));
+    Frame.Submitted = true;
 
-    // Frame.Submitted = true;
-
-    const VkSwapchainKHR& Handle = SwapChainModule->GetHandle();
+    const VkSwapchainKHR&  Handle = SwapChainModule->GetHandle();
     const VkPresentInfoKHR Present{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                   .pNext = nullptr,
                                    .waitSemaphoreCount = 1,
                                    .pWaitSemaphores = &SyncModule->GetRenderFinished(ImageIndex),
                                    .swapchainCount = 1,
                                    .pSwapchains = &Handle,
-                                   .pImageIndices = &ImageIndex,
-                                   .pResults = nullptr};
+                                   .pImageIndices = &ImageIndex};
 
     const VkResult PresentResult = vkQueuePresentKHR(GraphicsQueue, &Present);
-    if (PresentResult == VK_ERROR_OUT_OF_DATE_KHR || PresentResult == VK_SUBOPTIMAL_KHR)
-    {
-        return;
-    }
 
-    if (PresentResult != VK_SUCCESS)
+    if (PresentResult == VK_ERROR_OUT_OF_DATE_KHR || PresentResult == VK_SUBOPTIMAL_KHR) {}
+    else if (PresentResult != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed to present swapchain image.");
+        throw std::runtime_error("Present failed");
     }
 
     SyncModule->AdvanceFrame();
-    DeviceModule->Wait(GraphicsQueue);
 }

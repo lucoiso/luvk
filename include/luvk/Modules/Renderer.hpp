@@ -6,11 +6,10 @@
 
 #include <functional>
 #include <memory>
-#include <span>
 #include <typeindex>
 #include "luvk/Module.hpp"
+#include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Modules/Memory.hpp"
 #include "luvk/Modules/Synchronization.hpp"
 #include "luvk/Resources/Extensions.hpp"
 #include "luvk/Types/UnorderedMap.hpp"
@@ -31,11 +30,13 @@ namespace luvk
     class LUVKMODULE_API Renderer : public IRenderModule,
                                     public IEventModule
     {
-        VkInstance m_Instance{VK_NULL_HANDLE};
-        InstanceExtensions m_Extensions{};
-        Vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
+        bool                                                          m_Paused{false};
+        VkInstance                                                    m_Instance{VK_NULL_HANDLE};
+        InstanceExtensions                                            m_Extensions{};
+        Vector<std::function<void(VkCommandBuffer)>>                  m_PostRenderCommands{};
         UnorderedMap<std::type_index, std::shared_ptr<IRenderModule>> m_ModuleMap{};
-        bool m_Paused{false};
+        std::function<void(VkCommandBuffer)>                          m_PreRenderCallback{};
+        std::function<void(VkCommandBuffer)>                          m_DrawCallback{};
 
     public:
         constexpr Renderer() = default;
@@ -55,7 +56,7 @@ namespace luvk
             return m_Extensions;
         }
 
-        [[nodiscard]] const auto& GetModules() const
+        [[nodiscard]] UnorderedMap<std::type_index, std::shared_ptr<IRenderModule>>& GetModules()
         {
             return m_ModuleMap;
         }
@@ -77,28 +78,26 @@ namespace luvk
         {
             std::string_view ApplicationName;
             std::string_view EngineName;
-            std::uint32_t ApplicationVersion;
-            std::uint32_t EngineVersion;
+            std::uint32_t    ApplicationVersion;
+            std::uint32_t    EngineVersion;
         };
 
         [[nodiscard]] bool InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext);
-
-        void InitializeRenderLoop();
-
-        void DrawFrame();
-        void SetPaused(bool Paused);
-        void Refresh(const VkExtent2D& Extent) const;
+        void               InitializeRenderLoop() const;
+        void               DrawFrame();
+        void               SetPaused(bool Paused);
+        void               Refresh(const VkExtent2D& Extent) const;
 
         void EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd);
+        void SetPreRenderCallback(std::function<void(VkCommandBuffer)>&& Callback);
+        void SetDrawCallback(std::function<void(VkCommandBuffer)>&& Callback);
 
     protected:
         void ClearResources() override;
 
     private:
         void SetupFrames() const;
-        void RecordComputePass(const VkCommandBuffer& Cmd) const;
-        void RecordGraphicsPass(Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
-        void RecordCommands(Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
+        void RecordCommands(const Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
         void SubmitFrame(Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const;
     };
 } // namespace luvk

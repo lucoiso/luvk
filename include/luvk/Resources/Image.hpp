@@ -18,11 +18,11 @@ namespace luvk
 
     class LUVKMODULE_API Image
     {
-        std::uint32_t m_Width{0};
-        std::uint32_t m_Height{0};
-        VkImage m_Image{VK_NULL_HANDLE};
-        VkImageView m_View{VK_NULL_HANDLE};
-        VmaAllocation m_Allocation{};
+        std::uint32_t           m_Width{0};
+        std::uint32_t           m_Height{0};
+        VkImage                 m_Image{VK_NULL_HANDLE};
+        VkImageView             m_View{VK_NULL_HANDLE};
+        VmaAllocation           m_Allocation{};
         std::shared_ptr<Memory> m_MemoryModule{};
         std::shared_ptr<Device> m_DeviceModule{};
 
@@ -34,12 +34,12 @@ namespace luvk
 
         struct CreationArguments
         {
-            VkExtent3D Extent{0, 0, 1};
-            VkFormat Format{VK_FORMAT_R8G8B8A8_UNORM};
-            VkImageUsageFlags Usage{};
+            VkExtent3D         Extent{0, 0, 1};
+            VkFormat           Format{VK_FORMAT_R8G8B8A8_UNORM};
+            VkImageUsageFlags  Usage{};
             VkImageAspectFlags Aspect{VK_IMAGE_ASPECT_COLOR_BIT};
-            VmaMemoryUsage MemoryUsage{VMA_MEMORY_USAGE_AUTO};
-            float Priority{1.F};
+            VmaMemoryUsage     MemoryUsage{VMA_MEMORY_USAGE_AUTO};
+            float              Priority{1.F};
         };
 
         void CreateImage(const CreationArguments& Arguments);

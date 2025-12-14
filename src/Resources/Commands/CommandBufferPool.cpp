@@ -8,12 +8,10 @@
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 
-using namespace luvk;
-
-CommandBufferPool::CommandBufferPool(const std::shared_ptr<Device>& DeviceModule)
+luvk::CommandBufferPool::CommandBufferPool(const std::shared_ptr<Device>& DeviceModule)
     : m_DeviceModule(DeviceModule) {}
 
-CommandBufferPool::~CommandBufferPool()
+luvk::CommandBufferPool::~CommandBufferPool()
 {
     if (m_Pool != VK_NULL_HANDLE)
     {
@@ -30,7 +28,7 @@ CommandBufferPool::~CommandBufferPool()
     }
 }
 
-void CommandBufferPool::Create(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
+void luvk::CommandBufferPool::Create(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
 {
     const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
                                        .pNext = nullptr,
@@ -43,9 +41,10 @@ void CommandBufferPool::Create(const std::uint32_t QueueFamilyIndex, const VkCom
     }
 }
 
-VkCommandBuffer CommandBufferPool::Acquire()
+VkCommandBuffer luvk::CommandBufferPool::Acquire()
 {
-    std::lock_guard lock(m_Mutex);
+    std::lock_guard Lock(m_Mutex);
+
     if (!m_DeviceModule || m_Pool == VK_NULL_HANDLE)
     {
         return VK_NULL_HANDLE;
@@ -73,7 +72,7 @@ VkCommandBuffer CommandBufferPool::Acquire()
     return CommandBuffer;
 }
 
-void CommandBufferPool::Reset()
+void luvk::CommandBufferPool::Reset()
 {
     if (!m_DeviceModule || m_Pool == VK_NULL_HANDLE)
     {

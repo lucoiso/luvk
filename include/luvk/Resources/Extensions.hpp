@@ -19,8 +19,8 @@ namespace luvk
         Vector<Layer> m_Layers{};
 
     public:
-        constexpr IExtensions() = default;
-        virtual ~IExtensions() = default;
+        constexpr IExtensions()  = default;
+        virtual   ~IExtensions() = default;
 
         [[nodiscard]] constexpr bool IsEmpty() const
         {
@@ -68,7 +68,7 @@ namespace luvk
 
     protected:
         [[nodiscard]] virtual Vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const = 0;
-        [[nodiscard]] virtual Vector<VkLayerProperties> FetchAvailableLayers() const = 0;
+        [[nodiscard]] virtual Vector<VkLayerProperties>     FetchAvailableLayers() const = 0;
     };
 
     class LUVKMODULE_API InstanceExtensions : public IExtensions
@@ -79,7 +79,7 @@ namespace luvk
 
     protected:
         [[nodiscard]] Vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const override;
-        [[nodiscard]] Vector<VkLayerProperties> FetchAvailableLayers() const override;
+        [[nodiscard]] Vector<VkLayerProperties>     FetchAvailableLayers() const override;
     };
 
     class LUVKMODULE_API DeviceExtensions : public IExtensions
@@ -87,7 +87,7 @@ namespace luvk
         VkPhysicalDevice m_Device{VK_NULL_HANDLE};
 
     public:
-        constexpr DeviceExtensions() = default;
+        constexpr          DeviceExtensions() = default;
         constexpr explicit DeviceExtensions(const VkPhysicalDevice& Device) : m_Device(Device) {}
         ~DeviceExtensions() override = default;
 
@@ -98,6 +98,6 @@ namespace luvk
 
     protected:
         [[nodiscard]] Vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const override;
-        [[nodiscard]] Vector<VkLayerProperties> FetchAvailableLayers() const override;
+        [[nodiscard]] Vector<VkLayerProperties>     FetchAvailableLayers() const override;
     };
 } // namespace luvk

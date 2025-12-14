@@ -13,8 +13,8 @@ namespace luvk
 {
     struct LUVKMODULE_API Layer
     {
-        bool Enabled{};
-        std::string Name{};
+        bool                            Enabled{};
+        std::string                     Name{};
         Vector<Pair<std::string, bool>> Extensions;
     };
 } // namespace luvk

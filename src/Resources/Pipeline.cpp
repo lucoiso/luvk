@@ -10,7 +10,6 @@
 #include "luvk/Resources/PipelineCache.hpp"
 #include "luvk/Types/Vector.hpp"
 
-/** Helper to create shader modules from SPIR-V code */
 static VkShaderModule CreateShader(const VkDevice& Device, std::span<const std::uint32_t> Code)
 {
     const VkShaderModuleCreateInfo Info{.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -35,7 +34,7 @@ luvk::Pipeline::~Pipeline()
 
 void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
 {
-    m_Type = Type::Graphics;
+    m_Type                        = Type::Graphics;
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     VkShaderModule VertModule = CreateShader(LogicalDevice, Arguments.VertexShader);
@@ -113,13 +112,6 @@ void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
                                                    .pDynamicStates = std::data(DynamicStates)};
 
     m_PushConstants.assign(std::begin(Arguments.PushConstants), std::end(Arguments.PushConstants));
-    if (std::empty(m_PushConstants))
-    {
-        const VkPushConstantRange Range{.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                        .offset = 0,
-                                        .size = m_DeviceModule->GetDeviceProperties().limits.maxPushConstantsSize};
-        m_PushConstants.push_back(Range);
-    }
 
     const VkPipelineLayoutCreateInfo LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),
@@ -143,7 +135,7 @@ void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
                                                                   .minDepthBounds = 0.F,
                                                                   .maxDepthBounds = 1.F};
 
-    const std::array Stages{VertStage, FragStage};
+    const std::array             Stages{VertStage, FragStage};
     VkGraphicsPipelineCreateInfo PipelineInfo{.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                               .pNext = nullptr,
                                               .flags = 0,
@@ -162,11 +154,10 @@ void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
                                               .renderPass = Arguments.RenderPass,
                                               .subpass = Arguments.Subpass};
 
-    VkPipelineCache CompositeCache = Arguments.Cache
-                                         ? Arguments.Cache->GetCompositeCache()
-                                         : VK_NULL_HANDLE;
-
-    if (!LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
+    if (VkPipelineCache CompositeCache = Arguments.Cache
+                                             ? Arguments.Cache->GetCompositeCache()
+                                             : VK_NULL_HANDLE;
+        !LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
     {
         vkDestroyShaderModule(LogicalDevice, FragModule, nullptr);
         vkDestroyShaderModule(LogicalDevice, VertModule, nullptr);
@@ -187,8 +178,8 @@ void luvk::Pipeline::CreateComputePipeline(const ComputeCreationArguments& Argum
 {
     m_Type = Type::Compute;
 
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
-    const VkShaderModule CompModule = CreateShader(LogicalDevice, Arguments.ComputeShader);
+    const VkDevice&      LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkShaderModule CompModule    = CreateShader(LogicalDevice, Arguments.ComputeShader);
 
     const VkPipelineShaderStageCreateInfo CompStage{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
                                                     .pNext = nullptr,
@@ -198,13 +189,6 @@ void luvk::Pipeline::CreateComputePipeline(const ComputeCreationArguments& Argum
                                                     .pName = "main"};
 
     m_PushConstants.assign(std::begin(Arguments.PushConstants), std::end(Arguments.PushConstants));
-    if (std::empty(m_PushConstants))
-    {
-        const VkPushConstantRange Range{.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT,
-                                        .offset = 0,
-                                        .size = m_DeviceModule->GetDeviceProperties().limits.maxPushConstantsSize};
-        m_PushConstants.push_back(Range);
-    }
 
     const VkPipelineLayoutCreateInfo LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),
@@ -224,11 +208,10 @@ void luvk::Pipeline::CreateComputePipeline(const ComputeCreationArguments& Argum
                                                    .stage = CompStage,
                                                    .layout = m_PipelineLayout};
 
-    const VkPipelineCache CompositeCache = Arguments.Cache
-                                               ? Arguments.Cache->GetCompositeCache()
-                                               : VK_NULL_HANDLE;
-
-    if (!LUVK_EXECUTE(vkCreateComputePipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
+    if (const VkPipelineCache CompositeCache = Arguments.Cache
+                                                   ? Arguments.Cache->GetCompositeCache()
+                                                   : VK_NULL_HANDLE;
+        !LUVK_EXECUTE(vkCreateComputePipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
     {
         vkDestroyShaderModule(LogicalDevice, CompModule, nullptr);
         throw std::runtime_error("Failed to create compute pipeline.");
@@ -245,7 +228,7 @@ void luvk::Pipeline::RecreateComputePipeline(const ComputeCreationArguments& Arg
 
 void luvk::Pipeline::CreateMeshPipeline(const MeshCreationArguments& Arguments)
 {
-    m_Type = Type::Mesh;
+    m_Type                        = Type::Mesh;
     const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     VkShaderModule MeshModule = CreateShader(LogicalDevice, Arguments.MeshShader);
@@ -338,13 +321,6 @@ void luvk::Pipeline::CreateMeshPipeline(const MeshCreationArguments& Arguments)
                                                    .pDynamicStates = std::data(DynamicStates)};
 
     m_PushConstants.assign(std::begin(Arguments.PushConstants), std::end(Arguments.PushConstants));
-    if (std::empty(m_PushConstants))
-    {
-        const VkPushConstantRange Range{.stageFlags = VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_FRAGMENT_BIT,
-                                        .offset = 0,
-                                        .size = m_DeviceModule->GetDeviceProperties().limits.maxPushConstantsSize};
-        m_PushConstants.push_back(Range);
-    }
 
     const VkPipelineLayoutCreateInfo LayoutInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                 .setLayoutCount = static_cast<std::uint32_t>(std::size(Arguments.SetLayouts)),
@@ -393,11 +369,10 @@ void luvk::Pipeline::CreateMeshPipeline(const MeshCreationArguments& Arguments)
                                               .renderPass = Arguments.RenderPass,
                                               .subpass = Arguments.Subpass};
 
-    VkPipelineCache CompositeCache = Arguments.Cache
-                                         ? Arguments.Cache->GetCompositeCache()
-                                         : VK_NULL_HANDLE;
-
-    if (!LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
+    if (VkPipelineCache CompositeCache = Arguments.Cache
+                                             ? Arguments.Cache->GetCompositeCache()
+                                             : VK_NULL_HANDLE;
+        !LUVK_EXECUTE(vkCreateGraphicsPipelines(LogicalDevice, CompositeCache, 1, &PipelineInfo, nullptr, &m_Pipeline)))
     {
         if (FragModule != VK_NULL_HANDLE)
         {

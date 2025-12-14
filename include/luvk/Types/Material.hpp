@@ -5,6 +5,8 @@
 #pragma once
 
 #include <memory>
+#include <span>
+#include <volk/volk.h>
 #include "luvk/Module.hpp"
 
 namespace luvk
@@ -12,44 +14,42 @@ namespace luvk
     class Texture;
     class DescriptorSet;
     class Pipeline;
+    class Buffer;
+    class Device;
+    class DescriptorPool;
+    class Memory;
 
     class LUVKMODULE_API Material
     {
-        std::shared_ptr<Texture> m_Texture{};
-        std::shared_ptr<DescriptorSet> m_Descriptor{};
-        std::shared_ptr<Pipeline> m_Pipeline{};
+        std::shared_ptr<Pipeline>      m_Pipeline{};
+        std::shared_ptr<DescriptorSet> m_DescriptorSet{};
+        std::shared_ptr<Texture>       m_Texture{};
 
     public:
         constexpr Material() = default;
 
-        void SetTexture(const std::shared_ptr<Texture>& Texture)
-        {
-            m_Texture = Texture;
-        }
+        void Initialize(const std::shared_ptr<Device>&         Device,
+                        const std::shared_ptr<DescriptorPool>& Pool,
+                        const std::shared_ptr<Memory>&         Memory,
+                        const std::shared_ptr<Pipeline>&       PipelineObj);
 
-        void SetDescriptor(const std::shared_ptr<DescriptorSet>& Descriptor)
-        {
-            m_Descriptor = Descriptor;
-        }
+        void AllocateDescriptorSet(std::span<const VkDescriptorSetLayoutBinding> Bindings) const;
 
-        void SetPipeline(const std::shared_ptr<Pipeline>& Pipeline)
-        {
-            m_Pipeline = Pipeline;
-        }
+        void Bind(const VkCommandBuffer& CommandBuffer) const;
 
-        [[nodiscard]] constexpr const std::shared_ptr<Texture>& GetTexture() const noexcept
-        {
-            return m_Texture;
-        }
-
-        [[nodiscard]] constexpr const std::shared_ptr<DescriptorSet>& GetDescriptor() const noexcept
-        {
-            return m_Descriptor;
-        }
+        void SetPipeline(const std::shared_ptr<Pipeline>& PipelineObj);
+        void SetDescriptorSet(const std::shared_ptr<DescriptorSet>& DescriptorSetObj);
+        void SetTexture(const std::shared_ptr<Texture>& TextureObj);
+        void SetUniformBuffer(const std::shared_ptr<Buffer>& BufferObj, std::uint32_t Binding = 0) const;
 
         [[nodiscard]] constexpr const std::shared_ptr<Pipeline>& GetPipeline() const noexcept
         {
             return m_Pipeline;
+        }
+
+        [[nodiscard]] constexpr const std::shared_ptr<DescriptorSet>& GetDescriptor() const noexcept
+        {
+            return m_DescriptorSet;
         }
     };
 } // namespace luvk

@@ -14,10 +14,10 @@ namespace luvk
 
     class LUVKMODULE_API PipelineCache
     {
-        VkPipelineCache m_PreRaster{VK_NULL_HANDLE};
-        VkPipelineCache m_Fragment{VK_NULL_HANDLE};
-        VkPipelineCache m_Output{VK_NULL_HANDLE};
-        VkPipelineCache m_Composite{VK_NULL_HANDLE};
+        VkPipelineCache         m_PreRaster{VK_NULL_HANDLE};
+        VkPipelineCache         m_Fragment{VK_NULL_HANDLE};
+        VkPipelineCache         m_Output{VK_NULL_HANDLE};
+        VkPipelineCache         m_Composite{VK_NULL_HANDLE};
         std::shared_ptr<Device> m_DeviceModule{};
 
     public:

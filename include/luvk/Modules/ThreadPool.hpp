@@ -17,12 +17,12 @@ namespace luvk
 {
     class LUVKMODULE_API ThreadPool : public IRenderModule
     {
-        Vector<std::thread> m_Threads{};
+        Vector<std::thread>               m_Threads{};
         std::queue<std::function<void()>> m_Tasks{};
-        std::mutex m_Mutex{};
-        std::condition_variable m_Condition{};
-        std::size_t m_Active{0};
-        bool m_Stop{false};
+        std::mutex                        m_Mutex{};
+        std::condition_variable           m_Condition{};
+        std::size_t                       m_Active{0};
+        bool                              m_Stop{false};
 
     public:
         constexpr ThreadPool() = default;

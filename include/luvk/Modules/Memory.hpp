@@ -24,8 +24,8 @@ namespace luvk
     class LUVKMODULE_API Memory : public IRenderModule,
                                   public IEventModule
     {
-        VmaAllocator m_Allocator{VK_NULL_HANDLE};
-        std::shared_ptr<Device> m_DeviceModule{};
+        VmaAllocator              m_Allocator{VK_NULL_HANDLE};
+        std::shared_ptr<Device>   m_DeviceModule{};
         std::shared_ptr<Renderer> m_RendererModule{};
 
     public:
@@ -39,7 +39,7 @@ namespace luvk
 
         void InitializeAllocator(VmaAllocatorCreateFlags Flags);
 
-        [[nodiscard]] const VmaAllocator& GetAllocator() const
+        [[nodiscard]] constexpr const VmaAllocator& GetAllocator() const
         {
             return m_Allocator;
         }

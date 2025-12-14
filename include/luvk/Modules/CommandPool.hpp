@@ -24,7 +24,7 @@ namespace luvk
     class LUVKMODULE_API CommandPool : public IRenderModule,
                                        public IEventModule
     {
-        VkCommandPool m_CommandPool{VK_NULL_HANDLE};
+        VkCommandPool           m_CommandPool{VK_NULL_HANDLE};
         Vector<VkCommandBuffer> m_Buffers{};
         std::shared_ptr<Device> m_DeviceModule{};
 
@@ -37,10 +37,10 @@ namespace luvk
             CommandPool::ClearResources();
         }
 
-        void CreateCommandPool(std::uint32_t QueueFamilyIndex,
+        void CreateCommandPool(std::uint32_t            QueueFamilyIndex,
                                VkCommandPoolCreateFlags Flags);
 
-        [[nodiscard]] Vector<VkCommandBuffer> AllocateBuffers(std::uint32_t Count,
+        [[nodiscard]] Vector<VkCommandBuffer> AllocateBuffers(std::uint32_t        Count,
                                                               VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         [[nodiscard]] constexpr const VkCommandPool& GetCommandPool() const

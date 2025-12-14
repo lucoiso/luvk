@@ -3,12 +3,10 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Buffer.hpp"
-#include <cstring>
 #include <iterator>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
-#include "luvk/Modules/Renderer.hpp"
 
 luvk::Buffer::Buffer(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
     : m_DeviceModule(DeviceModule),
@@ -60,7 +58,7 @@ void luvk::Buffer::RecreateBuffer(const CreationArguments& Arguments)
     if (m_Buffer != VK_NULL_HANDLE)
     {
         vmaDestroyBuffer(Allocator, m_Buffer, m_Allocation);
-        m_Buffer = VK_NULL_HANDLE;
+        m_Buffer     = VK_NULL_HANDLE;
         m_Allocation = nullptr;
     }
 

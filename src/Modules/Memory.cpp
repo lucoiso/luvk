@@ -3,10 +3,11 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Memory.hpp"
-#include <cstdio>
+#include <stdexcept>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Renderer.hpp"
+
 #ifndef VMA_IMPLEMENTATION
 #    define VMA_LEAK_LOG_FORMAT(format, ...)                                            \
         do                                                                              \
@@ -22,20 +23,21 @@
 #include <vma/vk_mem_alloc.h>
 
 luvk::Memory::Memory(const std::shared_ptr<Renderer>& RendererModule, const std::shared_ptr<Device>& DeviceModule)
-    : m_RendererModule(RendererModule),
-      m_DeviceModule(DeviceModule) {}
+    : m_DeviceModule(DeviceModule),
+      m_RendererModule(RendererModule) {}
 
 void luvk::Memory::InitializeAllocator(const VmaAllocatorCreateFlags Flags)
 {
     VkPhysicalDeviceMemoryProperties MemProps{};
     vkGetPhysicalDeviceMemoryProperties(m_DeviceModule->GetPhysicalDevice(), &MemProps);
 
-    const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
+    const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
+                                             .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
 
     const VmaAllocatorCreateInfo AllocatorInfo{.flags = Flags | VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT,
                                                .physicalDevice = m_DeviceModule->GetPhysicalDevice(),
                                                .device = m_DeviceModule->GetLogicalDevice(),
-                                               .preferredLargeHeapBlockSize = 0U /*Default: 256 MiB*/,
+                                               .preferredLargeHeapBlockSize = 0U,
                                                .pAllocationCallbacks = nullptr,
                                                .pDeviceMemoryCallbacks = nullptr,
                                                .pHeapSizeLimit = nullptr,

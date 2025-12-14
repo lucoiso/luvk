@@ -9,19 +9,19 @@
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
-#include "luvk/Modules/Renderer.hpp"
+#include "luvk/Resources/Image.hpp"
 
 luvk::SwapChain::SwapChain(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
     : m_DeviceModule(DeviceModule),
       m_MemoryModule(MemoryModule) {}
 
 void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
-                                      void* const& pNext)
+                                      void* const&        pNext)
 {
     m_PreviousSwapChain = m_SwapChain;
 
     m_Arguments = Arguments;
-    m_Extent = Arguments.Extent;
+    m_Extent    = Arguments.Extent;
 
     const VkSurfaceKHR& Surface = m_DeviceModule->GetSurface();
 
@@ -69,8 +69,6 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
     DestroyDepthResources();
     DestroyFramebuffers(LogicalDevice);
     DestroyRenderPass(LogicalDevice);
-    DestroyFramebuffers(LogicalDevice);
-    DestroyRenderPass(LogicalDevice);
 
     if (m_PreviousSwapChain != VK_NULL_HANDLE)
     {
@@ -108,7 +106,7 @@ void luvk::SwapChain::ClearResources()
 }
 
 void luvk::SwapChain::Recreate(const VkExtent2D NewExtent,
-                               void* const & pNext)
+                               void* const&     pNext)
 {
     m_Arguments.Extent = NewExtent;
     CreateSwapChain(CreationArguments(m_Arguments), pNext);
@@ -283,7 +281,7 @@ void luvk::SwapChain::DestroyDepthResources()
 VkFormat luvk::SwapChain::SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice)
 {
     for (constexpr std::array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
-         const VkFormat Format : Candidates)
+         const VkFormat       Format : Candidates)
     {
         VkFormatProperties Props{};
         vkGetPhysicalDeviceFormatProperties(PhysicalDevice, Format, &Props);

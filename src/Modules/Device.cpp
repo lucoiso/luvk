@@ -3,7 +3,9 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Device.hpp"
+#include <algorithm>
 #include <iterator>
+#include <stdexcept>
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Renderer.hpp"
@@ -16,17 +18,18 @@ void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice& Device)
     m_PhysicalDevice = Device;
     m_Extensions.SetDevice(Device);
 
-    m_FeatureChain.pNext = nullptr;
-    m_Vulkan11Features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
-    m_Vulkan12Features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-    m_Vulkan13Features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-    m_Vulkan14Features = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+    m_FeatureChain.pNext                = nullptr;
+    m_Vulkan11Features                  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+    m_Vulkan12Features                  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+    m_Vulkan13Features                  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+    m_Vulkan14Features                  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+    m_PageableDeviceLocalMemoryFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT};
 
-    m_FeatureChain.pNext = &m_Vulkan11Features;
+    m_FeatureChain.pNext     = &m_Vulkan11Features;
     m_Vulkan11Features.pNext = &m_Vulkan12Features;
     m_Vulkan12Features.pNext = &m_Vulkan13Features;
     m_Vulkan13Features.pNext = &m_Vulkan14Features;
-    m_Vulkan14Features.pNext = nullptr;
+    m_Vulkan14Features.pNext = &m_PageableDeviceLocalMemoryFeatures;
 
     vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &m_FeatureChain);
     vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_DeviceProperties);
@@ -105,7 +108,7 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
                     Base = Base->pNext;
                 }
 
-                Base->pNext = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(FeatureChain));
+                Base->pNext  = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(FeatureChain));
                 FeatureChain = Chain;
             }
         }
@@ -116,32 +119,35 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
         m_Extensions.SetExtensionState("", VK_KHR_SWAPCHAIN_EXTENSION_NAME, true);
     }
 
-    const auto NumFamilies = std::size(QueueIndices);
     Vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
-    QueueCreateInfos.reserve(NumFamilies);
+    QueueCreateInfos.reserve(std::size(QueueIndices));
+
+    static constexpr std::array<float, 64U> Priorities = []
+    {
+        std::array<float, 64U> Out;
+        Out.fill(1.F);
+        return Out;
+    }();
 
     for (const auto& [Index, Num] : QueueIndices)
     {
-        constexpr std::array<float, 64U> Priorities{0.F};
-
         QueueCreateInfos.push_back(VkDeviceQueueCreateInfo{.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                                                            .queueFamilyIndex = Index,
                                                            .queueCount = Num,
                                                            .pQueuePriorities = std::data(Priorities)});
     }
 
-    Vector<const char*> Extensions = m_Extensions.GetEnabledExtensionsNames();
-    Vector<const char*> Layers = m_Extensions.GetEnabledLayersNames();
+    const auto Extensions = m_Extensions.GetEnabledExtensionsNames();
+    const auto Layers     = m_Extensions.GetEnabledLayersNames();
 
     const VkDeviceCreateInfo DeviceCreateInfo{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                                              .pNext = const_cast<void*>(FeatureChain),
+                                              .pNext = FeatureChain,
                                               .queueCreateInfoCount = static_cast<std::uint32_t>(std::size(QueueCreateInfos)),
                                               .pQueueCreateInfos = std::data(QueueCreateInfos),
                                               .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
                                               .ppEnabledLayerNames = std::data(Layers),
                                               .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
-                                              .ppEnabledExtensionNames = std::data(Extensions),
-                                              .pEnabledFeatures = nullptr};
+                                              .ppEnabledExtensionNames = std::data(Extensions)};
 
     if (!LUVK_EXECUTE(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_LogicalDevice)))
     {
@@ -150,17 +156,16 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
 
     volkLoadDevice(m_LogicalDevice);
 
-    for (const VkDeviceQueueCreateInfo& QueueCreateInfoIt : QueueCreateInfos)
+    for (const auto& QueueCreateInfoIt : QueueCreateInfos)
     {
         Vector<VkQueue> QueueList(QueueCreateInfoIt.queueCount);
 
-        for (std::uint32_t Index = 0U; Index < QueueCreateInfoIt.queueCount;
-             ++Index)
+        for (std::uint32_t Index = 0U; Index < QueueCreateInfoIt.queueCount; ++Index)
         {
             vkGetDeviceQueue(m_LogicalDevice, QueueCreateInfoIt.queueFamilyIndex, Index, &QueueList.at(Index));
         }
 
-        m_Queues.emplace(QueueCreateInfoIt.queueFamilyIndex, QueueList);
+        m_Queues.emplace(QueueCreateInfoIt.queueFamilyIndex, std::move(QueueList));
     }
 
     GetEventSystem().Execute(DeviceEvents::OnCreatedLogicalDevice);
@@ -197,8 +202,7 @@ void luvk::Device::FetchAvailableDevices(const VkInstance& Instance)
 
 std::optional<std::uint32_t> luvk::Device::FindQueueFamilyIndex(const VkQueueFlags Flags) const
 {
-    for (std::uint32_t Index = 0U;
-         Index < std::size(m_DeviceQueueFamilyProperties); ++Index)
+    for (std::uint32_t Index = 0U; Index < std::size(m_DeviceQueueFamilyProperties); ++Index)
     {
         if ((m_DeviceQueueFamilyProperties.at(Index).queueFlags & Flags) == Flags)
         {
@@ -212,7 +216,6 @@ std::optional<std::uint32_t> luvk::Device::FindQueueFamilyIndex(const VkQueueFla
 VkQueue luvk::Device::GetQueue(const std::uint32_t FamilyIndex, const std::uint32_t QueueIndex) const
 {
     if (const auto It = m_Queues.find(FamilyIndex);
-
         It != std::end(m_Queues))
     {
         if (QueueIndex < std::size(It->Second))

@@ -29,8 +29,8 @@ namespace luvk
 
         [[nodiscard]] constexpr auto find_iterator(const Key& KeyValue) const noexcept
         {
-            return std::find_if(std::begin(m_Data),
-                                std::end(m_Data),
+            return std::find_if(std::cbegin(m_Data),
+                                std::cend(m_Data),
                                 [&](const auto& It)
                                 {
                                     return It.First == KeyValue;
@@ -38,9 +38,9 @@ namespace luvk
         }
 
     public:
-        using iterator = typename decltype(m_Data)::iterator;
+        using iterator       = typename decltype(m_Data)::iterator;
         using const_iterator = typename decltype(m_Data)::const_iterator;
-        using value_type = Pair<Key, T>;
+        using value_type     = Pair<Key, T>;
 
         constexpr Map() = default;
 
@@ -54,7 +54,7 @@ namespace luvk
 
         [[nodiscard]] constexpr bool contains(const Key& KeyValue) const noexcept
         {
-            return find_iterator(KeyValue) != std::end(m_Data);
+            return find_iterator(KeyValue) != std::cend(m_Data);
         }
 
         [[nodiscard]] constexpr iterator find(const Key& KeyValue) noexcept
@@ -77,16 +77,6 @@ namespace luvk
             return It->Second;
         }
 
-        [[nodiscard]] constexpr const T& at(const Key& KeyValue) const
-        {
-            auto It = find_iterator(KeyValue);
-            if (It == std::end(m_Data))
-            {
-                throw std::out_of_range{"Key not found"};
-            }
-            return It->Second;
-        }
-
         template <typename... Args>
         constexpr Pair<iterator, bool> emplace(const Key& KeyValue, Args&&... ArgsIn)
         {
@@ -97,11 +87,6 @@ namespace luvk
             }
             m_Data.emplace_back(value_type{KeyValue, T{std::forward<Args>(ArgsIn)...}});
             return {std::end(m_Data) - 1, true};
-        }
-
-        constexpr iterator erase(const_iterator Position)
-        {
-            return m_Data.erase(Position);
         }
 
         constexpr void erase(const Key& KeyValue)
@@ -118,8 +103,6 @@ namespace luvk
             m_Data.clear();
         }
 
-        constexpr void reserve(std::size_t) const noexcept {}
-
         [[nodiscard]] constexpr iterator begin() noexcept
         {
             return std::begin(m_Data);
@@ -132,12 +115,12 @@ namespace luvk
 
         [[nodiscard]] constexpr const_iterator begin() const noexcept
         {
-            return std::begin(m_Data);
+            return std::cbegin(m_Data);
         }
 
         [[nodiscard]] constexpr const_iterator end() const noexcept
         {
-            return std::end(m_Data);
+            return std::cend(m_Data);
         }
 
         [[nodiscard]] constexpr std::size_t size() const noexcept

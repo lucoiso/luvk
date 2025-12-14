@@ -4,7 +4,6 @@
 
 #pragma once
 
-#include <cstddef>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -14,7 +13,7 @@ namespace luvk
     template <typename FirstType, typename SecondType>
     struct Pair
     {
-        FirstType First{};
+        FirstType  First{};
         SecondType Second{};
     };
 } // namespace luvk

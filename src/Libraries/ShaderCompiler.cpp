@@ -39,10 +39,10 @@ luvk::Vector<std::uint32_t> luvk::CompileGLSLToSPIRV(const std::string_view& Sou
     Shader.setEnvClient(glslang::EShClientVulkan, glslang::EShTargetVulkan_1_4);
     Shader.setEnvTarget(glslang::EShTargetSpv, glslang::EShTargetSpv_1_6);
 
-    const auto Resources = GetDefaultResources();
-    constexpr auto Messages = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
+    const TBuiltInResource Resources = *GetDefaultResources();
+    constexpr auto         Messages  = static_cast<EShMessages>(EShMsgSpvRules | EShMsgVulkanRules);
 
-    if (!Shader.parse(Resources, 100, false, Messages))
+    if (!Shader.parse(&Resources, 100, false, Messages))
     {
         throw std::runtime_error(Shader.getInfoLog());
     }
@@ -55,7 +55,7 @@ luvk::Vector<std::uint32_t> luvk::CompileGLSLToSPIRV(const std::string_view& Sou
     }
 
     Vector<std::uint32_t> Spirv{};
-    glslang::SpvOptions Options{};
+    glslang::SpvOptions   Options{};
     glslang::GlslangToSpv(*Program.getIntermediate(Stage), Spirv, &Options);
     return Spirv;
 }

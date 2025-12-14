@@ -3,16 +3,14 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/DescriptorSet.hpp"
-#include <cstdint>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/DescriptorPool.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
-#include "luvk/Modules/Renderer.hpp"
 
-luvk::DescriptorSet::DescriptorSet(const std::shared_ptr<Device>& DeviceModule,
+luvk::DescriptorSet::DescriptorSet(const std::shared_ptr<Device>&         DeviceModule,
                                    const std::shared_ptr<DescriptorPool>& PoolModule,
-                                   const std::shared_ptr<Memory>& MemoryModule)
+                                   const std::shared_ptr<Memory>&         MemoryModule)
     : m_DeviceModule(DeviceModule),
       m_PoolModule(PoolModule),
       m_MemoryModule(MemoryModule) {}
@@ -52,7 +50,7 @@ void luvk::DescriptorSet::CreateLayout(const LayoutInfo& Info)
 
 void luvk::DescriptorSet::UseLayout(const VkDescriptorSetLayout& Layout)
 {
-    m_Layout = Layout;
+    m_Layout     = Layout;
     m_OwnsLayout = false;
 }
 
@@ -69,9 +67,9 @@ void luvk::DescriptorSet::Allocate()
     }
 }
 
-void luvk::DescriptorSet::UpdateBuffer(const VkBuffer& Buffer,
-                                       const VkDeviceSize Size,
-                                       const std::uint32_t Binding,
+void luvk::DescriptorSet::UpdateBuffer(const VkBuffer&        Buffer,
+                                       const VkDeviceSize     Size,
+                                       const std::uint32_t    Binding,
                                        const VkDescriptorType Type) const
 {
     const VkDescriptorBufferInfo BufferInfo{.buffer = Buffer, .offset = 0, .range = Size};
@@ -86,9 +84,9 @@ void luvk::DescriptorSet::UpdateBuffer(const VkBuffer& Buffer,
     vkUpdateDescriptorSets(m_DeviceModule->GetLogicalDevice(), 1, &Write, 0, nullptr);
 }
 
-void luvk::DescriptorSet::UpdateImage(const VkImageView& View,
-                                      const VkSampler& Sampler,
-                                      const std::uint32_t Binding,
+void luvk::DescriptorSet::UpdateImage(const VkImageView&     View,
+                                      const VkSampler&       Sampler,
+                                      const std::uint32_t    Binding,
                                       const VkDescriptorType Type) const
 {
     const VkDescriptorImageInfo ImageInfo{.sampler = Sampler,

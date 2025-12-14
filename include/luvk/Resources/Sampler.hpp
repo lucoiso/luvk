@@ -14,7 +14,7 @@ namespace luvk
 
     class LUVKMODULE_API Sampler
     {
-        VkSampler m_Sampler{VK_NULL_HANDLE};
+        VkSampler               m_Sampler{VK_NULL_HANDLE};
         std::shared_ptr<Device> m_DeviceModule{};
 
     public:
@@ -25,7 +25,7 @@ namespace luvk
 
         struct CreationArguments
         {
-            VkFilter Filter{VK_FILTER_LINEAR};
+            VkFilter             Filter{VK_FILTER_LINEAR};
             VkSamplerAddressMode AddressMode{VK_SAMPLER_ADDRESS_MODE_REPEAT};
         };
 

@@ -17,9 +17,9 @@ namespace luvk
 
     class LUVKMODULE_API Buffer
     {
-        VkBuffer m_Buffer{VK_NULL_HANDLE};
-        VmaAllocation m_Allocation{};
-        VkDeviceSize m_Size{0};
+        VkBuffer                m_Buffer{VK_NULL_HANDLE};
+        VmaAllocation           m_Allocation{};
+        VkDeviceSize            m_Size{0};
         std::shared_ptr<Device> m_DeviceModule{};
         std::shared_ptr<Memory> m_MemoryModule{};
 
@@ -31,11 +31,11 @@ namespace luvk
 
         struct CreationArguments
         {
-            std::string Name{};
-            VkDeviceSize Size{0};
+            std::string        Name{};
+            VkDeviceSize       Size{0};
             VkBufferUsageFlags Usage{};
-            VmaMemoryUsage MemoryUsage{VMA_MEMORY_USAGE_AUTO};
-            float Priority{1.F};
+            VmaMemoryUsage     MemoryUsage{VMA_MEMORY_USAGE_AUTO};
+            float              Priority{1.F};
         };
 
         void CreateBuffer(const CreationArguments& Arguments);

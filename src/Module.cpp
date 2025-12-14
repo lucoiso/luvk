@@ -4,3 +4,5 @@
 
 #include "luvk/Module.hpp"
 #define VOLK_IMPLEMENTATION
+// ReSharper disable once CppUnusedIncludeDirective
+#include <volk/volk.h>

@@ -1,5 +1,10 @@
+// Author: Lucas Vilas-Boas
+// Year: 2025
+// Repo : https://github.com/lucoiso/luvk
+
 #pragma once
 
+#include <initializer_list>
 #include <string_view>
 #include "luvk/Module.hpp"
 #include "luvk/Types/UnorderedMap.hpp"

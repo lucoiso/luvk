@@ -13,6 +13,7 @@
 namespace luvk
 {
     class Device;
+    class PipelineCache;
 
     class LUVKMODULE_API Pipeline
     {
@@ -25,11 +26,11 @@ namespace luvk
         };
 
     private:
-        Type m_Type{Type::Graphics};
-        VkPipelineLayout m_PipelineLayout{VK_NULL_HANDLE};
-        VkPipeline m_Pipeline{VK_NULL_HANDLE};
+        Type                        m_Type{Type::Graphics};
+        VkPipelineLayout            m_PipelineLayout{VK_NULL_HANDLE};
+        VkPipeline                  m_Pipeline{VK_NULL_HANDLE};
         Vector<VkPushConstantRange> m_PushConstants{};
-        std::shared_ptr<Device> m_DeviceModule{};
+        std::shared_ptr<Device>     m_DeviceModule{};
 
     public:
         Pipeline() = delete;
@@ -39,49 +40,49 @@ namespace luvk
 
         struct CreationArguments
         {
-            VkExtent2D Extent{0U, 0U};
-            std::span<const VkFormat> ColorFormats{};
-            VkRenderPass RenderPass{VK_NULL_HANDLE};
-            std::uint32_t Subpass{0};
-            std::span<const std::uint32_t> VertexShader;
-            std::span<const std::uint32_t> FragmentShader;
-            std::span<const VkDescriptorSetLayout> SetLayouts{};
-            std::span<const VkVertexInputBindingDescription> Bindings{};
+            VkExtent2D                                         Extent{0U, 0U};
+            std::span<const VkFormat>                          ColorFormats{};
+            VkRenderPass                                       RenderPass{VK_NULL_HANDLE};
+            std::uint32_t                                      Subpass{0};
+            std::span<const std::uint32_t>                     VertexShader;
+            std::span<const std::uint32_t>                     FragmentShader;
+            std::span<const VkDescriptorSetLayout>             SetLayouts{};
+            std::span<const VkVertexInputBindingDescription>   Bindings{};
             std::span<const VkVertexInputAttributeDescription> Attributes{};
-            std::span<const VkPushConstantRange> PushConstants{};
-            VkPrimitiveTopology Topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
-            VkCullModeFlags CullMode{VK_CULL_MODE_BACK_BIT};
-            VkFrontFace FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
-            bool EnableDepthOp{true};
-            VkPipelineCreateFlags Flags{0};
-            class PipelineCache* Cache{};
+            std::span<const VkPushConstantRange>               PushConstants{};
+            VkPrimitiveTopology                                Topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
+            VkCullModeFlags                                    CullMode{VK_CULL_MODE_BACK_BIT};
+            VkFrontFace                                        FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
+            bool                                               EnableDepthOp{true};
+            VkPipelineCreateFlags                              Flags{0};
+            PipelineCache*                                     Cache{};
         };
 
         struct ComputeCreationArguments
         {
-            std::span<const std::uint32_t> ComputeShader;
+            std::span<const std::uint32_t>         ComputeShader;
             std::span<const VkDescriptorSetLayout> SetLayouts{};
-            std::span<const VkPushConstantRange> PushConstants{};
-            VkPipelineCreateFlags Flags{0};
-            PipelineCache* Cache{};
+            std::span<const VkPushConstantRange>   PushConstants{};
+            VkPipelineCreateFlags                  Flags{0};
+            PipelineCache*                         Cache{};
         };
 
         struct MeshCreationArguments
         {
-            VkExtent2D Extent{0U, 0U};
-            std::span<const VkFormat> ColorFormats{};
-            VkRenderPass RenderPass{VK_NULL_HANDLE};
-            std::uint32_t Subpass{0};
-            std::span<const std::uint32_t> TaskShader{};
-            std::span<const std::uint32_t> MeshShader;
-            std::span<const std::uint32_t> FragmentShader{};
+            VkExtent2D                             Extent{0U, 0U};
+            std::span<const VkFormat>              ColorFormats{};
+            VkRenderPass                           RenderPass{VK_NULL_HANDLE};
+            std::uint32_t                          Subpass{0};
+            std::span<const std::uint32_t>         TaskShader{};
+            std::span<const std::uint32_t>         MeshShader;
+            std::span<const std::uint32_t>         FragmentShader{};
             std::span<const VkDescriptorSetLayout> SetLayouts{};
-            std::span<const VkPushConstantRange> PushConstants{};
-            VkCullModeFlags CullMode{VK_CULL_MODE_BACK_BIT};
-            VkFrontFace FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
-            bool EnableDepthOp{true};
-            VkPipelineCreateFlags Flags{0};
-            PipelineCache* Cache{};
+            std::span<const VkPushConstantRange>   PushConstants{};
+            VkCullModeFlags                        CullMode{VK_CULL_MODE_BACK_BIT};
+            VkFrontFace                            FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
+            bool                                   EnableDepthOp{true};
+            VkPipelineCreateFlags                  Flags{0};
+            PipelineCache*                         Cache{};
         };
 
         void CreateGraphicsPipeline(const CreationArguments& Arguments);
@@ -115,10 +116,10 @@ namespace luvk
         {
             switch (m_Type)
             {
-                case Type::Compute: return VK_PIPELINE_BIND_POINT_COMPUTE;
-                case Type::Graphics:
-                case Type::Mesh:
-                default: return VK_PIPELINE_BIND_POINT_GRAPHICS;
+            case Type::Compute: return VK_PIPELINE_BIND_POINT_COMPUTE;
+            case Type::Graphics:
+            case Type::Mesh:
+            default: return VK_PIPELINE_BIND_POINT_GRAPHICS;
             }
         }
 

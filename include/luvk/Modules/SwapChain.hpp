@@ -4,31 +4,32 @@
 
 #pragma once
 
+#include <volk/volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Resources/Image.hpp"
 #include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
     class Device;
     class Memory;
+    class Image;
 
     struct SwapChainCreationArguments
     {
-        bool Clip{true};
-        VkSwapchainCreateFlagsKHR Flags{};
-        VkPresentModeKHR PresentMode{VK_PRESENT_MODE_FIFO_KHR};
+        bool                          Clip{true};
+        VkSwapchainCreateFlagsKHR     Flags{};
+        VkPresentModeKHR              PresentMode{VK_PRESENT_MODE_FIFO_KHR};
         VkSurfaceTransformFlagBitsKHR TransformFlags{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
-        VkFormat Format{VK_FORMAT_R8G8B8A8_UNORM};
-        VkColorSpaceKHR ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-        VkImageUsageFlags UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
-        VkCompositeAlphaFlagBitsKHR CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
-        std::uint32_t ImageCount{1U};
-        VkExtent2D Extent{.width = 0U, .height = 0U};
-        Vector<std::uint32_t> QueueIndices{};
+        VkFormat                      Format{VK_FORMAT_R8G8B8A8_UNORM};
+        VkColorSpaceKHR               ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+        VkImageUsageFlags             UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
+        VkCompositeAlphaFlagBitsKHR   CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
+        std::uint32_t                 ImageCount{1U};
+        VkExtent2D                    Extent{.width = 0U, .height = 0U};
+        Vector<std::uint32_t>         QueueIndices{};
     };
 
     enum class SwapChainEvents : std::uint8_t
@@ -43,18 +44,18 @@ namespace luvk
     {
         using CreationArguments = SwapChainCreationArguments;
 
-        VkSwapchainKHR m_SwapChain{VK_NULL_HANDLE};
-        VkSwapchainKHR m_PreviousSwapChain{VK_NULL_HANDLE};
-        Vector<VkImage> m_Images{};
-        Vector<VkImageView> m_ImageViews{};
-        Vector<VkFramebuffer> m_Framebuffers{};
+        VkSwapchainKHR                 m_SwapChain{VK_NULL_HANDLE};
+        VkSwapchainKHR                 m_PreviousSwapChain{VK_NULL_HANDLE};
+        Vector<VkImage>                m_Images{};
+        Vector<VkImageView>            m_ImageViews{};
+        Vector<VkFramebuffer>          m_Framebuffers{};
         Vector<std::shared_ptr<Image>> m_DepthImages{};
-        VkFormat m_DepthFormat{VK_FORMAT_UNDEFINED};
-        VkRenderPass m_RenderPass{VK_NULL_HANDLE};
-        VkExtent2D m_Extent{0U, 0U};
-        std::shared_ptr<Device> m_DeviceModule{};
-        std::shared_ptr<Memory> m_MemoryModule{};
-        CreationArguments m_Arguments{};
+        VkFormat                       m_DepthFormat{VK_FORMAT_UNDEFINED};
+        VkRenderPass                   m_RenderPass{VK_NULL_HANDLE};
+        VkExtent2D                     m_Extent{0U, 0U};
+        std::shared_ptr<Device>        m_DeviceModule{};
+        std::shared_ptr<Memory>        m_MemoryModule{};
+        CreationArguments              m_Arguments{};
 
     public:
         SwapChain() = delete;
@@ -128,14 +129,14 @@ namespace luvk
         void ClearResources() override;
 
     private:
-        void CreateSwapChainImages(const VkDevice& LogicalDevice);
-        void DestroySwapChainImages(const VkDevice& LogicalDevice);
-        void CreateRenderPass(const VkDevice& LogicalDevice);
-        void DestroyRenderPass(const VkDevice& LogicalDevice);
-        void CreateFramebuffers(const VkDevice& LogicalDevice);
-        void DestroyFramebuffers(const VkDevice& LogicalDevice);
-        void CreateDepthResources();
-        void DestroyDepthResources();
+        void                   CreateSwapChainImages(const VkDevice& LogicalDevice);
+        void                   DestroySwapChainImages(const VkDevice& LogicalDevice);
+        void                   CreateRenderPass(const VkDevice& LogicalDevice);
+        void                   DestroyRenderPass(const VkDevice& LogicalDevice);
+        void                   CreateFramebuffers(const VkDevice& LogicalDevice);
+        void                   DestroyFramebuffers(const VkDevice& LogicalDevice);
+        void                   CreateDepthResources();
+        void                   DestroyDepthResources();
         [[nodiscard]] VkFormat SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice);
     };
 } // namespace luvk

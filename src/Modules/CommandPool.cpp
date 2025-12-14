@@ -4,16 +4,19 @@
 
 #include "luvk/Modules/CommandPool.hpp"
 #include <iterator>
+#include <stdexcept>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/Renderer.hpp"
 
 luvk::CommandPool::CommandPool(const std::shared_ptr<Device>& DeviceModule)
     : m_DeviceModule(DeviceModule) {}
 
 void luvk::CommandPool::CreateCommandPool(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
 {
-    const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO, .pNext = nullptr, .flags = Flags, .queueFamilyIndex = QueueFamilyIndex};
+    const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                       .pNext = nullptr,
+                                       .flags = Flags,
+                                       .queueFamilyIndex = QueueFamilyIndex};
 
     if (!LUVK_EXECUTE(vkCreateCommandPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_CommandPool)))
     {

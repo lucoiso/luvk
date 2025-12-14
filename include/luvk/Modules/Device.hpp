@@ -30,22 +30,23 @@ namespace luvk
                                   public IEventModule,
                                   public IFeatureChainModule
     {
-        VkDevice m_LogicalDevice{VK_NULL_HANDLE};
-        VkPhysicalDevice m_PhysicalDevice{VK_NULL_HANDLE};
-        VkSurfaceKHR m_Surface{VK_NULL_HANDLE};
-        DeviceExtensions m_Extensions{};
-        Vector<VkPhysicalDevice> m_AvailableDevices{};
-        VkPhysicalDeviceFeatures2 m_FeatureChain{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-        VkPhysicalDeviceFeatures& m_DeviceFeatures = m_FeatureChain.features;
-        VkPhysicalDeviceVulkan11Features m_Vulkan11Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
-        VkPhysicalDeviceVulkan12Features m_Vulkan12Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-        VkPhysicalDeviceVulkan13Features m_Vulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-        VkPhysicalDeviceVulkan14Features m_Vulkan14Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
-        VkPhysicalDeviceProperties m_DeviceProperties{};
-        Vector<VkSurfaceFormatKHR> m_SurfaceFormat{};
-        Vector<VkQueueFamilyProperties> m_DeviceQueueFamilyProperties{};
-        UnorderedMap<std::uint32_t, Vector<VkQueue>> m_Queues{};
-        std::shared_ptr<Renderer> m_RendererModule{};
+        VkDevice                                             m_LogicalDevice{VK_NULL_HANDLE};
+        VkPhysicalDevice                                     m_PhysicalDevice{VK_NULL_HANDLE};
+        VkSurfaceKHR                                         m_Surface{VK_NULL_HANDLE};
+        DeviceExtensions                                     m_Extensions{};
+        Vector<VkPhysicalDevice>                             m_AvailableDevices{};
+        VkPhysicalDeviceFeatures2                            m_FeatureChain{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+        VkPhysicalDeviceFeatures&                            m_DeviceFeatures = m_FeatureChain.features;
+        VkPhysicalDeviceVulkan11Features                     m_Vulkan11Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+        VkPhysicalDeviceVulkan12Features                     m_Vulkan12Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+        VkPhysicalDeviceVulkan13Features                     m_Vulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+        VkPhysicalDeviceVulkan14Features                     m_Vulkan14Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+        VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT m_PageableDeviceLocalMemoryFeatures{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT};
+        VkPhysicalDeviceProperties                           m_DeviceProperties{};
+        Vector<VkSurfaceFormatKHR>                           m_SurfaceFormat{};
+        Vector<VkQueueFamilyProperties>                      m_DeviceQueueFamilyProperties{};
+        UnorderedMap<std::uint32_t, Vector<VkQueue>>         m_Queues{};
+        std::shared_ptr<Renderer>                            m_RendererModule{};
 
     public:
         Device() = delete;
@@ -143,7 +144,7 @@ namespace luvk
         }
 
         [[nodiscard]] std::optional<std::uint32_t> FindQueueFamilyIndex(VkQueueFlags Flags) const;
-        [[nodiscard]] VkQueue GetQueue(std::uint32_t FamilyIndex, std::uint32_t QueueIndex = 0U) const;
+        [[nodiscard]] VkQueue                      GetQueue(std::uint32_t FamilyIndex, std::uint32_t QueueIndex = 0U) const;
 
         void WaitIdle() const;
         void Wait(const VkQueue& Queue) const;

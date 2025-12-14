@@ -5,7 +5,6 @@
 #include "luvk/Resources/Sampler.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/Renderer.hpp"
 
 luvk::Sampler::Sampler(const std::shared_ptr<Device>& DeviceModule)
     : m_DeviceModule(DeviceModule) {}
