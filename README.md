@@ -2,7 +2,7 @@
 
 # LuVK
 
-<img width="811" height="641" alt="image" src="https://github.com/user-attachments/assets/ae0464c0-64e0-4c93-8168-c9250935b233" />
+<img width="812" height="648" alt="image" src="https://github.com/user-attachments/assets/d00afede-6d0c-4461-a379-a9e6c189842e" />
 
 A modular Vulkan-based rendering framework implemented in C++, providing a flexible foundation for graphics applications and engines, structured with distinct modules.
 
