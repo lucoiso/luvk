@@ -22,8 +22,8 @@ namespace luvk
     public:
         struct InstanceInfo
         {
-            Transform            XForm{};
-            std::array<float, 4> Color{1.F, 1.F, 1.F, 1.F};
+            Transform             XForm{};
+            luvk::Array<float, 4> Color{1.F, 1.F, 1.F, 1.F};
         };
 
     protected:
@@ -60,4 +60,4 @@ namespace luvk
 
         virtual void Draw(const VkCommandBuffer& CommandBuffer, std::span<const std::byte> PushConstants) const;
     };
-} // namespace luvk
+}

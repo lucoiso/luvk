@@ -122,9 +122,9 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
     Vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
     QueueCreateInfos.reserve(std::size(QueueIndices));
 
-    static constexpr std::array<float, 64U> Priorities = []
+    static constexpr luvk::Array<float, 64U> Priorities = []
     {
-        std::array<float, 64U> Out{};
+        luvk::Array<float, 64U> Out{};
         Out.fill(1.F);
         return Out;
     }();

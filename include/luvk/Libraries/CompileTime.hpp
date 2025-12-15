@@ -5,9 +5,9 @@
 #pragma once
 
 #include <algorithm>
-#include <array>
 #include <span>
 #include "luvk/Module.hpp"
+#include "luvk/Types/Array.hpp"
 #include "luvk/Types/Array.hpp"
 
 namespace luvk
@@ -45,7 +45,7 @@ namespace luvk
         constexpr auto GeneratedContainer = GenerateOversizedArray(Getter());
         using InputType                   = std::decay_t<decltype(GeneratedContainer)>::value_type;
 
-        std::array<InputType, GeneratedContainer.Size> RightSizedArray{};
+        luvk::Array<InputType, GeneratedContainer.Size> RightSizedArray{};
         std::copy(std::begin(GeneratedContainer), std::end(GeneratedContainer), std::begin(RightSizedArray));
 
         return RightSizedArray;

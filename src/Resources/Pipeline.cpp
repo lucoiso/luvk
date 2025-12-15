@@ -3,11 +3,11 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Pipeline.hpp"
-#include <array>
 #include <iterator>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Resources/PipelineCache.hpp"
+#include "luvk/Types/Array.hpp"
 #include "luvk/Types/Vector.hpp"
 
 static VkShaderModule CreateShader(const VkDevice& Device, std::span<const std::uint32_t> Code)
@@ -103,7 +103,7 @@ void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
                                                          .attachmentCount = 1,
                                                          .pAttachments = &ColorBlendAttachment};
 
-    constexpr std::array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    constexpr luvk::Array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     const VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
                                                    .pNext = nullptr,
@@ -135,7 +135,7 @@ void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
                                                                   .minDepthBounds = 0.F,
                                                                   .maxDepthBounds = 1.F};
 
-    const std::array             Stages{VertStage, FragStage};
+    const luvk::Array            Stages{VertStage, FragStage};
     VkGraphicsPipelineCreateInfo PipelineInfo{.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                               .pNext = nullptr,
                                               .flags = 0,
@@ -312,7 +312,7 @@ void luvk::Pipeline::CreateMeshPipeline(const MeshCreationArguments& Arguments)
                                                          .attachmentCount = 1,
                                                          .pAttachments = &ColorBlendAttachment};
 
-    constexpr std::array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    constexpr luvk::Array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     const VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
                                                    .pNext = nullptr,

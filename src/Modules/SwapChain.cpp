@@ -4,12 +4,12 @@
 
 #include "luvk/Modules/SwapChain.hpp"
 #include <algorithm>
-#include <array>
 #include <iterator>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
 #include "luvk/Resources/Image.hpp"
+#include "luvk/Types/Array.hpp"
 
 luvk::SwapChain::SwapChain(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
     : m_DeviceModule(DeviceModule),
@@ -162,25 +162,25 @@ void luvk::SwapChain::DestroySwapChainImages(const VkDevice& LogicalDevice)
 
 void luvk::SwapChain::CreateRenderPass(const VkDevice& LogicalDevice)
 {
-    const std::array Attachments{VkAttachmentDescription{.format = m_Arguments.Format,
-                                                         .samples = VK_SAMPLE_COUNT_1_BIT,
-                                                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                                         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
-                                 VkAttachmentDescription{.format = m_DepthFormat,
-                                                         .samples = VK_SAMPLE_COUNT_1_BIT,
-                                                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                         .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+    const luvk::Array Attachments{VkAttachmentDescription{.format = m_Arguments.Format,
+                                                          .samples = VK_SAMPLE_COUNT_1_BIT,
+                                                          .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                          .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                                          .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                                                          .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                                                          .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                          .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
+                                  VkAttachmentDescription{.format = m_DepthFormat,
+                                                          .samples = VK_SAMPLE_COUNT_1_BIT,
+                                                          .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                          .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                                                          .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                                                          .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                                                          .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                          .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
 
-    constexpr std::array AttachmentReferences{VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
-                                              VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+    constexpr luvk::Array AttachmentReferences{VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
+                                               VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
 
     VkSubpassDescription Subpass{.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
                                  .colorAttachmentCount = 1U,
@@ -198,7 +198,7 @@ void luvk::SwapChain::CreateRenderPass(const VkDevice& LogicalDevice)
                                           VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
 
     const VkRenderPassCreateInfo Info{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-                                      .attachmentCount = static_cast<std::int32_t>(std::size(Attachments)),
+                                      .attachmentCount = static_cast<std::uint32_t>(std::size(Attachments)),
                                       .pAttachments = std::data(Attachments),
                                       .subpassCount = 1,
                                       .pSubpasses = &Subpass,
@@ -222,12 +222,12 @@ void luvk::SwapChain::CreateFramebuffers(const VkDevice& LogicalDevice)
     m_Framebuffers.resize(std::size(m_ImageViews));
     for (std::size_t FramebufferIndex = 0; FramebufferIndex < std::size(m_ImageViews); ++FramebufferIndex)
     {
-        std::array Views{m_ImageViews.at(FramebufferIndex),
-                         m_DepthImages.at(FramebufferIndex)->GetView()};
+        luvk::Array Views{m_ImageViews.at(FramebufferIndex),
+                          m_DepthImages.at(FramebufferIndex)->GetView()};
 
         VkFramebufferCreateInfo Info{.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                                      .renderPass = m_RenderPass,
-                                     .attachmentCount = static_cast<std::int32_t>(std::size(Views)),
+                                     .attachmentCount = static_cast<std::uint32_t>(std::size(Views)),
                                      .pAttachments = std::data(Views),
                                      .width = m_Extent.width,
                                      .height = m_Extent.height,
@@ -280,8 +280,8 @@ void luvk::SwapChain::DestroyDepthResources()
 
 VkFormat luvk::SwapChain::SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice) const
 {
-    for (constexpr std::array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
-         const VkFormat       Format : Candidates)
+    for (constexpr luvk::Array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
+         const VkFormat        Format : Candidates)
     {
         VkFormatProperties Props{};
         vkGetPhysicalDeviceFormatProperties(PhysicalDevice, Format, &Props);

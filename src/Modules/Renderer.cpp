@@ -243,7 +243,7 @@ void luvk::Renderer::RecordCommands(const Synchronization::FrameData& Frame, con
     const auto       SwapChainModule = FindModule<SwapChain>();
     const VkExtent2D Extent          = SwapChainModule->GetExtent();
 
-    constexpr std::array        Clear{VkClearValue{.color = {0.1F, 0.1F, 0.1F, 1.F}}, VkClearValue{.depthStencil = {1.F, 0}}};
+    constexpr luvk::Array       Clear{VkClearValue{.color = {0.1F, 0.1F, 0.1F, 1.F}}, VkClearValue{.depthStencil = {1.F, 0}}};
     const VkRenderPassBeginInfo BeginPass{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                           .renderPass = SwapChainModule->GetRenderPass(),
                                           .framebuffer = SwapChainModule->GetFramebuffer(ImageIndex),
