@@ -5,7 +5,7 @@
 #pragma once
 
 #include <memory>
-#include <volk/volk.h>
+#include <volk.h>
 #include "luvk/Module.hpp"
 
 namespace luvk

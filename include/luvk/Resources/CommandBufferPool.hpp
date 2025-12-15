@@ -6,7 +6,7 @@
 
 #include <memory>
 #include <mutex>
-#include <volk/volk.h>
+#include <volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Types/Vector.hpp"
 

@@ -5,7 +5,7 @@
 #pragma once
 
 #include <span>
-#include <volk/volk.h>
+#include <volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 

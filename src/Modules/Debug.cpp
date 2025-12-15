@@ -22,6 +22,11 @@ luvk::Debug::Debug(const std::shared_ptr<Renderer>& RendererModule)
 
 void luvk::Debug::InitializeResources()
 {
+    if (!vkCreateDebugUtilsMessengerEXT)
+    {
+        return;
+    }
+
     constexpr auto Severity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |

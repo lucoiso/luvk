@@ -4,12 +4,12 @@
 
 #include "luvk/Libraries/ShaderCompiler.hpp"
 #include <atomic>
-#include <iostream>
-#include <stdexcept>
-#include <slang/slang-com-ptr.h>
-#include <slang/slang.h>
-#include "luvk/Types/Array.hpp"
 #include <cstring>
+#include <iostream>
+#include <slang-com-ptr.h>
+#include <slang.h>
+#include <stdexcept>
+#include "luvk/Types/Array.hpp"
 
 Slang::ComPtr<slang::IGlobalSession> GSlangGlobalSession;
 static constinit std::atomic_uint    GSlangInitCount{0};
@@ -18,8 +18,7 @@ void luvk::InitializeShaderCompiler()
 {
     if (GSlangInitCount.fetch_add(1) == 0)
     {
-        constexpr SlangGlobalSessionDesc Description = {.enableGLSL = true};
-        if (slang::createGlobalSession(&Description, GSlangGlobalSession.writeRef()) != SLANG_OK)
+        if (slang::createGlobalSession(GSlangGlobalSession.writeRef()) != SLANG_OK)
         {
             GSlangInitCount.fetch_sub(1);
             throw std::runtime_error("Failed to initialize Slang Global Session.");
@@ -52,15 +51,12 @@ luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view& Source)
     };
 
     luvk::Array Options{
-        slang::CompilerOptionEntry{slang::CompilerOptionName::AllowGLSL, {slang::CompilerOptionValueKind::Int, 1}},
-        slang::CompilerOptionEntry{slang::CompilerOptionName::EmitSpirvMethod, {slang::CompilerOptionValueKind::Int, SLANG_EMIT_SPIRV_DIRECTLY}},
         slang::CompilerOptionEntry{slang::CompilerOptionName::Optimization, {slang::CompilerOptionValueKind::Int, SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}
     };
 
     const slang::SessionDesc Desc{.targets = std::data(Targets),
                                   .targetCount = static_cast<SlangInt>(std::size(Targets)),
                                   .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-                                  .allowGLSLSyntax = true,
                                   .compilerOptionEntries = std::data(Options),
                                   .compilerOptionEntryCount = static_cast<uint32_t>(std::size(Options))};
 

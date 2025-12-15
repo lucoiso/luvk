@@ -5,7 +5,7 @@
 #pragma once
 
 #include <memory>
-#include <volk/volk.h>
+#include <volk.h>
 #include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Types/Vector.hpp"
 

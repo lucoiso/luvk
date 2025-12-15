@@ -3,11 +3,15 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Extensions.hpp"
+
+#include <iostream>
+#include <ostream>
+
 #include "luvk/Libraries/Functional.hpp"
 
 constexpr auto g_ReservationSize = 256U;
 
-void luvk::IExtensions::SetLayerState(const std::string_view Layer, const bool State, const bool EnableAllExtensions)
+bool luvk::IExtensions::SetLayerState(const std::string_view Layer, const bool State, const bool EnableAllExtensions)
 {
     for (auto& [Enabled, Name, Extensions] : m_Layers)
     {
@@ -26,14 +30,14 @@ void luvk::IExtensions::SetLayerState(const std::string_view Layer, const bool S
                               });
             }
 
-            return;
+            return true;
         }
     }
 
-    throw std::runtime_error("Unavailable layer '" + std::string(Layer) + "'");
+    return false;
 }
 
-void luvk::IExtensions::SetExtensionState(const std::string_view FromLayer, const std::string_view Extension, const bool State)
+bool luvk::IExtensions::SetExtensionState(const std::string_view FromLayer, const std::string_view Extension, const bool State)
 {
     for (auto& [LayerEnabled, LayerName, LayerExtensions] : m_Layers)
     {
@@ -49,13 +53,13 @@ void luvk::IExtensions::SetExtensionState(const std::string_view FromLayer, cons
                     }
 
                     ExtensionEnabled = State;
-                    return;
+                    return true;
                 }
             }
         }
     }
 
-    throw std::runtime_error("Unavailable extension: " + std::string(Extension));
+    return false;
 }
 
 luvk::Vector<const char*> luvk::IExtensions::GetEnabledLayersNames() const

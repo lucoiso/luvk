@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <volk/volk.h>
+#include <volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"

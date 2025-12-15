@@ -6,7 +6,7 @@
 
 #include <execution>
 #include <string>
-#include <volk/volk.h>
+#include <volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Libraries/CompileTime.hpp"
 #include "luvk/Types/Layer.hpp"
@@ -58,8 +58,8 @@ namespace luvk
             return m_Layers;
         }
 
-        void SetLayerState(std::string_view Layer, bool State, bool EnableAllExtensions = false);
-        void SetExtensionState(std::string_view FromLayer, std::string_view Extension, bool State);
+        bool SetLayerState(std::string_view Layer, bool State, bool EnableAllExtensions = false);
+        bool SetExtensionState(std::string_view FromLayer, std::string_view Extension, bool State);
 
         [[nodiscard]] Vector<const char*> GetEnabledLayersNames() const;
         [[nodiscard]] Vector<const char*> GetEnabledExtensionsNames() const;

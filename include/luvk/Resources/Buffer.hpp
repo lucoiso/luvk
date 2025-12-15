@@ -7,7 +7,7 @@
 #include <memory>
 #include <span>
 #include <string>
-#include <vma/vk_mem_alloc.h>
+#include <vk_mem_alloc.h>
 #include "luvk/Module.hpp"
 
 namespace luvk

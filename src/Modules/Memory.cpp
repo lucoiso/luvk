@@ -20,7 +20,7 @@
         } while (false)
 #    define VMA_IMPLEMENTATION
 #endif
-#include <vma/vk_mem_alloc.h>
+#include <vk_mem_alloc.h>
 
 luvk::Memory::Memory(const std::shared_ptr<Renderer>& RendererModule, const std::shared_ptr<Device>& DeviceModule)
     : m_DeviceModule(DeviceModule),

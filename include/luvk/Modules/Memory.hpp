@@ -5,7 +5,7 @@
 #pragma once
 
 #include <memory>
-#include <vma/vk_mem_alloc.h>
+#include <vk_mem_alloc.h>
 #include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
