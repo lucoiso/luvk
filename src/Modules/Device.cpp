@@ -124,7 +124,7 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
 
     static constexpr std::array<float, 64U> Priorities = []
     {
-        std::array<float, 64U> Out;
+        std::array<float, 64U> Out{};
         Out.fill(1.F);
         return Out;
     }();

@@ -137,6 +137,6 @@ namespace luvk
         void                   DestroyFramebuffers(const VkDevice& LogicalDevice);
         void                   CreateDepthResources();
         void                   DestroyDepthResources();
-        [[nodiscard]] VkFormat SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice);
+        [[nodiscard]] VkFormat SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice) const;
     };
 } // namespace luvk

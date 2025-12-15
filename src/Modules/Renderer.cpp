@@ -304,9 +304,8 @@ void luvk::Renderer::SubmitFrame(Synchronization::FrameData& Frame, const std::u
                                    .pSwapchains = &Handle,
                                    .pImageIndices = &ImageIndex};
 
-    const VkResult PresentResult = vkQueuePresentKHR(GraphicsQueue, &Present);
-
-    if (PresentResult == VK_ERROR_OUT_OF_DATE_KHR || PresentResult == VK_SUBOPTIMAL_KHR) {}
+    if (const VkResult PresentResult = vkQueuePresentKHR(GraphicsQueue, &Present);
+        PresentResult == VK_ERROR_OUT_OF_DATE_KHR || PresentResult == VK_SUBOPTIMAL_KHR) {}
     else if (PresentResult != VK_SUCCESS)
     {
         throw std::runtime_error("Present failed");

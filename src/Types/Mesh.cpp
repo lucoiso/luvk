@@ -40,8 +40,8 @@ void Mesh::UploadVertices(const std::span<const std::byte> Data, const std::uint
 
 void Mesh::UploadIndices(const std::span<const std::uint16_t> Data)
 {
-    const std::size_t Bytes = Data.size_bytes();
-    if (!m_IndexBuffer || m_IndexBuffer->GetSize() < Bytes)
+    if (const std::size_t Bytes = Data.size_bytes();
+        !m_IndexBuffer || m_IndexBuffer->GetSize() < Bytes)
     {
         m_IndexBuffer = std::make_shared<Buffer>(m_Device, m_Memory);
         m_IndexBuffer->CreateBuffer({.Name = "Mesh IDX",
@@ -55,8 +55,8 @@ void Mesh::UploadIndices(const std::span<const std::uint16_t> Data)
 
 void Mesh::UploadIndices(const std::span<const std::uint32_t> Data)
 {
-    const std::size_t Bytes = Data.size_bytes();
-    if (!m_IndexBuffer || m_IndexBuffer->GetSize() < Bytes)
+    if (const std::size_t Bytes = Data.size_bytes();
+        !m_IndexBuffer || m_IndexBuffer->GetSize() < Bytes)
     {
         m_IndexBuffer = std::make_shared<Buffer>(m_Device, m_Memory);
         m_IndexBuffer->CreateBuffer({.Name = "Mesh IDX",
@@ -156,6 +156,7 @@ void Mesh::Draw(const VkCommandBuffer& CommandBuffer, const std::span<const std:
         VtxBuffers.push_back(m_VertexBuffer->GetHandle());
         Offsets.push_back(0);
     }
+
     if (m_InstanceBuffer)
     {
         VtxBuffers.push_back(m_InstanceBuffer->GetHandle());

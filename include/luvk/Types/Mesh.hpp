@@ -58,6 +58,6 @@ namespace luvk
         void SetDispatchCount(std::uint32_t X, std::uint32_t Y, std::uint32_t Z);
         void UpdateInstances(std::span<const std::byte> Data, std::uint32_t Count);
 
-        virtual void Draw(const VkCommandBuffer& CommandBuffer, std::span<const std::byte> PushConstants = {}) const;
+        virtual void Draw(const VkCommandBuffer& CommandBuffer, std::span<const std::byte> PushConstants) const;
     };
 } // namespace luvk

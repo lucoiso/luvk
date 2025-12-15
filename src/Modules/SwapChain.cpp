@@ -278,7 +278,7 @@ void luvk::SwapChain::DestroyDepthResources()
     m_DepthImages.clear();
 }
 
-VkFormat luvk::SwapChain::SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice)
+VkFormat luvk::SwapChain::SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice) const
 {
     for (constexpr std::array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
          const VkFormat       Format : Candidates)
