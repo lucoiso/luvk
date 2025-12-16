@@ -34,15 +34,18 @@ void luvk::Buffer::CreateBuffer(const CreationArguments& Arguments)
                                   .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
 
     const VmaAllocationCreateInfo AllocInfo{.flags = Arguments.MemoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU
-                                                         ? VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                                                         ? VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
                                                          : 0U,
                                             .usage = Arguments.MemoryUsage,
                                             .priority = Arguments.Priority};
 
-    if (!LUVK_EXECUTE(vmaCreateBuffer(Allocator, &Info, &AllocInfo, &m_Buffer, &m_Allocation, nullptr)))
+    VmaAllocationInfo AllocationInfo;
+    if (!LUVK_EXECUTE(vmaCreateBuffer(Allocator, &Info, &AllocInfo, &m_Buffer, &m_Allocation, &AllocationInfo)))
     {
         throw std::runtime_error("Failed to create buffer.");
     }
+
+    m_Map = AllocationInfo.pMappedData;
 
     if (!std::empty(Arguments.Name))
     {
@@ -53,7 +56,6 @@ void luvk::Buffer::CreateBuffer(const CreationArguments& Arguments)
 void luvk::Buffer::RecreateBuffer(const CreationArguments& Arguments)
 {
     const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
-    m_DeviceModule->WaitIdle();
 
     if (m_Buffer != VK_NULL_HANDLE)
     {
@@ -69,19 +71,41 @@ void luvk::Buffer::Upload(const std::span<const std::byte>& Data) const
 {
     const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
 
-    void* Mapping = nullptr;
-    if (!LUVK_EXECUTE(vmaMapMemory(Allocator, m_Allocation, &Mapping)))
-    {
-        throw std::runtime_error("Failed to map buffer memory.");
-    }
+    VkMemoryPropertyFlags MemoryFlags;
+    vmaGetAllocationMemoryProperties(Allocator, m_Allocation, &MemoryFlags);
 
-    if (std::size(Data) > m_Size)
+    const bool CanFlush = !(MemoryFlags & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+    if (m_Map)
     {
+        std::memcpy(m_Map, std::data(Data), std::size(Data));
+
+        if (CanFlush)
+        {
+            vmaFlushAllocation(Allocator, m_Allocation, 0, std::size(Data));
+        }
+    }
+    else
+    {
+        void* Mapping = nullptr;
+        if (!LUVK_EXECUTE(vmaMapMemory(Allocator, m_Allocation, &Mapping)))
+        {
+            throw std::runtime_error("Failed to map buffer memory.");
+        }
+
+        if (std::size(Data) > m_Size)
+        {
+            vmaUnmapMemory(Allocator, m_Allocation);
+            throw std::runtime_error("Upload size exceeds buffer capacity.");
+        }
+
+        std::memcpy(Mapping, std::data(Data), std::size(Data));
+
+        if (CanFlush)
+        {
+            vmaFlushAllocation(Allocator, m_Allocation, 0, std::size(Data));
+        }
+
         vmaUnmapMemory(Allocator, m_Allocation);
-        throw std::runtime_error("Upload size exceeds buffer capacity.");
     }
-
-    std::memcpy(Mapping, std::data(Data), std::size(Data));
-    vmaFlushAllocation(Allocator, m_Allocation, 0, std::size(Data));
-    vmaUnmapMemory(Allocator, m_Allocation);
 }

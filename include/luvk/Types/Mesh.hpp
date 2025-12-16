@@ -9,6 +9,7 @@
 #include <volk.h>
 #include "luvk/Module.hpp"
 #include "luvk/Types/Transform.hpp"
+#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
@@ -27,10 +28,13 @@ namespace luvk
         };
 
     protected:
-        std::shared_ptr<Buffer>   m_VertexBuffer{};
-        std::shared_ptr<Buffer>   m_IndexBuffer{};
-        std::shared_ptr<Buffer>   m_InstanceBuffer{};
-        std::shared_ptr<Material> m_Material{};
+        Vector<std::shared_ptr<Buffer>> m_VertexBuffers{};
+        Vector<std::shared_ptr<Buffer>> m_IndexBuffers{};
+        Vector<std::shared_ptr<Buffer>> m_InstanceBuffers{};
+        Vector<std::shared_ptr<Buffer>> m_UniformBuffers{};
+        std::shared_ptr<Material>       m_Material{};
+
+        Vector<std::byte> m_PushConstantData{};
 
         std::shared_ptr<Device> m_Device{};
         std::shared_ptr<Memory> m_Memory{};
@@ -51,13 +55,20 @@ namespace luvk
         void                                           SetMaterial(const std::shared_ptr<Material>& MaterialObj);
         [[nodiscard]] const std::shared_ptr<Material>& GetMaterial() const;
 
-        void UploadVertices(std::span<const std::byte> Data, std::uint32_t VertexCount);
-        void UploadIndices(std::span<const std::uint16_t> Data);
-        void UploadIndices(std::span<const std::uint32_t> Data);
+        void UploadVertices(std::span<const std::byte> Data, std::uint32_t VertexCount, std::uint32_t FrameIndex);
+        void UploadIndices(std::span<const std::uint16_t> Data, std::uint32_t FrameIndex);
+        void UploadIndices(std::span<const std::uint32_t> Data, std::uint32_t FrameIndex);
+        void UpdateInstances(std::span<const std::byte> Data, std::uint32_t Count, std::uint32_t FrameIndex);
+        void UpdateUniformBuffer(std::span<const std::byte> Data, std::uint32_t FrameIndex);
+
+        void UploadVerticesToAll(std::span<const std::byte> Data, std::uint32_t VertexCount);
+        void UploadIndicesToAll(std::span<const std::uint16_t> Data);
+        void UploadIndicesToAll(std::span<const std::uint32_t> Data);
 
         void SetDispatchCount(std::uint32_t X, std::uint32_t Y, std::uint32_t Z);
-        void UpdateInstances(std::span<const std::byte> Data, std::uint32_t Count);
+        void SetPushConstantData(std::span<const std::byte> Data);
 
-        virtual void Draw(const VkCommandBuffer& CommandBuffer, std::span<const std::byte> PushConstants) const;
+        virtual void Tick(float DeltaTime);
+        virtual void Render(const VkCommandBuffer& CommandBuffer, std::uint32_t CurrentFrame) const;
     };
 }

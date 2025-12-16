@@ -21,6 +21,7 @@ static VkShaderModule CreateShader(const VkDevice& Device, std::span<const std::
     {
         throw std::runtime_error("Failed to create shader module.");
     }
+
     return Module;
 }
 

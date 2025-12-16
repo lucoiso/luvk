@@ -19,6 +19,7 @@ namespace luvk
     {
         VkBuffer                m_Buffer{VK_NULL_HANDLE};
         VmaAllocation           m_Allocation{};
+        void*                   m_Map{nullptr};
         VkDeviceSize            m_Size{0};
         std::shared_ptr<Device> m_DeviceModule{};
         std::shared_ptr<Memory> m_MemoryModule{};

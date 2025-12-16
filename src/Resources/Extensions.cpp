@@ -4,7 +4,6 @@
 
 #include "luvk/Resources/Extensions.hpp"
 
-#include <iostream>
 #include <ostream>
 
 #include "luvk/Libraries/Functional.hpp"

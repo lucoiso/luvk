@@ -5,6 +5,7 @@
 #include "luvk/Modules/Synchronization.hpp"
 #include <iterator>
 #include <stdexcept>
+#include "luvk/Constants/Rendering.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/CommandPool.hpp"
 #include "luvk/Modules/Device.hpp"
@@ -13,10 +14,8 @@
 
 luvk::Synchronization::Synchronization(const std::shared_ptr<Device>&      DeviceModule,
                                        const std::shared_ptr<SwapChain>&   SwapChainModule,
-                                       const std::shared_ptr<CommandPool>& CommandPoolModule,
-                                       const std::size_t                   FrameCount)
-    : m_FrameCount(FrameCount),
-      m_DeviceModule(DeviceModule),
+                                       const std::shared_ptr<CommandPool>& CommandPoolModule)
+    : m_DeviceModule(DeviceModule),
       m_SwapChainModule(SwapChainModule),
       m_CommandPoolModule(CommandPoolModule) {}
 
@@ -31,10 +30,10 @@ void luvk::Synchronization::Initialize()
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
     constexpr VkFenceCreateInfo     FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-    m_Frames.resize(m_FrameCount);
-    m_RenderFinished.resize(m_FrameCount, VK_NULL_HANDLE);
+    m_Frames.resize(luvk::Constants::ImageCount);
+    m_RenderFinished.resize(luvk::Constants::ImageCount, VK_NULL_HANDLE);
 
-    for (std::size_t Index = 0; Index < m_FrameCount; ++Index)
+    for (std::size_t Index = 0; Index < luvk::Constants::ImageCount; ++Index)
     {
         FrameData& Frame = m_Frames.at(Index);
 

@@ -104,6 +104,7 @@ luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view& Source)
         Output.Data.resize(Spirv->getBufferSize() / sizeof(std::uint32_t));
         std::memcpy(Output.Data.data(), Spirv->getBufferPointer(), Spirv->getBufferSize());
 
+        Output.Result = true;
         return Output;
     }
 

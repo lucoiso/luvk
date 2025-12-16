@@ -3,8 +3,8 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/SwapChain.hpp"
-#include <algorithm>
 #include <iterator>
+#include "luvk/Constants/Rendering.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
@@ -28,20 +28,11 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
     VkSurfaceCapabilitiesKHR Caps{};
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_DeviceModule->GetPhysicalDevice(), Surface, &Caps);
 
-    if (m_Arguments.ImageCount == 0)
-    {
-        m_Arguments.ImageCount = Caps.minImageCount;
-    }
-    else
-    {
-        m_Arguments.ImageCount = std::clamp(m_Arguments.ImageCount, Caps.minImageCount, Caps.maxImageCount);
-    }
-
     const VkSwapchainCreateInfoKHR SwapChainCreateInfo{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                                                        .pNext = pNext,
                                                        .flags = Arguments.Flags,
                                                        .surface = Surface,
-                                                       .minImageCount = Arguments.ImageCount,
+                                                       .minImageCount = luvk::Constants::ImageCount,
                                                        .imageFormat = Arguments.Format,
                                                        .imageColorSpace = Arguments.ColorSpace,
                                                        .imageExtent = Arguments.Extent,
@@ -63,8 +54,6 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
         throw std::runtime_error("Failed to (re) create the swap chain.");
     }
 
-    const bool HasChangedNumImages = Arguments.ImageCount != std::size(m_Images);
-
     DestroySwapChainImages(LogicalDevice);
     DestroyDepthResources();
     DestroyFramebuffers(LogicalDevice);
@@ -82,11 +71,6 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
     CreateFramebuffers(LogicalDevice);
 
     GetEventSystem().Execute(SwapChainEvents::OnCreated);
-
-    if (HasChangedNumImages)
-    {
-        GetEventSystem().Execute(SwapChainEvents::OnChangedNumberOfImages);
-    }
 }
 
 void luvk::SwapChain::ClearResources()

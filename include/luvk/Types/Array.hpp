@@ -1,9 +1,9 @@
 #pragma once
 
-#include <array>
-#include <iterator>
 #include <algorithm>
+#include <array>
 #include <cassert>
+#include <iterator>
 #include <type_traits>
 
 namespace luvk

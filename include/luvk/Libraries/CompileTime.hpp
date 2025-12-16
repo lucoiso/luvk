@@ -8,7 +8,6 @@
 #include <span>
 #include "luvk/Module.hpp"
 #include "luvk/Types/Array.hpp"
-#include "luvk/Types/Array.hpp"
 
 namespace luvk
 {

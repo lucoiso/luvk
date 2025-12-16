@@ -27,15 +27,13 @@ namespace luvk
         VkColorSpaceKHR               ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
         VkImageUsageFlags             UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
         VkCompositeAlphaFlagBitsKHR   CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
-        std::uint32_t                 ImageCount{1U};
         VkExtent2D                    Extent{.width = 0U, .height = 0U};
         Vector<std::uint32_t>         QueueIndices{};
     };
 
     enum class SwapChainEvents : std::uint8_t
     {
-        OnCreated,
-        OnChangedNumberOfImages
+        OnCreated
     };
 
     class LUVKMODULE_API SwapChain : public IRenderModule,

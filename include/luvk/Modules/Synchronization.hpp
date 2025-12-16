@@ -31,7 +31,6 @@ namespace luvk
     private:
         Vector<FrameData>                  m_Frames{};
         Vector<VkSemaphore>                m_RenderFinished{};
-        std::size_t                        m_FrameCount{0};
         std::size_t                        m_CurrentFrame{0};
         std::shared_ptr<CommandBufferPool> m_SecondaryPool{};
         std::shared_ptr<Device>            m_DeviceModule{};
@@ -42,8 +41,7 @@ namespace luvk
         Synchronization() = delete;
         Synchronization(const std::shared_ptr<Device>&      DeviceModule,
                         const std::shared_ptr<SwapChain>&   SwapChainModule,
-                        const std::shared_ptr<CommandPool>& CommandPoolModule,
-                        std::size_t                         FrameCount);
+                        const std::shared_ptr<CommandPool>& CommandPoolModule);
 
         ~Synchronization() override
         {
