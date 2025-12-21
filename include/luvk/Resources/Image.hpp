@@ -18,6 +18,7 @@ namespace luvk
 
     class LUVKMODULE_API Image
     {
+    protected:
         std::uint32_t           m_Width{0};
         std::uint32_t           m_Height{0};
         VkImage                 m_Image{VK_NULL_HANDLE};

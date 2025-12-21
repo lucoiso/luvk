@@ -40,6 +40,7 @@ namespace luvk
                                      public IEventModule,
                                      public IExtensionsModule
     {
+    protected:
         using CreationArguments = SwapChainCreationArguments;
 
         VkSwapchainKHR                 m_SwapChain{VK_NULL_HANDLE};
@@ -65,7 +66,7 @@ namespace luvk
             SwapChain::ClearResources();
         }
 
-        [[nodiscard]] ExtensionsMap GetDeviceExtensions() const override
+        [[nodiscard]] constexpr ExtensionsMap GetDeviceExtensions() const override
         {
             return ToExtensionMap("", {VK_KHR_SWAPCHAIN_EXTENSION_NAME});
         }
@@ -120,7 +121,7 @@ namespace luvk
             return m_Arguments;
         }
 
-        void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
+        virtual void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
         void Recreate(VkExtent2D NewExtent, void* const& pNext);
 
     protected:

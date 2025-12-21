@@ -28,7 +28,7 @@ namespace luvk
             bool                    Submitted{false};
         };
 
-    private:
+    protected:
         Vector<FrameData>                  m_Frames{};
         Vector<VkSemaphore>                m_RenderFinished{};
         std::size_t                        m_CurrentFrame{0};

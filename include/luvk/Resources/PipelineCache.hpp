@@ -14,6 +14,7 @@ namespace luvk
 
     class LUVKMODULE_API PipelineCache
     {
+    protected:
         VkPipelineCache         m_PreRaster{VK_NULL_HANDLE};
         VkPipelineCache         m_Fragment{VK_NULL_HANDLE};
         VkPipelineCache         m_Output{VK_NULL_HANDLE};

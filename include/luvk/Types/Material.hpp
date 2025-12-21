@@ -21,6 +21,7 @@ namespace luvk
 
     class LUVKMODULE_API Material
     {
+    protected:
         std::shared_ptr<Pipeline>      m_Pipeline{};
         std::shared_ptr<DescriptorSet> m_DescriptorSet{};
         std::shared_ptr<Texture>       m_Texture{};

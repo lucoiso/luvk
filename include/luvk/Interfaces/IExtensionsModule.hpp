@@ -15,7 +15,7 @@ namespace luvk
     using ExtensionsMap = UnorderedMap<std::string_view, Vector<std::string_view>>;
 
     template <typename KeyType, typename ValueType>
-    ExtensionsMap ToExtensionMap(KeyType&& Key, std::initializer_list<ValueType>&& Values)
+    constexpr ExtensionsMap ToExtensionMap(KeyType&& Key, std::initializer_list<ValueType>&& Values)
     {
         Vector<std::string_view> NewEntries;
         NewEntries.reserve(std::size(Values));

@@ -80,44 +80,7 @@ void luvk::Device::SetSurface(const VkSurfaceKHR& Surface)
 
 void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t>&& QueueIndices, const void* pNext)
 {
-    const void* FeatureChain = pNext;
-
-    for (const auto& [Index, Module] : m_RendererModule->GetModules())
-    {
-        if (const auto* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get()))
-        {
-            for (const auto& [LayerIt, ExtensionContainerIt] : ExtModule->GetDeviceExtensions())
-            {
-                m_Extensions.SetLayerState(LayerIt, true);
-
-                for (const std::string_view ExtensionIt : ExtensionContainerIt)
-                {
-                    m_Extensions.SetExtensionState(LayerIt, ExtensionIt, true);
-                }
-            }
-        }
-
-        if (const auto* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get()))
-        {
-            if (const auto Chain = FeatChainModule->GetDeviceFeatureChain())
-            {
-                auto Base = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(Chain));
-
-                while (Base->pNext)
-                {
-                    Base = Base->pNext;
-                }
-
-                Base->pNext  = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(FeatureChain));
-                FeatureChain = Chain;
-            }
-        }
-    }
-
-    if (m_Surface != VK_NULL_HANDLE)
-    {
-        m_Extensions.SetExtensionState("", VK_KHR_SWAPCHAIN_EXTENSION_NAME, true);
-    }
+    const void* FeatureChain = ConfigureExtensions(pNext);
 
     Vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
     QueueCreateInfos.reserve(std::size(QueueIndices));
@@ -189,6 +152,67 @@ void luvk::Device::ClearResources()
         vkDestroySurfaceKHR(m_RendererModule->GetInstance(), m_Surface, nullptr);
         m_Surface = VK_NULL_HANDLE;
     }
+}
+
+const void* luvk::Device::ConfigureExtensions(const void* pNext)
+{
+    const void*          FeatureChain = pNext;
+    const RenderModules& Modules      = m_RendererModule->GetModules();
+
+    auto ProcessModule = [&](const std::shared_ptr<IRenderModule>& Module)
+    {
+        if (Module == nullptr)
+        {
+            return;
+        }
+
+        if (const IExtensionsModule* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get());
+            ExtModule != nullptr)
+        {
+            for (const auto& [LayerIt, ExtensionContainerIt] : ExtModule->GetDeviceExtensions())
+            {
+                m_Extensions.SetLayerState(LayerIt, true);
+
+                for (const std::string_view ExtensionIt : ExtensionContainerIt)
+                {
+                    m_Extensions.SetExtensionState(LayerIt, ExtensionIt, true);
+                }
+            }
+        }
+
+        if (const IFeatureChainModule* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get());
+            FeatChainModule != nullptr)
+        {
+            if (const void* const Chain = FeatChainModule->GetDeviceFeatureChain();
+                Chain != nullptr)
+            {
+                VkBaseOutStructure* Base = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(Chain));
+
+                while (Base->pNext != nullptr)
+                {
+                    Base = Base->pNext;
+                }
+
+                Base->pNext  = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(FeatureChain));
+                FeatureChain = Chain;
+            }
+        }
+    };
+
+    ProcessModule(Modules.DeviceModule);
+    ProcessModule(Modules.SynchronizationModule);
+
+    for (const std::shared_ptr<IRenderModule>& ModuleIt : Modules.ExtraModules)
+    {
+        ProcessModule(ModuleIt);
+    }
+
+    if (m_Surface != VK_NULL_HANDLE)
+    {
+        m_Extensions.SetExtensionState("", VK_KHR_SWAPCHAIN_EXTENSION_NAME, true);
+    }
+
+    return FeatureChain;
 }
 
 void luvk::Device::FetchAvailableDevices(const VkInstance& Instance)

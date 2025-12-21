@@ -24,6 +24,7 @@ namespace luvk
     class LUVKMODULE_API Memory : public IRenderModule,
                                   public IEventModule
     {
+    protected:
         VmaAllocator              m_Allocator{VK_NULL_HANDLE};
         std::shared_ptr<Device>   m_DeviceModule{};
         std::shared_ptr<Renderer> m_RendererModule{};

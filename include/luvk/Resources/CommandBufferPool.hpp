@@ -16,6 +16,7 @@ namespace luvk
 
     class LUVKMODULE_API CommandBufferPool
     {
+    protected:
         VkCommandPool           m_Pool{VK_NULL_HANDLE};
         Vector<VkCommandBuffer> m_Buffers{};
         Vector<VkCommandBuffer> m_Free{};

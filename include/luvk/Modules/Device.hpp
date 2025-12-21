@@ -30,6 +30,7 @@ namespace luvk
                                   public IEventModule,
                                   public IFeatureChainModule
     {
+    protected:
         VkDevice                                             m_LogicalDevice{VK_NULL_HANDLE};
         VkPhysicalDevice                                     m_PhysicalDevice{VK_NULL_HANDLE};
         VkSurfaceKHR                                         m_Surface{VK_NULL_HANDLE};
@@ -128,7 +129,7 @@ namespace luvk
             return m_Queues;
         }
 
-        [[nodiscard]] DeviceExtensions& GetExtensions()
+        [[nodiscard]] constexpr DeviceExtensions& GetExtensions()
         {
             return m_Extensions;
         }
@@ -153,6 +154,8 @@ namespace luvk
     protected:
         void InitializeResources() override;
         void ClearResources() override;
+
+        [[nodiscard]] const void* ConfigureExtensions(const void* pNext);
 
     private:
         void FetchAvailableDevices(const VkInstance& Instance);

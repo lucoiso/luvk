@@ -17,6 +17,7 @@ namespace luvk
 
     class LUVKMODULE_API Buffer
     {
+    protected:
         VkBuffer                m_Buffer{VK_NULL_HANDLE};
         VmaAllocation           m_Allocation{};
         void*                   m_Map{nullptr};

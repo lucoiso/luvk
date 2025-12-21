@@ -5,44 +5,68 @@
 #include "luvk/Modules/Renderer.hpp"
 #include <algorithm>
 #include <execution>
+#include <atomic>
 #include "luvk/Libraries/VulkanHelpers.hpp"
+#include "luvk/Modules/Debug.hpp"
 #include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/Memory.hpp"
 #include "luvk/Modules/SwapChain.hpp"
+#include "luvk/Modules/CommandPool.hpp"
+#include "luvk/Modules/Synchronization.hpp"
+#include "luvk/Modules/ThreadPool.hpp"
+#include "luvk/Modules/DescriptorPool.hpp"
+#include "luvk/Interfaces/IExtensionsModule.hpp"
+#include "luvk/Interfaces/IFeatureChainModule.hpp"
 
 static constinit std::atomic_bool s_IsVolkInitialized = false;
 
-void luvk::Renderer::RegisterModules(Vector<std::shared_ptr<IRenderModule>>&& Modules)
+void luvk::Renderer::SetClearValues(luvk::Array<VkClearValue, 2>&& Values)
 {
-    if (!s_IsVolkInitialized.load())
+    m_ClearValues = Values;
+}
+
+void luvk::Renderer::RegisterModules(RenderModules&& Modules)
+{
+    if (s_IsVolkInitialized.load() == false)
     {
         volkInitialize();
         s_IsVolkInitialized.store(true);
     }
 
-    if (m_Extensions.IsEmpty())
+    if (m_Extensions.IsEmpty() == true)
     {
         m_Extensions.FillExtensionsContainer();
     }
 
-    m_ModuleMap.clear();
-    for (const auto& ModuleIt : Modules)
-    {
-        m_ModuleMap.emplace(std::type_index(typeid(*ModuleIt)), ModuleIt);
-    }
+    m_Modules = std::move(Modules);
+
     GetEventSystem().Execute(RendererEvents::OnModulesRegistered);
 }
 
 bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext)
 {
-    if (std::empty(m_ModuleMap))
-    {
-        throw std::runtime_error("No modules were registered");
-    }
+    Vector<std::shared_ptr<IRenderModule>> AllModules;
+    AllModules.push_back(m_Modules.DebugModule);
+    AllModules.push_back(m_Modules.DeviceModule);
+    AllModules.push_back(m_Modules.MemoryModule);
+    AllModules.push_back(m_Modules.SwapChainModule);
+    AllModules.push_back(m_Modules.CommandPoolModule);
+    AllModules.push_back(m_Modules.SynchronizationModule);
+    AllModules.push_back(m_Modules.ThreadPoolModule);
+    AllModules.push_back(m_Modules.DescriptorPoolModule);
+    AllModules.insert(std::end(AllModules), std::begin(m_Modules.ExtraModules), std::end(m_Modules.ExtraModules));
 
     const void* FeatureChain = pNext;
-    for (const auto& [Index, Module] : m_ModuleMap)
+
+    for (const std::shared_ptr<IRenderModule>& Module : AllModules)
     {
-        if (const auto* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get()))
+        if (Module == nullptr)
+        {
+            continue;
+        }
+
+        if (const IExtensionsModule* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get());
+            ExtModule != nullptr)
         {
             for (const auto& [LayerIt, ExtensionsContainerIt] : ExtModule->GetInstanceExtensions())
             {
@@ -54,70 +78,85 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
             }
         }
 
-        if (const auto* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get()))
+        if (const IFeatureChainModule* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get());
+            FeatChainModule != nullptr)
         {
-            if (const auto Chain = FeatChainModule->GetInstanceFeatureChain())
+            if (const void* const Chain = FeatChainModule->GetInstanceFeatureChain();
+                Chain != nullptr)
             {
-                const auto Base = const_cast<VkBaseInStructure*>(static_cast<const VkBaseInStructure*>(Chain));
-                Base->pNext     = static_cast<const VkBaseInStructure*>(FeatureChain);
-                FeatureChain    = Chain;
+                VkBaseInStructure* const Base = const_cast<VkBaseInStructure*>(static_cast<const VkBaseInStructure*>(Chain));
+                Base->pNext                   = static_cast<const VkBaseInStructure*>(FeatureChain);
+                FeatureChain                  = Chain;
             }
         }
     }
 
-    const VkApplicationInfo AppInfo{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-                                    .pApplicationName = std::data(Arguments.ApplicationName),
-                                    .applicationVersion = Arguments.ApplicationVersion,
-                                    .pEngineName = std::data(Arguments.EngineName),
-                                    .engineVersion = Arguments.EngineVersion,
-                                    .apiVersion = VK_API_VERSION_1_4};
+    const VkApplicationInfo AppInfo{
+        .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pApplicationName = std::data(Arguments.ApplicationName),
+        .applicationVersion = Arguments.ApplicationVersion,
+        .pEngineName = std::data(Arguments.EngineName),
+        .engineVersion = Arguments.EngineVersion,
+        .apiVersion = VK_API_VERSION_1_4
+    };
 
-    const auto Layers     = m_Extensions.GetEnabledLayersNames();
-    const auto Extensions = m_Extensions.GetEnabledExtensionsNames();
+    const Vector<const char*> Layers     = m_Extensions.GetEnabledLayersNames();
+    const Vector<const char*> Extensions = m_Extensions.GetEnabledExtensionsNames();
 
-    const VkInstanceCreateInfo InstanceCreateInfo{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-                                                  .pNext = FeatureChain,
-                                                  .pApplicationInfo = &AppInfo,
-                                                  .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
-                                                  .ppEnabledLayerNames = std::data(Layers),
-                                                  .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
-                                                  .ppEnabledExtensionNames = std::data(Extensions)};
+    const VkInstanceCreateInfo InstanceCreateInfo{
+        .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pNext = FeatureChain,
+        .pApplicationInfo = &AppInfo,
+        .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
+        .ppEnabledLayerNames = std::data(Layers),
+        .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
+        .ppEnabledExtensionNames = std::data(Extensions)
+    };
 
-    vkCreateInstance(&InstanceCreateInfo, nullptr, &m_Instance);
+    if (LUVK_EXECUTE(vkCreateInstance(&InstanceCreateInfo, nullptr, &m_Instance)) == false)
+    {
+        return false;
+    }
 
     if (m_Instance != nullptr)
     {
         volkLoadInstance(m_Instance);
-        std::for_each(std::execution::seq,
-                      std::begin(m_ModuleMap),
-                      std::end(m_ModuleMap),
-                      [&](const auto& Pair)
-                      {
-                          Pair.Second->InitializeResources();
-                      });
+
+        for (const std::shared_ptr<IRenderModule>& Module : AllModules)
+        {
+            if (Module != nullptr)
+            {
+                Module->InitializeResources();
+            }
+        }
+
         GetEventSystem().Execute(RendererEvents::OnInitialized);
         return true;
     }
+
     return false;
 }
 
 void luvk::Renderer::ClearResources()
 {
-    const auto DeviceModule = FindModule<Device>();
-    if (const VkDevice& LogicalDevice = DeviceModule->GetLogicalDevice();
-        LogicalDevice != VK_NULL_HANDLE)
+    if (m_Modules.DeviceModule != nullptr)
     {
-        vkDeviceWaitIdle(LogicalDevice);
+        if (const VkDevice& LogicalDevice = m_Modules.DeviceModule->GetLogicalDevice();
+            LogicalDevice != VK_NULL_HANDLE)
+        {
+            vkDeviceWaitIdle(LogicalDevice);
+        }
     }
 
-    std::for_each(std::execution::seq,
-                  std::begin(m_ModuleMap),
-                  std::end(m_ModuleMap),
-                  [](auto& Pair)
-                  {
-                      Pair.Second.reset();
-                  });
-    m_ModuleMap.clear();
+    m_Modules.DebugModule.reset();
+    m_Modules.DeviceModule.reset();
+    m_Modules.MemoryModule.reset();
+    m_Modules.SwapChainModule.reset();
+    m_Modules.CommandPoolModule.reset();
+    m_Modules.SynchronizationModule.reset();
+    m_Modules.ThreadPoolModule.reset();
+    m_Modules.DescriptorPoolModule.reset();
+    m_Modules.ExtraModules.clear();
 
     if (m_Instance != VK_NULL_HANDLE)
     {
@@ -125,7 +164,7 @@ void luvk::Renderer::ClearResources()
         m_Instance = VK_NULL_HANDLE;
     }
 
-    if (s_IsVolkInitialized.load())
+    if (s_IsVolkInitialized.load() == true)
     {
         volkFinalize();
         s_IsVolkInitialized.store(false);
@@ -134,40 +173,36 @@ void luvk::Renderer::ClearResources()
 
 void luvk::Renderer::InitializeRenderLoop() const
 {
-    SetupFrames();
+    Renderer::SetupFrames();
     GetEventSystem().Execute(RendererEvents::OnRenderLoopInitialized);
 }
 
 void luvk::Renderer::DrawFrame()
 {
-    if (m_Paused)
+    if (m_Paused == true)
     {
         return;
     }
 
-    const auto      DeviceModule    = FindModule<Device>();
-    const auto      SwapChainModule = FindModule<SwapChain>();
-    const VkDevice& LogicalDevice   = DeviceModule->GetLogicalDevice();
+    const VkDevice&             LogicalDevice = m_Modules.DeviceModule->GetLogicalDevice();
+    Synchronization::FrameData& Frame         = m_Modules.SynchronizationModule->GetFrame(m_Modules.SynchronizationModule->GetCurrentFrame());
 
-    const auto Sync = FindModule<Synchronization>();
-
-    auto& Frame = Sync->GetFrame(Sync->GetCurrentFrame());
-
-    if (Frame.Submitted)
+    if (Frame.Submitted == true)
     {
-        DeviceModule->Wait(Frame.InFlight, VK_TRUE, UINT64_MAX);
+        m_Modules.DeviceModule->Wait(Frame.InFlight, VK_TRUE, UINT64_MAX);
         vkResetFences(LogicalDevice, 1, &Frame.InFlight);
         Frame.Submitted = false;
     }
 
-    std::uint32_t ImageIndex = 0;
-
-    const VkResult AcquireResult = vkAcquireNextImageKHR(LogicalDevice,
-                                                         SwapChainModule->GetHandle(),
+    std::uint32_t  ImageIndex    = 0U;
+    const VkResult AcquireResult = vkAcquireNextImageKHR(
+                                                         LogicalDevice,
+                                                         m_Modules.SwapChainModule->GetHandle(),
                                                          UINT64_MAX,
                                                          Frame.ImageAvailable,
                                                          VK_NULL_HANDLE,
-                                                         &ImageIndex);
+                                                         &ImageIndex
+                                                        );
 
     if (AcquireResult == VK_ERROR_OUT_OF_DATE_KHR)
     {
@@ -179,13 +214,13 @@ void luvk::Renderer::DrawFrame()
         throw std::runtime_error("Failed to acquire swap chain image.");
     }
 
-    if (!LUVK_EXECUTE(vkResetCommandBuffer(Frame.CommandBuffer, 0)))
+    if (LUVK_EXECUTE(vkResetCommandBuffer(Frame.CommandBuffer, 0U)) == false)
     {
         throw std::runtime_error("Failed to reset command buffer.");
     }
 
-    RecordCommands(Frame, ImageIndex);
-    SubmitFrame(Frame, ImageIndex);
+    Renderer::RecordCommands(Frame, ImageIndex);
+    Renderer::SubmitFrame(Frame, ImageIndex);
 }
 
 void luvk::Renderer::SetPaused(const bool Paused)
@@ -198,13 +233,10 @@ void luvk::Renderer::SetPaused(const bool Paused)
 
 void luvk::Renderer::Refresh(const VkExtent2D& Extent) const
 {
-    const auto DeviceModule    = FindModule<Device>();
-    const auto SwapChainModule = FindModule<SwapChain>();
+    m_Modules.DeviceModule->WaitIdle();
+    m_Modules.SwapChainModule->Recreate(Extent, nullptr);
 
-    DeviceModule->WaitIdle();
-    SwapChainModule->Recreate(Extent, nullptr);
-
-    SetupFrames();
+    Renderer::SetupFrames();
     GetEventSystem().Execute(RendererEvents::OnRefreshed);
 }
 
@@ -225,46 +257,48 @@ void luvk::Renderer::SetDrawCallback(std::function<void(VkCommandBuffer)>&& Call
 
 void luvk::Renderer::SetupFrames() const
 {
-    FindModule<Synchronization>()->SetupFrames();
+    m_Modules.SynchronizationModule->SetupFrames();
 }
 
-void luvk::Renderer::RecordCommands(const Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)
+void luvk::Renderer::RecordCommands(Synchronization::FrameData& Frame, const std::uint32_t ImageIndex)
 {
-    constexpr VkCommandBufferBeginInfo Begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+    constexpr VkCommandBufferBeginInfo Begin{
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
+    };
 
     LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin));
 
-    if (m_PreRenderCallback)
+    if (m_PreRenderCallback != nullptr)
     {
         m_PreRenderCallback(Frame.CommandBuffer);
     }
 
-    const auto       SwapChainModule = FindModule<SwapChain>();
-    const VkExtent2D Extent          = SwapChainModule->GetExtent();
+    const VkExtent2D& Extent = m_Modules.SwapChainModule->GetExtent();
 
-    constexpr luvk::Array       Clear{VkClearValue{.color = {0.1F, 0.1F, 0.1F, 1.F}}, VkClearValue{.depthStencil = {1.F, 0}}};
-    const VkRenderPassBeginInfo BeginPass{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                          .renderPass = SwapChainModule->GetRenderPass(),
-                                          .framebuffer = SwapChainModule->GetFramebuffer(ImageIndex),
-                                          .renderArea = {{0, 0}, {Extent.width, Extent.height}},
-                                          .clearValueCount = static_cast<std::uint32_t>(std::size(Clear)),
-                                          .pClearValues = std::data(Clear)};
+    const VkRenderPassBeginInfo BeginPass{
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = m_Modules.SwapChainModule->GetRenderPass(),
+        .framebuffer = m_Modules.SwapChainModule->GetFramebuffer(ImageIndex),
+        .renderArea = {{0, 0}, {Extent.width, Extent.height}},
+        .clearValueCount = static_cast<std::uint32_t>(std::size(m_ClearValues)),
+        .pClearValues = std::data(m_ClearValues)
+    };
 
     vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginPass, VK_SUBPASS_CONTENTS_INLINE);
 
     const VkViewport Viewport{0.F, 0.F, static_cast<float>(Extent.width), static_cast<float>(Extent.height), 0.F, 1.F};
     const VkRect2D   Scissor{{0, 0}, Extent};
 
-    vkCmdSetViewport(Frame.CommandBuffer, 0, 1, &Viewport);
-    vkCmdSetScissor(Frame.CommandBuffer, 0, 1, &Scissor);
+    vkCmdSetViewport(Frame.CommandBuffer, 0U, 1U, &Viewport);
+    vkCmdSetScissor(Frame.CommandBuffer, 0U, 1U, &Scissor);
 
-    if (m_DrawCallback)
+    if (m_DrawCallback != nullptr)
     {
         m_DrawCallback(Frame.CommandBuffer);
     }
 
-    for (const auto& Cmd : m_PostRenderCommands)
+    for (const std::function<void(VkCommandBuffer)>& Cmd : m_PostRenderCommands)
     {
         Cmd(Frame.CommandBuffer);
     }
@@ -276,40 +310,39 @@ void luvk::Renderer::RecordCommands(const Synchronization::FrameData& Frame, con
 
 void luvk::Renderer::SubmitFrame(Synchronization::FrameData& Frame, const std::uint32_t ImageIndex) const
 {
-    const auto SyncModule      = FindModule<Synchronization>();
-    const auto DeviceModule    = FindModule<Device>();
-    const auto SwapChainModule = FindModule<SwapChain>();
-
     constexpr VkPipelineStageFlags WaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    const VkSubmitInfo Submit{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                              .waitSemaphoreCount = 1,
-                              .pWaitSemaphores = &Frame.ImageAvailable,
-                              .pWaitDstStageMask = &WaitStages,
-                              .commandBufferCount = 1,
-                              .pCommandBuffers = &Frame.CommandBuffer,
-                              .signalSemaphoreCount = 1,
-                              .pSignalSemaphores = &SyncModule->GetRenderFinished(ImageIndex)};
+    const VkSubmitInfo Submit{
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .waitSemaphoreCount = 1U,
+        .pWaitSemaphores = &Frame.ImageAvailable,
+        .pWaitDstStageMask = &WaitStages,
+        .commandBufferCount = 1U,
+        .pCommandBuffers = &Frame.CommandBuffer,
+        .signalSemaphoreCount = 1U,
+        .pSignalSemaphores = &m_Modules.SynchronizationModule->GetRenderFinished(ImageIndex)
+    };
 
-    const VkQueue GraphicsQueue = DeviceModule->GetQueue(DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value());
+    const VkQueue GraphicsQueue = m_Modules.DeviceModule->GetQueue(m_Modules.DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value());
 
-    LUVK_EXECUTE(vkQueueSubmit(GraphicsQueue, 1, &Submit, Frame.InFlight));
+    LUVK_EXECUTE(vkQueueSubmit(GraphicsQueue, 1U, &Submit, Frame.InFlight));
     Frame.Submitted = true;
 
-    const VkSwapchainKHR&  Handle = SwapChainModule->GetHandle();
-    const VkPresentInfoKHR Present{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                   .waitSemaphoreCount = 1,
-                                   .pWaitSemaphores = &SyncModule->GetRenderFinished(ImageIndex),
-                                   .swapchainCount = 1,
-                                   .pSwapchains = &Handle,
-                                   .pImageIndices = &ImageIndex};
+    const VkSwapchainKHR&  Handle = m_Modules.SwapChainModule->GetHandle();
+    const VkPresentInfoKHR Present{
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .waitSemaphoreCount = 1U,
+        .pWaitSemaphores = &m_Modules.SynchronizationModule->GetRenderFinished(ImageIndex),
+        .swapchainCount = 1U,
+        .pSwapchains = &Handle,
+        .pImageIndices = &ImageIndex
+    };
 
-    if (const VkResult PresentResult = vkQueuePresentKHR(GraphicsQueue, &Present);
-        PresentResult == VK_ERROR_OUT_OF_DATE_KHR || PresentResult == VK_SUBOPTIMAL_KHR) {}
-    else if (PresentResult != VK_SUCCESS)
+    const VkResult PresentResult = vkQueuePresentKHR(GraphicsQueue, &Present);
+    if (PresentResult != VK_SUCCESS && PresentResult != VK_SUBOPTIMAL_KHR && PresentResult != VK_ERROR_OUT_OF_DATE_KHR)
     {
         throw std::runtime_error("Present failed");
     }
 
-    SyncModule->AdvanceFrame();
+    m_Modules.SynchronizationModule->AdvanceFrame();
 }

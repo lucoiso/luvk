@@ -14,6 +14,7 @@ namespace luvk
 
     class LUVKMODULE_API Sampler
     {
+    protected:
         VkSampler               m_Sampler{VK_NULL_HANDLE};
         std::shared_ptr<Device> m_DeviceModule{};
 

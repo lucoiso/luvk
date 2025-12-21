@@ -6,17 +6,25 @@
 
 #include <functional>
 #include <memory>
-#include <typeindex>
 #include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Modules/Synchronization.hpp"
 #include "luvk/Resources/Extensions.hpp"
-#include "luvk/Types/UnorderedMap.hpp"
 #include "luvk/Types/Vector.hpp"
+#include "luvk/Types/Array.hpp"
 
 namespace luvk
 {
+    class Debug;
+    class Device;
+    class Memory;
+    class SwapChain;
+    class CommandPool;
+    class Synchronization;
+    class ThreadPool;
+    class DescriptorPool;
+
     enum class RendererEvents : std::uint8_t
     {
         OnModulesRegistered,
@@ -27,21 +35,38 @@ namespace luvk
         OnRenderLoopInitialized
     };
 
+    struct RenderModules
+    {
+        std::shared_ptr<Debug>           DebugModule{nullptr};
+        std::shared_ptr<Device>          DeviceModule{nullptr};
+        std::shared_ptr<Memory>          MemoryModule{nullptr};
+        std::shared_ptr<SwapChain>       SwapChainModule{nullptr};
+        std::shared_ptr<CommandPool>     CommandPoolModule{nullptr};
+        std::shared_ptr<Synchronization> SynchronizationModule{nullptr};
+        std::shared_ptr<ThreadPool>      ThreadPoolModule{nullptr};
+        std::shared_ptr<DescriptorPool>  DescriptorPoolModule{nullptr};
+
+        Vector<std::shared_ptr<IRenderModule>> ExtraModules{};
+    };
+
     class LUVKMODULE_API Renderer : public IRenderModule,
                                     public IEventModule
     {
-        bool                                                          m_Paused{false};
-        VkInstance                                                    m_Instance{VK_NULL_HANDLE};
-        InstanceExtensions                                            m_Extensions{};
-        Vector<std::function<void(VkCommandBuffer)>>                  m_PostRenderCommands{};
-        UnorderedMap<std::type_index, std::shared_ptr<IRenderModule>> m_ModuleMap{};
-        std::function<void(VkCommandBuffer)>                          m_PreRenderCallback{};
-        std::function<void(VkCommandBuffer)>                          m_DrawCallback{};
+    protected:
+        bool                         m_Paused{false};
+        VkInstance                   m_Instance{VK_NULL_HANDLE};
+        InstanceExtensions           m_Extensions{};
+        luvk::Array<VkClearValue, 2> m_ClearValues{VkClearValue{.color = {0.2F, 0.2F, 0.2F, 1.F}},
+                                                   VkClearValue{.depthStencil = {1.F, 0}}};
+        Vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
+        RenderModules                                m_Modules{};
+        std::function<void(VkCommandBuffer)>         m_PreRenderCallback{nullptr};
+        std::function<void(VkCommandBuffer)>         m_DrawCallback{nullptr};
 
     public:
         constexpr Renderer() = default;
 
-        ~Renderer() override
+        virtual ~Renderer() override
         {
             Renderer::ClearResources();
         }
@@ -51,28 +76,24 @@ namespace luvk
             return m_Instance;
         }
 
-        [[nodiscard]] InstanceExtensions& GetExtensions()
+        [[nodiscard]] constexpr InstanceExtensions& GetExtensions()
         {
             return m_Extensions;
         }
 
-        [[nodiscard]] UnorderedMap<std::type_index, std::shared_ptr<IRenderModule>>& GetModules()
+        [[nodiscard]] constexpr luvk::Array<VkClearValue, 2> GetClearValues() const
         {
-            return m_ModuleMap;
+            return m_ClearValues;
         }
 
-        template <typename Type>
-        [[nodiscard]] constexpr std::shared_ptr<Type> FindModule() const
+        void SetClearValues(luvk::Array<VkClearValue, 2>&& Values);
+
+        [[nodiscard]] constexpr const RenderModules& GetModules() const
         {
-            if (const auto It = m_ModuleMap.find(std::type_index(typeid(Type)));
-                It != std::end(m_ModuleMap))
-            {
-                return std::static_pointer_cast<Type>(It->Second);
-            }
-            return nullptr;
+            return m_Modules;
         }
 
-        void RegisterModules(Vector<std::shared_ptr<IRenderModule>>&& Modules);
+        void RegisterModules(RenderModules&& Modules);
 
         struct InstanceCreationArguments
         {
@@ -93,11 +114,11 @@ namespace luvk
         void SetDrawCallback(std::function<void(VkCommandBuffer)>&& Callback);
 
     protected:
-        void ClearResources() override;
+        virtual void ClearResources() override;
 
     private:
         void SetupFrames() const;
-        void RecordCommands(const Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
+        void RecordCommands(Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
         void SubmitFrame(Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const;
     };
 } // namespace luvk

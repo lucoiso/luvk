@@ -24,6 +24,7 @@ namespace luvk
     class LUVKMODULE_API CommandPool : public IRenderModule,
                                        public IEventModule
     {
+    protected:
         VkCommandPool           m_CommandPool{VK_NULL_HANDLE};
         Vector<VkCommandBuffer> m_Buffers{};
         std::shared_ptr<Device> m_DeviceModule{};

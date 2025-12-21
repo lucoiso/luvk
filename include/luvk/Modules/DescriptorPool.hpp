@@ -15,6 +15,7 @@ namespace luvk
 
     class LUVKMODULE_API DescriptorPool : public IRenderModule
     {
+    protected:
         VkDescriptorPool        m_Pool{VK_NULL_HANDLE};
         std::shared_ptr<Device> m_DeviceModule{};
 

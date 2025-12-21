@@ -15,6 +15,7 @@ namespace luvk
 {
     class LUVKMODULE_API EventNode : public std::enable_shared_from_this<EventNode>
     {
+    protected:
         bool                               m_OneTime{false};
         std::function<void()>              m_Binding{};
         Vector<std::shared_ptr<EventNode>> m_SubNodes{};

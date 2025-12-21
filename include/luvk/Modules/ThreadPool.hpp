@@ -17,6 +17,7 @@ namespace luvk
 {
     class LUVKMODULE_API ThreadPool : public IRenderModule
     {
+    protected:
         Vector<std::thread>               m_Threads{};
         std::queue<std::function<void()>> m_Tasks{};
         std::mutex                        m_Mutex{};

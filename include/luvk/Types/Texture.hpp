@@ -14,6 +14,7 @@ namespace luvk
 
     class LUVKMODULE_API Texture
     {
+    protected:
         std::shared_ptr<Image>   m_Image{};
         std::shared_ptr<Sampler> m_Sampler{};
 

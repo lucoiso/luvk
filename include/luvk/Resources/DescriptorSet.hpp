@@ -17,6 +17,7 @@ namespace luvk
 
     class LUVKMODULE_API DescriptorSet
     {
+    protected:
         bool                            m_OwnsLayout{false};
         VkDescriptorSetLayout           m_Layout{VK_NULL_HANDLE};
         VkDescriptorSet                 m_Set{VK_NULL_HANDLE};

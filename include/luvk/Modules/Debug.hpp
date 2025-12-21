@@ -16,6 +16,7 @@ namespace luvk
     class LUVKMODULE_API Debug : public IRenderModule,
                                  public IExtensionsModule
     {
+    protected:
         VkDebugUtilsMessengerEXT  m_Messenger{VK_NULL_HANDLE};
         std::shared_ptr<Renderer> m_RendererModule{};
 
@@ -28,7 +29,7 @@ namespace luvk
             Debug::ClearResources();
         }
 
-        [[nodiscard]] ExtensionsMap GetInstanceExtensions() const override
+        [[nodiscard]] constexpr ExtensionsMap GetInstanceExtensions() const override
         {
             return ToExtensionMap("VK_LAYER_KHRONOS_validation", {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
         }

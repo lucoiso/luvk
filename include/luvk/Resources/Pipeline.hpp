@@ -25,7 +25,7 @@ namespace luvk
             Mesh
         };
 
-    private:
+    protected:
         Type                        m_Type{Type::Graphics};
         VkPipelineLayout            m_PipelineLayout{VK_NULL_HANDLE};
         VkPipeline                  m_Pipeline{VK_NULL_HANDLE};
