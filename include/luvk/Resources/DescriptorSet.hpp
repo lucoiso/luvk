@@ -52,12 +52,12 @@ namespace luvk
                          std::uint32_t      Binding,
                          VkDescriptorType   Type) const;
 
-        [[nodiscard]] constexpr const VkDescriptorSetLayout& GetLayout() const
+        [[nodiscard]] constexpr const VkDescriptorSetLayout& GetLayout() const noexcept
         {
             return m_Layout;
         }
 
-        [[nodiscard]] constexpr const VkDescriptorSet& GetHandle() const
+        [[nodiscard]] constexpr const VkDescriptorSet& GetHandle() const noexcept
         {
             return m_Set;
         }

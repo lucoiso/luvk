@@ -43,12 +43,12 @@ namespace luvk
         void SetTexture(const std::shared_ptr<Texture>& TextureObj);
         void SetUniformBuffer(const std::shared_ptr<Buffer>& BufferObj, std::uint32_t Binding = 0) const;
 
-        [[nodiscard]] constexpr const std::shared_ptr<Pipeline>& GetPipeline() const noexcept
+        [[nodiscard]] std::shared_ptr<Pipeline> GetPipeline() const noexcept
         {
             return m_Pipeline;
         }
 
-        [[nodiscard]] constexpr const std::shared_ptr<DescriptorSet>& GetDescriptor() const noexcept
+        [[nodiscard]] std::shared_ptr<DescriptorSet> GetDescriptor() const noexcept
         {
             return m_DescriptorSet;
         }

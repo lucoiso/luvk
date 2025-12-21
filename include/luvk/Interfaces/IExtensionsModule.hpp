@@ -33,12 +33,12 @@ namespace luvk
     public:
         virtual ~IExtensionsModule() = default;
 
-        [[nodiscard]] virtual ExtensionsMap GetInstanceExtensions() const
+        [[nodiscard]] virtual ExtensionsMap GetInstanceExtensions() const noexcept
         {
             return {};
         }
 
-        [[nodiscard]] virtual ExtensionsMap GetDeviceExtensions() const
+        [[nodiscard]] virtual ExtensionsMap GetDeviceExtensions() const noexcept
         {
             return {};
         }

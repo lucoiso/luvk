@@ -13,12 +13,12 @@ namespace luvk
     public:
         virtual ~IFeatureChainModule() = default;
 
-        [[nodiscard]] virtual const void* GetDeviceFeatureChain() const
+        [[nodiscard]] virtual const void* GetDeviceFeatureChain() const noexcept
         {
             return nullptr;
         }
 
-        [[nodiscard]] virtual const void* GetInstanceFeatureChain() const
+        [[nodiscard]] virtual const void* GetInstanceFeatureChain() const noexcept
         {
             return nullptr;
         }

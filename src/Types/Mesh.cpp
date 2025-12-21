@@ -26,11 +26,6 @@ void Mesh::SetMaterial(const std::shared_ptr<Material>& MaterialObj)
     m_Material = MaterialObj;
 }
 
-const std::shared_ptr<Material>& Mesh::GetMaterial() const
-{
-    return m_Material;
-}
-
 void Mesh::UploadVertices(const std::span<const std::byte> Data, const std::uint32_t VertexCount, const std::uint32_t FrameIndex)
 {
     if (FrameIndex >= luvk::Constants::ImageCount)
@@ -188,8 +183,8 @@ void Mesh::Render(const VkCommandBuffer& CommandBuffer, const std::uint32_t Curr
     }
 
     m_Material->Bind(CommandBuffer);
-    const auto& Pipeline     = m_Material->GetPipeline();
-    const auto  PipelineType = Pipeline->GetType();
+    const auto Pipeline     = m_Material->GetPipeline();
+    const auto PipelineType = Pipeline->GetType();
 
     if (!std::empty(m_PushConstantData))
     {

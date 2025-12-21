@@ -44,12 +44,12 @@ namespace luvk
         void RecreateBuffer(const CreationArguments& Arguments);
         void Upload(const std::span<const std::byte>& Data) const;
 
-        [[nodiscard]] constexpr const VkBuffer& GetHandle() const
+        [[nodiscard]] constexpr const VkBuffer& GetHandle() const noexcept
         {
             return m_Buffer;
         }
 
-        [[nodiscard]] constexpr VkDeviceSize GetSize() const
+        [[nodiscard]] constexpr VkDeviceSize GetSize() const noexcept
         {
             return m_Size;
         }

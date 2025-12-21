@@ -52,8 +52,12 @@ namespace luvk
         explicit Mesh(const std::shared_ptr<Device>& Device, const std::shared_ptr<Memory>& Memory);
         virtual  ~Mesh() = default;
 
-        void                                           SetMaterial(const std::shared_ptr<Material>& MaterialObj);
-        [[nodiscard]] const std::shared_ptr<Material>& GetMaterial() const;
+        void SetMaterial(const std::shared_ptr<Material>& MaterialObj);
+
+        [[nodiscard]] std::shared_ptr<Material> GetMaterial() const noexcept
+        {
+            return m_Material;
+        }
 
         void UploadVertices(std::span<const std::byte> Data, std::uint32_t VertexCount, std::uint32_t FrameIndex);
         void UploadIndices(std::span<const std::uint16_t> Data, std::uint32_t FrameIndex);

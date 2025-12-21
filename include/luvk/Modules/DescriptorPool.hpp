@@ -32,7 +32,7 @@ namespace luvk
                                   const std::span<const VkDescriptorPoolSize>& PoolSizes,
                                   VkDescriptorPoolCreateFlags                  Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
-        [[nodiscard]] constexpr const VkDescriptorPool& GetHandle() const
+        [[nodiscard]] constexpr const VkDescriptorPool& GetHandle() const noexcept
         {
             return m_Pool;
         }

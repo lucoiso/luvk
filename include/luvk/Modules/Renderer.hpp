@@ -71,24 +71,24 @@ namespace luvk
             Renderer::ClearResources();
         }
 
-        [[nodiscard]] const VkInstance& GetInstance() const
+        [[nodiscard]] const VkInstance& GetInstance() const noexcept
         {
             return m_Instance;
         }
 
-        [[nodiscard]] constexpr InstanceExtensions& GetExtensions()
+        [[nodiscard]] constexpr InstanceExtensions& GetExtensions() noexcept
         {
             return m_Extensions;
         }
 
-        [[nodiscard]] constexpr luvk::Array<VkClearValue, 2> GetClearValues() const
+        [[nodiscard]] constexpr luvk::Array<VkClearValue, 2> GetClearValues() const noexcept
         {
             return m_ClearValues;
         }
 
         void SetClearValues(luvk::Array<VkClearValue, 2>&& Values);
 
-        [[nodiscard]] constexpr const RenderModules& GetModules() const
+        [[nodiscard]] constexpr const RenderModules& GetModules() const noexcept
         {
             return m_Modules;
         }
@@ -114,7 +114,7 @@ namespace luvk
         void SetDrawCallback(std::function<void(VkCommandBuffer)>&& Callback);
 
     protected:
-        virtual void ClearResources() override;
+        void ClearResources() override;
 
     private:
         void SetupFrames() const;

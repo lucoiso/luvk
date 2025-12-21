@@ -40,7 +40,7 @@ namespace luvk
 
         void InitializeAllocator(VmaAllocatorCreateFlags Flags);
 
-        [[nodiscard]] constexpr const VmaAllocator& GetAllocator() const
+        [[nodiscard]] constexpr const VmaAllocator& GetAllocator() const noexcept
         {
             return m_Allocator;
         }

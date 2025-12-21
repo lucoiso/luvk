@@ -44,7 +44,7 @@ namespace luvk
 
         constexpr Map() = default;
 
-        constexpr Map(std::initializer_list<value_type>&& Init)
+        constexpr explicit Map(std::initializer_list<value_type>&& Init) noexcept
         {
             for (const auto& Item : Init)
             {
@@ -67,18 +67,14 @@ namespace luvk
             return find_iterator(KeyValue);
         }
 
-        [[nodiscard]] constexpr T& at(const Key& KeyValue)
+        [[nodiscard]] constexpr T& at(const Key& KeyValue) noexcept
         {
             auto It = find_iterator(KeyValue);
-            if (It == std::end(m_Data))
-            {
-                throw std::out_of_range{"Key not found"};
-            }
             return It->Second;
         }
 
         template <typename... Args>
-        constexpr Pair<iterator, bool> emplace(const Key& KeyValue, Args&&... ArgsIn)
+        constexpr Pair<iterator, bool> emplace(const Key& KeyValue, Args&&... ArgsIn) noexcept
         {
             if (auto It = find_iterator(KeyValue);
                 It != std::end(m_Data))
@@ -89,7 +85,7 @@ namespace luvk
             return {std::end(m_Data) - 1, true};
         }
 
-        constexpr void erase(const Key& KeyValue)
+        constexpr void erase(const Key& KeyValue) noexcept
         {
             if (auto It = find_iterator(KeyValue);
                 It != std::end(m_Data))
@@ -133,7 +129,7 @@ namespace luvk
             return std::empty(m_Data);
         }
 
-        [[nodiscard]] constexpr T& operator[](const Key& KeyValue)
+        [[nodiscard]] constexpr T& operator[](const Key& KeyValue) noexcept
         {
             auto [It, Inserted] = emplace(KeyValue, T{});
             return It->Second;

@@ -30,7 +30,7 @@ namespace luvk
 
         void operator()();
 
-        [[nodiscard]] constexpr bool IsOneTime() const
+        [[nodiscard]] constexpr bool IsOneTime() const noexcept
         {
             return m_OneTime;
         }

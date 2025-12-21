@@ -14,7 +14,7 @@ namespace luvk
         mutable EventGraph m_EventGraph{};
 
     public:
-        [[nodiscard]] EventGraph& GetEventSystem() const
+        [[nodiscard]] EventGraph& GetEventSystem() const noexcept
         {
             return m_EventGraph;
         }

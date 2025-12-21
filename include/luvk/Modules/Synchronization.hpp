@@ -51,27 +51,27 @@ namespace luvk
         void Initialize();
         void SetupFrames();
 
-        [[nodiscard]] constexpr std::size_t GetFrameCount() const
+        [[nodiscard]] constexpr std::size_t GetFrameCount() const noexcept
         {
             return std::size(m_Frames);
         }
 
-        [[nodiscard]] constexpr FrameData& GetFrame(const std::size_t Index)
+        [[nodiscard]] constexpr FrameData& GetFrame(const std::size_t Index) noexcept
         {
             return m_Frames.at(Index);
         }
 
-        [[nodiscard]] constexpr VkSemaphore& GetRenderFinished(const std::size_t Index)
+        [[nodiscard]] constexpr VkSemaphore& GetRenderFinished(const std::size_t Index) noexcept
         {
             return m_RenderFinished.at(Index);
         }
 
-        [[nodiscard]] constexpr std::size_t GetCurrentFrame() const
+        [[nodiscard]] constexpr std::size_t GetCurrentFrame() const noexcept
         {
             return m_CurrentFrame;
         }
 
-        [[nodiscard]] constexpr const std::shared_ptr<CommandBufferPool>& GetSecondaryPool()
+        [[nodiscard]] std::shared_ptr<CommandBufferPool> GetSecondaryPool() const noexcept
         {
             return m_SecondaryPool;
         }

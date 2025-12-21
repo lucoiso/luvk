@@ -64,27 +64,27 @@ namespace luvk
         void SetSurface(const VkSurfaceKHR& Surface);
         void CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t>&& QueueIndices, const void* pNext);
 
-        [[nodiscard]] constexpr const VkDevice& GetLogicalDevice() const
+        [[nodiscard]] constexpr const VkDevice& GetLogicalDevice() const noexcept
         {
             return m_LogicalDevice;
         }
 
-        [[nodiscard]] constexpr const VkPhysicalDevice& GetPhysicalDevice() const
+        [[nodiscard]] constexpr const VkPhysicalDevice& GetPhysicalDevice() const noexcept
         {
             return m_PhysicalDevice;
         }
 
-        [[nodiscard]] constexpr const VkSurfaceKHR& GetSurface() const
+        [[nodiscard]] constexpr const VkSurfaceKHR& GetSurface() const noexcept
         {
             return m_Surface;
         }
 
-        [[nodiscard]] constexpr const Vector<VkSurfaceFormatKHR>& GetSurfaceFormat() const
+        [[nodiscard]] constexpr const Vector<VkSurfaceFormatKHR>& GetSurfaceFormat() const noexcept
         {
             return m_SurfaceFormat;
         }
 
-        [[nodiscard]] constexpr const VkPhysicalDeviceProperties& GetDeviceProperties() const
+        [[nodiscard]] constexpr const VkPhysicalDeviceProperties& GetDeviceProperties() const noexcept
         {
             return m_DeviceProperties;
         }
@@ -94,52 +94,52 @@ namespace luvk
             return m_DeviceProperties.apiVersion;
         }
 
-        [[nodiscard]] constexpr const VkPhysicalDeviceFeatures& GetDeviceFeatures() const
+        [[nodiscard]] constexpr const VkPhysicalDeviceFeatures& GetDeviceFeatures() const noexcept
         {
             return m_DeviceFeatures;
         }
 
-        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan11Features& GetVulkan11Features() const
+        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan11Features& GetVulkan11Features() const noexcept
         {
             return m_Vulkan11Features;
         }
 
-        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan12Features& GetVulkan12Features() const
+        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan12Features& GetVulkan12Features() const noexcept
         {
             return m_Vulkan12Features;
         }
 
-        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan13Features& GetVulkan13Features() const
+        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan13Features& GetVulkan13Features() const noexcept
         {
             return m_Vulkan13Features;
         }
 
-        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan14Features& GetVulkan14Features() const
+        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan14Features& GetVulkan14Features() const noexcept
         {
             return m_Vulkan14Features;
         }
 
-        [[nodiscard]] constexpr const Vector<VkQueueFamilyProperties>& GetDeviceQueueFamilyProperties() const
+        [[nodiscard]] constexpr const Vector<VkQueueFamilyProperties>& GetDeviceQueueFamilyProperties() const noexcept
         {
             return m_DeviceQueueFamilyProperties;
         }
 
-        [[nodiscard]] constexpr const UnorderedMap<std::uint32_t, Vector<VkQueue>>& GetQueues() const
+        [[nodiscard]] constexpr const UnorderedMap<std::uint32_t, Vector<VkQueue>>& GetQueues() const noexcept
         {
             return m_Queues;
         }
 
-        [[nodiscard]] constexpr DeviceExtensions& GetExtensions()
+        [[nodiscard]] constexpr DeviceExtensions& GetExtensions() noexcept
         {
             return m_Extensions;
         }
 
-        [[nodiscard]] constexpr const Vector<VkPhysicalDevice>& GetAvailableDevices()
+        [[nodiscard]] constexpr const Vector<VkPhysicalDevice>& GetAvailableDevices() noexcept
         {
             return m_AvailableDevices;
         }
 
-        [[nodiscard]] const void* GetDeviceFeatureChain() const override
+        [[nodiscard]] const void* GetDeviceFeatureChain() const noexcept override
         {
             return &m_FeatureChain;
         }

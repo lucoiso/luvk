@@ -19,19 +19,15 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
                                       void* const&        pNext)
 {
     m_PreviousSwapChain = m_SwapChain;
-
-    m_Arguments = Arguments;
-    m_Extent    = Arguments.Extent;
-
-    const VkSurfaceKHR& Surface = m_DeviceModule->GetSurface();
+    m_Arguments         = Arguments;
 
     VkSurfaceCapabilitiesKHR Caps{};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_DeviceModule->GetPhysicalDevice(), Surface, &Caps);
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_DeviceModule->GetPhysicalDevice(), Arguments.Surface, &Caps);
 
     const VkSwapchainCreateInfoKHR SwapChainCreateInfo{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                                                        .pNext = pNext,
                                                        .flags = Arguments.Flags,
-                                                       .surface = Surface,
+                                                       .surface = Arguments.Surface,
                                                        .minImageCount = luvk::Constants::ImageCount,
                                                        .imageFormat = Arguments.Format,
                                                        .imageColorSpace = Arguments.ColorSpace,
@@ -213,8 +209,8 @@ void luvk::SwapChain::CreateFramebuffers(const VkDevice& LogicalDevice)
                                      .renderPass = m_RenderPass,
                                      .attachmentCount = static_cast<std::uint32_t>(std::size(Views)),
                                      .pAttachments = std::data(Views),
-                                     .width = m_Extent.width,
-                                     .height = m_Extent.height,
+                                     .width = m_Arguments.Extent.width,
+                                     .height = m_Arguments.Extent.height,
                                      .layers = 1};
 
         LUVK_EXECUTE(vkCreateFramebuffer(LogicalDevice, &Info, nullptr, &m_Framebuffers.at(FramebufferIndex)));
@@ -243,13 +239,13 @@ void luvk::SwapChain::CreateDepthResources()
 
     for (std::size_t Index = 0; Index < std::size(m_Images); ++Index)
     {
-        const auto& DepthImage = m_DepthImages.emplace_back(std::make_shared<Image>(m_DeviceModule, m_MemoryModule));
+        const auto DepthImage = m_DepthImages.emplace_back(std::make_shared<Image>(m_DeviceModule, m_MemoryModule));
 
         const VkImageAspectFlags Aspect = HasStencil
                                               ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
                                               : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT);
 
-        DepthImage->CreateImage({.Extent = {m_Extent.width, m_Extent.height, 1},
+        DepthImage->CreateImage({.Extent = {m_Arguments.Extent.width, m_Arguments.Extent.height, 1},
                                  .Format = m_DepthFormat,
                                  .Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                  .Aspect = Aspect,

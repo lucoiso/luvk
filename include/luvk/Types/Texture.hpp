@@ -22,12 +22,12 @@ namespace luvk
         Texture() = delete;
         explicit Texture(std::shared_ptr<Image> Image, std::shared_ptr<Sampler> Sampler);
 
-        [[nodiscard]] constexpr const std::shared_ptr<Image>& GetImage() const noexcept
+        [[nodiscard]] std::shared_ptr<Image> GetImage() const noexcept
         {
             return m_Image;
         }
 
-        [[nodiscard]] constexpr const std::shared_ptr<Sampler>& GetSampler() const noexcept
+        [[nodiscard]] std::shared_ptr<Sampler> GetSampler() const noexcept
         {
             return m_Sampler;
         }

@@ -28,6 +28,7 @@ namespace luvk
         VkImageUsageFlags             UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
         VkCompositeAlphaFlagBitsKHR   CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
         VkExtent2D                    Extent{.width = 0U, .height = 0U};
+        VkSurfaceKHR                  Surface{VK_NULL_HANDLE};
         Vector<std::uint32_t>         QueueIndices{};
     };
 
@@ -51,7 +52,6 @@ namespace luvk
         Vector<std::shared_ptr<Image>> m_DepthImages{};
         VkFormat                       m_DepthFormat{VK_FORMAT_UNDEFINED};
         VkRenderPass                   m_RenderPass{VK_NULL_HANDLE};
-        VkExtent2D                     m_Extent{0U, 0U};
         std::shared_ptr<Device>        m_DeviceModule{};
         std::shared_ptr<Memory>        m_MemoryModule{};
         CreationArguments              m_Arguments{};
@@ -66,63 +66,63 @@ namespace luvk
             SwapChain::ClearResources();
         }
 
-        [[nodiscard]] constexpr ExtensionsMap GetDeviceExtensions() const override
+        [[nodiscard]] constexpr ExtensionsMap GetDeviceExtensions() const noexcept override
         {
             return ToExtensionMap("", {VK_KHR_SWAPCHAIN_EXTENSION_NAME});
         }
 
-        [[nodiscard]] constexpr const VkSwapchainKHR& GetHandle() const
+        [[nodiscard]] constexpr const VkSwapchainKHR& GetHandle() const noexcept
         {
             return m_SwapChain;
         }
 
-        [[nodiscard]] constexpr const Vector<VkImage>& GetImages() const
+        [[nodiscard]] constexpr const Vector<VkImage>& GetImages() const noexcept
         {
             return m_Images;
         }
 
-        [[nodiscard]] constexpr const Vector<VkImageView>& GetImageViews() const
+        [[nodiscard]] constexpr const Vector<VkImageView>& GetImageViews() const noexcept
         {
             return m_ImageViews;
         }
 
-        [[nodiscard]] constexpr const VkFramebuffer& GetFramebuffer(const std::size_t Index) const
+        [[nodiscard]] constexpr const VkFramebuffer& GetFramebuffer(const std::size_t Index) const noexcept
         {
             return m_Framebuffers.at(Index);
         }
 
-        [[nodiscard]] constexpr const std::shared_ptr<Image>& GetDepthImage(const std::size_t Index) const
+        [[nodiscard]] std::shared_ptr<Image> GetDepthImage(const std::size_t Index) const noexcept
         {
             return m_DepthImages.at(Index);
         }
 
-        [[nodiscard]] constexpr const Vector<std::shared_ptr<Image>>& GetDepthImages() const
+        [[nodiscard]] constexpr const Vector<std::shared_ptr<Image>> GetDepthImages() const noexcept
         {
             return m_DepthImages;
         }
 
-        [[nodiscard]] constexpr VkFormat GetDepthFormat() const
+        [[nodiscard]] constexpr VkFormat GetDepthFormat() const noexcept
         {
             return m_DepthFormat;
         }
 
-        [[nodiscard]] constexpr const VkRenderPass& GetRenderPass() const
+        [[nodiscard]] constexpr const VkRenderPass& GetRenderPass() const noexcept
         {
             return m_RenderPass;
         }
 
-        [[nodiscard]] constexpr const VkExtent2D& GetExtent() const
+        [[nodiscard]] constexpr const VkExtent2D& GetExtent() const noexcept
         {
-            return m_Extent;
+            return m_Arguments.Extent;
         }
 
-        [[nodiscard]] constexpr const CreationArguments& GetCreationArguments() const
+        [[nodiscard]] constexpr const CreationArguments& GetCreationArguments() const noexcept
         {
             return m_Arguments;
         }
 
         virtual void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
-        void Recreate(VkExtent2D NewExtent, void* const& pNext);
+        void         Recreate(VkExtent2D NewExtent, void* const& pNext);
 
     protected:
         void ClearResources() override;

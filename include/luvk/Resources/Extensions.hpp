@@ -22,7 +22,7 @@ namespace luvk
         constexpr IExtensions()  = default;
         virtual   ~IExtensions() = default;
 
-        [[nodiscard]] constexpr bool IsEmpty() const
+        [[nodiscard]] constexpr bool IsEmpty() const noexcept
         {
             return std::empty(m_Layers);
         }
@@ -53,7 +53,7 @@ namespace luvk
             return std::find_if(std::execution::unseq, std::cbegin(m_Layers), std::cend(m_Layers), CheckLayerExtensions) != std::cend(m_Layers);
         }
 
-        [[nodiscard]] const Vector<Layer>& GetLayers() const
+        [[nodiscard]] const Vector<Layer>& GetLayers() const noexcept
         {
             return m_Layers;
         }
@@ -88,7 +88,7 @@ namespace luvk
 
     public:
         constexpr          DeviceExtensions() = default;
-        constexpr explicit DeviceExtensions(const VkPhysicalDevice& Device) : m_Device(Device) {}
+        constexpr explicit DeviceExtensions(const VkPhysicalDevice& Device) noexcept : m_Device(Device) {}
         ~DeviceExtensions() override = default;
 
         constexpr void SetDevice(const VkPhysicalDevice& Device) noexcept

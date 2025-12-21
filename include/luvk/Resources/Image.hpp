@@ -48,12 +48,12 @@ namespace luvk
         void Upload(const std::span<const std::byte>& Data) const;
         void Upload(const std::shared_ptr<Buffer>& Staging) const;
 
-        [[nodiscard]] constexpr const VkImage& GetHandle() const
+        [[nodiscard]] constexpr const VkImage& GetHandle() const noexcept
         {
             return m_Image;
         }
 
-        [[nodiscard]] constexpr const VkImageView& GetView() const
+        [[nodiscard]] constexpr const VkImageView& GetView() const noexcept
         {
             return m_View;
         }

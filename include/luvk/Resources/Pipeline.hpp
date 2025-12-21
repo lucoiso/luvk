@@ -92,12 +92,12 @@ namespace luvk
         void CreateMeshPipeline(const MeshCreationArguments& Arguments);
         void RecreateMeshPipeline(const MeshCreationArguments& Arguments);
 
-        [[nodiscard]] constexpr const VkPipeline& GetPipeline() const
+        [[nodiscard]] constexpr const VkPipeline& GetPipeline() const noexcept
         {
             return m_Pipeline;
         }
 
-        [[nodiscard]] constexpr const VkPipelineLayout& GetPipelineLayout() const
+        [[nodiscard]] constexpr const VkPipelineLayout& GetPipelineLayout() const noexcept
         {
             return m_PipelineLayout;
         }
