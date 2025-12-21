@@ -65,7 +65,7 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
             continue;
         }
 
-        if (const IExtensionsModule* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get());
+        if (const auto* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get());
             ExtModule != nullptr)
         {
             for (const auto& [LayerIt, ExtensionsContainerIt] : ExtModule->GetInstanceExtensions())
@@ -78,15 +78,15 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
             }
         }
 
-        if (const IFeatureChainModule* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get());
+        if (const auto* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get());
             FeatChainModule != nullptr)
         {
             if (const void* const Chain = FeatChainModule->GetInstanceFeatureChain();
                 Chain != nullptr)
             {
-                VkBaseInStructure* const Base = const_cast<VkBaseInStructure*>(static_cast<const VkBaseInStructure*>(Chain));
-                Base->pNext                   = static_cast<const VkBaseInStructure*>(FeatureChain);
-                FeatureChain                  = Chain;
+                auto* const Base = const_cast<VkBaseInStructure*>(static_cast<const VkBaseInStructure*>(Chain));
+                Base->pNext      = static_cast<const VkBaseInStructure*>(FeatureChain);
+                FeatureChain     = Chain;
             }
         }
     }
