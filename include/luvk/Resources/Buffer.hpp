@@ -8,14 +8,13 @@
 #include <span>
 #include <string>
 #include <vk_mem_alloc.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
     class Device;
     class Memory;
 
-    class LUVKMODULE_API Buffer
+    class LUVK_API Buffer
     {
     protected:
         VkBuffer                m_Buffer{VK_NULL_HANDLE};

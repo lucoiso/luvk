@@ -7,11 +7,10 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
-    class LUVKMODULE_API EventNode : public std::enable_shared_from_this<EventNode>
+    class LUVK_API EventNode : public std::enable_shared_from_this<EventNode>
     {
     protected:
         bool                                    m_OneTime{false};
@@ -37,7 +36,7 @@ namespace luvk
         [[nodiscard]] std::shared_ptr<EventNode>        Then(std::function<void()>&& Function, bool OneTime = false);
     };
 
-    class LUVKMODULE_API EventGraph
+    class LUVK_API EventGraph
     {
         std::unordered_map<std::size_t, std::vector<std::shared_ptr<EventNode>>> m_Nodes{};
 

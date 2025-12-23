@@ -6,13 +6,12 @@
 
 #include <memory>
 #include <volk.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
     class Device;
 
-    class LUVKMODULE_API PipelineCache
+    class LUVK_API PipelineCache
     {
     protected:
         VkPipelineCache         m_PreRaster{VK_NULL_HANDLE};

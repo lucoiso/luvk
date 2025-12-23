@@ -5,11 +5,10 @@
 #pragma once
 
 #include <memory>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
-    class LUVKMODULE_API IRenderModule
+    class LUVK_API IRenderModule
     {
     public:
         virtual      ~IRenderModule() = default;

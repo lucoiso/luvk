@@ -5,7 +5,6 @@
 #pragma once
 
 #include <volk.h>
-#include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 
@@ -20,8 +19,8 @@ namespace luvk
         OnDestroyedPool
     };
 
-    class LUVKMODULE_API CommandPool : public IRenderModule,
-                                       public IEventModule
+    class LUVK_API CommandPool : public IRenderModule,
+                                 public IEventModule
     {
     protected:
         VkCommandPool                m_CommandPool{VK_NULL_HANDLE};

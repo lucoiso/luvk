@@ -8,13 +8,12 @@
 #include <mutex>
 #include <vector>
 #include <volk.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
     class Device;
 
-    class LUVKMODULE_API CommandBufferPool
+    class LUVK_API CommandBufferPool
     {
     protected:
         std::mutex                   m_Mutex{};

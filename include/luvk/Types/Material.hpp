@@ -7,7 +7,6 @@
 #include <memory>
 #include <span>
 #include <volk.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
@@ -19,7 +18,7 @@ namespace luvk
     class DescriptorPool;
     class Memory;
 
-    class LUVKMODULE_API Material
+    class LUVK_API Material
     {
     protected:
         std::shared_ptr<Pipeline>      m_Pipeline{};

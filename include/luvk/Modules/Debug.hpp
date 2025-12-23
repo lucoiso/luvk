@@ -5,7 +5,6 @@
 #pragma once
 
 #include <volk.h>
-#include "luvk/Module.hpp"
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 
@@ -13,8 +12,8 @@ namespace luvk
 {
     class Renderer;
 
-    class LUVKMODULE_API Debug : public IRenderModule,
-                                 public IExtensionsModule
+    class LUVK_API Debug : public IRenderModule,
+                           public IExtensionsModule
     {
     protected:
         VkDebugUtilsMessengerEXT  m_Messenger{VK_NULL_HANDLE};

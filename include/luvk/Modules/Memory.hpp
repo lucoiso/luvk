@@ -6,7 +6,6 @@
 
 #include <memory>
 #include <vk_mem_alloc.h>
-#include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 
@@ -21,8 +20,8 @@ namespace luvk
         OnAllocatorDestroyed
     };
 
-    class LUVKMODULE_API Memory : public IRenderModule,
-                                  public IEventModule
+    class LUVK_API Memory : public IRenderModule,
+                            public IEventModule
     {
     protected:
         VmaAllocator              m_Allocator{VK_NULL_HANDLE};

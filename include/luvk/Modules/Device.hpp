@@ -9,7 +9,6 @@
 #include <span>
 #include <unordered_map>
 #include <volk.h>
-#include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IFeatureChainModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
@@ -26,9 +25,9 @@ namespace luvk
         OnSetSurface,
     };
 
-    class LUVKMODULE_API Device : public IRenderModule,
-                                  public IEventModule,
-                                  public IFeatureChainModule
+    class LUVK_API Device : public IRenderModule,
+                            public IEventModule,
+                            public IFeatureChainModule
     {
     protected:
         VkDevice                                                m_LogicalDevice{VK_NULL_HANDLE};

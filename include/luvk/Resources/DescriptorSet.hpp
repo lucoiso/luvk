@@ -7,7 +7,6 @@
 #include <memory>
 #include <span>
 #include <volk.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
@@ -15,7 +14,7 @@ namespace luvk
     class DescriptorPool;
     class Memory;
 
-    class LUVKMODULE_API DescriptorSet
+    class LUVK_API DescriptorSet
     {
     protected:
         bool                            m_OwnsLayout{false};

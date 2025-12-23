@@ -4,11 +4,9 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
-
 namespace luvk
 {
-    class LUVKMODULE_API IFeatureChainModule
+    class LUVK_API IFeatureChainModule
     {
     public:
         virtual ~IFeatureChainModule() = default;

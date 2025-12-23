@@ -5,11 +5,10 @@
 #pragma once
 
 #include <array>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
-    struct LUVKMODULE_API Transform
+    struct LUVK_API Transform
     {
         std::array<float, 3> Position{0.F, 0.F, 0.F};
         std::array<float, 3> Rotation{0.F, 0.F, 0.F};

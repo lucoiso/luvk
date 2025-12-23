@@ -6,14 +6,13 @@
 
 #include <span>
 #include <volk.h>
-#include "luvk/Module.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 
 namespace luvk
 {
     class Device;
 
-    class LUVKMODULE_API DescriptorPool : public IRenderModule
+    class LUVK_API DescriptorPool : public IRenderModule
     {
     protected:
         VkDescriptorPool        m_Pool{VK_NULL_HANDLE};

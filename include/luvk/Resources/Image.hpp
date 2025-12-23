@@ -8,7 +8,6 @@
 #include <memory>
 #include <span>
 #include <vk_mem_alloc.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
@@ -16,7 +15,7 @@ namespace luvk
     class Buffer;
     class Device;
 
-    class LUVKMODULE_API Image
+    class LUVK_API Image
     {
     protected:
         std::uint32_t           m_Width{0};

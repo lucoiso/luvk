@@ -4,7 +4,6 @@
 
 #include "luvk/Modules/Renderer.hpp"
 #include <algorithm>
-#include <atomic>
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Interfaces/IFeatureChainModule.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
@@ -18,16 +17,8 @@
 #include "luvk/Modules/Synchronization.hpp"
 #include "luvk/Modules/ThreadPool.hpp"
 
-static constinit std::atomic_bool s_IsVolkInitialized = false;
-
 void luvk::Renderer::RegisterModules(RenderModules&& Modules)
 {
-    if (s_IsVolkInitialized.load() == false)
-    {
-        volkInitialize();
-        s_IsVolkInitialized.store(true);
-    }
-
     if (m_Extensions.IsEmpty() == true)
     {
         m_Extensions.FillExtensionsContainer();
@@ -40,6 +31,8 @@ void luvk::Renderer::RegisterModules(RenderModules&& Modules)
 
 bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext)
 {
+    volkInitialize();
+    
     std::vector<std::shared_ptr<IRenderModule>> AllModules{m_Modules.DebugModule,
                                                            m_Modules.DeviceModule,
                                                            m_Modules.MemoryModule,
@@ -130,15 +123,6 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
 
 void luvk::Renderer::ClearResources()
 {
-    if (m_Modules.DeviceModule != nullptr)
-    {
-        if (const VkDevice LogicalDevice = m_Modules.DeviceModule->GetLogicalDevice();
-            LogicalDevice != VK_NULL_HANDLE)
-        {
-            vkDeviceWaitIdle(LogicalDevice);
-        }
-    }
-
     m_Modules.DebugModule.reset();
     m_Modules.DeviceModule.reset();
     m_Modules.MemoryModule.reset();
@@ -156,11 +140,7 @@ void luvk::Renderer::ClearResources()
         m_Instance = VK_NULL_HANDLE;
     }
 
-    if (s_IsVolkInitialized.load() == true)
-    {
-        volkFinalize();
-        s_IsVolkInitialized.store(false);
-    }
+    volkFinalize();
 }
 
 void luvk::Renderer::DrawFrame() const

@@ -18,7 +18,7 @@ namespace luvk
     class CommandPool;
     class CommandBufferPool;
 
-    struct LUVKMODULE_API FrameData
+    struct LUVK_API FrameData
     {
         bool                         Submitted{false};
         VkFence                      InFlight{VK_NULL_HANDLE};
@@ -27,7 +27,7 @@ namespace luvk
         std::vector<VkCommandBuffer> SecondaryBuffers{};
     };
 
-    class LUVKMODULE_API Synchronization : public IRenderModule
+    class LUVK_API Synchronization : public IRenderModule
     {
     protected:
         std::array<FrameData, Constants::ImageCount>   m_Frames{};

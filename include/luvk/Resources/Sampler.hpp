@@ -6,13 +6,12 @@
 
 #include <memory>
 #include <volk.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
     class Device;
 
-    class LUVKMODULE_API Sampler
+    class LUVK_API Sampler
     {
     protected:
         VkSampler               m_Sampler{VK_NULL_HANDLE};

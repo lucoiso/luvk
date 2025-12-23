@@ -7,7 +7,6 @@
 #include <array>
 #include <span>
 #include <volk.h>
-#include "luvk/Module.hpp"
 #include "luvk/Constants/Rendering.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IExtensionsModule.hpp"
@@ -39,9 +38,9 @@ namespace luvk
         OnCreated
     };
 
-    class LUVKMODULE_API SwapChain : public IRenderModule,
-                                     public IEventModule,
-                                     public IExtensionsModule
+    class LUVK_API SwapChain : public IRenderModule,
+                               public IEventModule,
+                               public IExtensionsModule
     {
     protected:
         using CreationArguments = SwapChainCreationArguments;

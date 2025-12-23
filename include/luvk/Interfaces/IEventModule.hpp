@@ -4,12 +4,11 @@
 
 #pragma once
 
-#include "luvk/Module.hpp"
 #include "luvk/Resources/Event.hpp"
 
 namespace luvk
 {
-    class LUVKMODULE_API IEventModule
+    class LUVK_API IEventModule
     {
         mutable EventGraph m_EventGraph{};
 

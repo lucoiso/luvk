@@ -9,7 +9,6 @@
 #include <span>
 #include <vector>
 #include <volk.h>
-#include "luvk/Module.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 
 namespace luvk
@@ -19,7 +18,7 @@ namespace luvk
     class Synchronization;
     struct FrameData;
 
-    class LUVKMODULE_API Draw : public IRenderModule
+    class LUVK_API Draw : public IRenderModule
     {
     protected:
         std::array<VkClearValue, 2U> m_ClearValues{VkClearValue{.color = {0.2F, 0.2F, 0.2F, 1.F}},

@@ -9,12 +9,11 @@
 #include <mutex>
 #include <queue>
 #include <thread>
-#include "luvk/Module.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 
 namespace luvk
 {
-    class LUVKMODULE_API ThreadPool : public IRenderModule
+    class LUVK_API ThreadPool : public IRenderModule
     {
     protected:
         std::vector<std::thread>          m_Threads{};

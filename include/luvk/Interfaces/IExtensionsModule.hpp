@@ -6,13 +6,12 @@
 
 #include <string_view>
 #include <unordered_map>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
     using ExtensionMap = std::unordered_map<std::string_view, std::vector<std::string_view>>;
 
-    class LUVKMODULE_API IExtensionsModule
+    class LUVK_API IExtensionsModule
     {
     public:
         virtual ~IExtensionsModule() = default;

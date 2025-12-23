@@ -8,20 +8,19 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
-    LUVKMODULE_API void InitializeShaderCompiler();
-    LUVKMODULE_API void ShutdownShaderCompiler();
+    LUVK_API void InitializeShaderCompiler();
+    LUVK_API void ShutdownShaderCompiler();
 
-    struct LUVKMODULE_API CompilationResult
+    struct LUVK_API CompilationResult
     {
         bool                       Result{false};
         std::vector<std::uint32_t> Data{};
         std::string                Error{};
     };
 
-    [[nodiscard]] LUVKMODULE_API CompilationResult          CompileShaderSafe(std::string_view Source);
-    [[nodiscard]] LUVKMODULE_API std::vector<std::uint32_t> CompileShader(std::string_view Source);
+    [[nodiscard]] LUVK_API CompilationResult          CompileShaderSafe(std::string_view Source);
+    [[nodiscard]] LUVK_API std::vector<std::uint32_t> CompileShader(std::string_view Source);
 } // namespace luvk

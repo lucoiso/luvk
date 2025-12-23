@@ -5,14 +5,13 @@
 #pragma once
 
 #include <memory>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
     class Image;
     class Sampler;
 
-    class LUVKMODULE_API Texture
+    class LUVK_API Texture
     {
     protected:
         std::shared_ptr<Image>   m_Image{};

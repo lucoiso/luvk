@@ -8,14 +8,13 @@
 #include <span>
 #include <vector>
 #include <volk.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
     class Device;
     class PipelineCache;
 
-    class LUVKMODULE_API Pipeline
+    class LUVK_API Pipeline
     {
     public:
         enum class Type : std::uint8_t

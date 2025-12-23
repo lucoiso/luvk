@@ -9,7 +9,6 @@
 #include <span>
 #include <vector>
 #include <volk.h>
-#include "luvk/Module.hpp"
 #include "luvk/Constants/Rendering.hpp"
 #include "luvk/Types/Transform.hpp"
 
@@ -20,7 +19,7 @@ namespace luvk
     class Memory;
     class Material;
 
-    class LUVKMODULE_API Mesh
+    class LUVK_API Mesh
     {
     public:
         struct InstanceInfo

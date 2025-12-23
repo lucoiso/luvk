@@ -4,11 +4,7 @@
 
 #pragma once
 
-#include <array>
-#include <functional>
 #include <memory>
-#include <span>
-#include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Modules/Synchronization.hpp"
@@ -50,8 +46,8 @@ namespace luvk
         std::vector<std::shared_ptr<IRenderModule>> ExtraModules{};
     };
 
-    class LUVKMODULE_API Renderer : public IRenderModule,
-                                    public IEventModule
+    class LUVK_API Renderer : public IRenderModule,
+                              public IEventModule
     {
     protected:
         bool               m_Paused{false};

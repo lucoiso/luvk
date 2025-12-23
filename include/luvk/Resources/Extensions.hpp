@@ -8,18 +8,17 @@
 #include <string>
 #include <vector>
 #include <volk.h>
-#include "luvk/Module.hpp"
 
 namespace luvk
 {
-    struct LUVKMODULE_API Layer
+    struct LUVK_API Layer
     {
         bool                                      Enabled{};
         std::string                               Name{};
         std::vector<std::pair<std::string, bool>> Extensions;
     };
 
-    class LUVKMODULE_API IExtensions
+    class LUVK_API IExtensions
     {
         std::vector<Layer> m_Layers{};
 
@@ -86,7 +85,7 @@ namespace luvk
         [[nodiscard]] virtual std::vector<VkLayerProperties>     FetchAvailableLayers() const = 0;
     };
 
-    class LUVKMODULE_API InstanceExtensions : public IExtensions
+    class LUVK_API InstanceExtensions : public IExtensions
     {
     public:
         constexpr InstanceExtensions() = default;
@@ -97,7 +96,7 @@ namespace luvk
         [[nodiscard]] std::vector<VkLayerProperties>     FetchAvailableLayers() const override;
     };
 
-    class LUVKMODULE_API DeviceExtensions : public IExtensions
+    class LUVK_API DeviceExtensions : public IExtensions
     {
         VkPhysicalDevice m_Device{VK_NULL_HANDLE};
 
