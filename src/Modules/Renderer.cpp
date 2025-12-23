@@ -20,7 +20,7 @@
 void luvk::Renderer::RegisterModules(RenderModules&& Modules)
 {
     volkInitialize();
-    
+
     if (m_Extensions.IsEmpty() == true)
     {
         m_Extensions.FillExtensionsContainer();
