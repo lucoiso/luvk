@@ -19,6 +19,8 @@
 
 void luvk::Renderer::RegisterModules(RenderModules&& Modules)
 {
+    volkInitialize();
+    
     if (m_Extensions.IsEmpty() == true)
     {
         m_Extensions.FillExtensionsContainer();
@@ -31,8 +33,6 @@ void luvk::Renderer::RegisterModules(RenderModules&& Modules)
 
 bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext)
 {
-    volkInitialize();
-    
     std::vector<std::shared_ptr<IRenderModule>> AllModules{m_Modules.DebugModule,
                                                            m_Modules.DeviceModule,
                                                            m_Modules.MemoryModule,
