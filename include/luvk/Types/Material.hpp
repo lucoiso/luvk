@@ -36,7 +36,7 @@ namespace luvk
 
         void AllocateDescriptorSet(std::span<const VkDescriptorSetLayoutBinding> Bindings) const;
 
-        void Bind(const VkCommandBuffer& CommandBuffer) const;
+        void Bind(VkCommandBuffer CommandBuffer) const;
 
         void SetPipeline(const std::shared_ptr<Pipeline>& PipelineObj);
         void SetDescriptorSet(const std::shared_ptr<DescriptorSet>& DescriptorSetObj);

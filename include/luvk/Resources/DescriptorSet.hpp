@@ -39,25 +39,25 @@ namespace luvk
         };
 
         void CreateLayout(const LayoutInfo& Info);
-        void UseLayout(const VkDescriptorSetLayout& Layout);
+        void UseLayout(VkDescriptorSetLayout Layout);
         void Allocate();
 
-        void UpdateBuffer(const VkBuffer&  Buffer,
+        void UpdateBuffer(VkBuffer         Buffer,
                           VkDeviceSize     Size,
                           std::uint32_t    Binding,
                           VkDescriptorType Type) const;
 
-        void UpdateImage(const VkImageView& View,
-                         const VkSampler&   Sampler,
-                         std::uint32_t      Binding,
-                         VkDescriptorType   Type) const;
+        void UpdateImage(VkImageView      View,
+                         VkSampler        Sampler,
+                         std::uint32_t    Binding,
+                         VkDescriptorType Type) const;
 
-        [[nodiscard]] constexpr const VkDescriptorSetLayout& GetLayout() const noexcept
+        [[nodiscard]] constexpr VkDescriptorSetLayout GetLayout() const noexcept
         {
             return m_Layout;
         }
 
-        [[nodiscard]] constexpr const VkDescriptorSet& GetHandle() const noexcept
+        [[nodiscard]] constexpr VkDescriptorSet GetHandle() const noexcept
         {
             return m_Set;
         }

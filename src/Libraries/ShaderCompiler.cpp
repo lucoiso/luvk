@@ -9,7 +9,6 @@
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <stdexcept>
-#include "luvk/Types/Array.hpp"
 
 Slang::ComPtr<slang::IGlobalSession> GSlangGlobalSession;
 static constinit std::atomic_uint    GSlangInitCount{0};
@@ -34,7 +33,7 @@ void luvk::ShutdownShaderCompiler()
     }
 }
 
-luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view& Source)
+luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view Source)
 {
     CompilationResult Output{};
     if (!GSlangGlobalSession)
@@ -44,21 +43,17 @@ luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view& Source)
 
     Slang::ComPtr<slang::ISession> SlangSession;
 
-    const luvk::Array Targets{
-        slang::TargetDesc{.format = SLANG_SPIRV,
-                          .profile = GSlangGlobalSession->findProfile("spirv_1_6"),
-                          .flags = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY}
-    };
+    const slang::TargetDesc Target{.format = SLANG_SPIRV,
+                                   .profile = GSlangGlobalSession->findProfile("spirv_1_6"),
+                                   .flags = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY};
 
-    luvk::Array Options{
-        slang::CompilerOptionEntry{slang::CompilerOptionName::Optimization, {slang::CompilerOptionValueKind::Int, SLANG_OPTIMIZATION_LEVEL_MAXIMAL}}
-    };
+    slang::CompilerOptionEntry Option{slang::CompilerOptionName::Optimization, {slang::CompilerOptionValueKind::Int, SLANG_OPTIMIZATION_LEVEL_MAXIMAL}};
 
-    const slang::SessionDesc Desc{.targets = std::data(Targets),
-                                  .targetCount = static_cast<SlangInt>(std::size(Targets)),
+    const slang::SessionDesc Desc{.targets = &Target,
+                                  .targetCount = 1U,
                                   .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-                                  .compilerOptionEntries = std::data(Options),
-                                  .compilerOptionEntryCount = static_cast<uint32_t>(std::size(Options))};
+                                  .compilerOptionEntries = &Option,
+                                  .compilerOptionEntryCount = 1U};
 
     if (GSlangGlobalSession->createSession(Desc, SlangSession.writeRef()) != SLANG_OK)
     {
@@ -111,7 +106,7 @@ luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view& Source)
     return Output;
 }
 
-luvk::Vector<std::uint32_t> luvk::CompileShader(const std::string_view& Source)
+std::vector<std::uint32_t> luvk::CompileShader(const std::string_view Source)
 {
     return CompileShaderSafe(Source).Data;
 }

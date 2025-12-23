@@ -39,7 +39,7 @@ void luvk::EventGraph::AddNode(std::shared_ptr<EventNode>&& Node, const std::siz
     }
     else
     {
-        Vector Nodes{std::move(Node)};
+        std::vector Nodes{std::move(Node)};
         m_Nodes.emplace(Key, std::move(Nodes));
     }
 }
@@ -51,7 +51,7 @@ void luvk::EventGraph::Execute(const std::size_t Key)
         bool EmptyNode = false;
 
         {
-            Vector<std::shared_ptr<EventNode>>& Nodes = m_Nodes.at(Key);
+            std::vector<std::shared_ptr<EventNode>>& Nodes = m_Nodes.at(Key);
 
             std::erase_if(Nodes,
                           [](const std::shared_ptr<EventNode>& NodeIt)

@@ -32,7 +32,7 @@ namespace luvk
 
         void CreateSampler(const CreationArguments& Arguments);
 
-        [[nodiscard]] constexpr const VkSampler& GetHandle() const noexcept
+        [[nodiscard]] constexpr VkSampler GetHandle() const noexcept
         {
             return m_Sampler;
         }

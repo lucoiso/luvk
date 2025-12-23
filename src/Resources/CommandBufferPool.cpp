@@ -15,7 +15,7 @@ luvk::CommandBufferPool::~CommandBufferPool()
 {
     if (m_Pool != VK_NULL_HANDLE)
     {
-        const VkDevice& DeviceHandle = m_DeviceModule->GetLogicalDevice();
+        const VkDevice DeviceHandle = m_DeviceModule->GetLogicalDevice();
 
         if (!std::empty(m_Buffers))
         {

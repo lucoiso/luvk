@@ -21,8 +21,8 @@ luvk::Synchronization::Synchronization(const std::shared_ptr<Device>&      Devic
 
 void luvk::Synchronization::Initialize()
 {
-    m_SecondaryPool               = std::make_shared<CommandBufferPool>(m_DeviceModule);
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    m_SecondaryPool              = std::make_shared<CommandBufferPool>(m_DeviceModule);
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     const std::uint32_t GraphicsFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
     m_SecondaryPool->Create(GraphicsFamily, 0);
@@ -30,10 +30,7 @@ void luvk::Synchronization::Initialize()
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
     constexpr VkFenceCreateInfo     FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-    m_Frames.resize(luvk::Constants::ImageCount);
-    m_RenderFinished.resize(luvk::Constants::ImageCount, VK_NULL_HANDLE);
-
-    for (std::size_t Index = 0; Index < luvk::Constants::ImageCount; ++Index)
+    for (std::size_t Index = 0; Index < Constants::ImageCount; ++Index)
     {
         FrameData& Frame = m_Frames.at(Index);
 
@@ -51,10 +48,10 @@ void luvk::Synchronization::SetupFrames()
 {
     m_DeviceModule->WaitIdle();
 
-    const VkDevice&   LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice    LogicalDevice = m_DeviceModule->GetLogicalDevice();
     const std::size_t ImageCount    = std::size(m_SwapChainModule->GetImageViews());
 
-    const Vector<VkCommandBuffer> Buffers = m_CommandPoolModule->AllocateBuffers(static_cast<std::uint32_t>(ImageCount));
+    const std::vector<VkCommandBuffer> Buffers = m_CommandPoolModule->AllocateBuffers(static_cast<std::uint32_t>(ImageCount));
 
     m_SecondaryPool->Reset();
 
@@ -98,7 +95,7 @@ void luvk::Synchronization::ClearResources()
         return;
     }
 
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     for (FrameData& Frame : m_Frames)
     {
@@ -127,7 +124,4 @@ void luvk::Synchronization::ClearResources()
             Sem = VK_NULL_HANDLE;
         }
     }
-
-    m_Frames.clear();
-    m_RenderFinished.clear();
 }

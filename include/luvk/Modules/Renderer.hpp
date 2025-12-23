@@ -4,15 +4,15 @@
 
 #pragma once
 
+#include <array>
 #include <functional>
 #include <memory>
+#include <span>
 #include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Modules/Synchronization.hpp"
 #include "luvk/Resources/Extensions.hpp"
-#include "luvk/Types/Vector.hpp"
-#include "luvk/Types/Array.hpp"
 
 namespace luvk
 {
@@ -24,6 +24,7 @@ namespace luvk
     class Synchronization;
     class ThreadPool;
     class DescriptorPool;
+    class Draw;
 
     enum class RendererEvents : std::uint8_t
     {
@@ -32,7 +33,6 @@ namespace luvk
         OnRefreshed,
         OnPaused,
         OnResumed,
-        OnRenderLoopInitialized
     };
 
     struct RenderModules
@@ -45,33 +45,29 @@ namespace luvk
         std::shared_ptr<Synchronization> SynchronizationModule{nullptr};
         std::shared_ptr<ThreadPool>      ThreadPoolModule{nullptr};
         std::shared_ptr<DescriptorPool>  DescriptorPoolModule{nullptr};
+        std::shared_ptr<Draw>            DrawModule{nullptr};
 
-        Vector<std::shared_ptr<IRenderModule>> ExtraModules{};
+        std::vector<std::shared_ptr<IRenderModule>> ExtraModules{};
     };
 
     class LUVKMODULE_API Renderer : public IRenderModule,
                                     public IEventModule
     {
     protected:
-        bool                         m_Paused{false};
-        VkInstance                   m_Instance{VK_NULL_HANDLE};
-        InstanceExtensions           m_Extensions{};
-        luvk::Array<VkClearValue, 2> m_ClearValues{VkClearValue{.color = {0.2F, 0.2F, 0.2F, 1.F}},
-                                                   VkClearValue{.depthStencil = {1.F, 0}}};
-        Vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
-        RenderModules                                m_Modules{};
-        std::function<void(VkCommandBuffer)>         m_PreRenderCallback{nullptr};
-        std::function<void(VkCommandBuffer)>         m_DrawCallback{nullptr};
+        bool               m_Paused{false};
+        VkInstance         m_Instance{VK_NULL_HANDLE};
+        InstanceExtensions m_Extensions{};
+        RenderModules      m_Modules{};
 
     public:
         constexpr Renderer() = default;
 
-        virtual ~Renderer() override
+        ~Renderer() override
         {
             Renderer::ClearResources();
         }
 
-        [[nodiscard]] const VkInstance& GetInstance() const noexcept
+        [[nodiscard]] constexpr VkInstance GetInstance() const noexcept
         {
             return m_Instance;
         }
@@ -81,14 +77,7 @@ namespace luvk
             return m_Extensions;
         }
 
-        [[nodiscard]] constexpr luvk::Array<VkClearValue, 2> GetClearValues() const noexcept
-        {
-            return m_ClearValues;
-        }
-
-        void SetClearValues(luvk::Array<VkClearValue, 2>&& Values);
-
-        [[nodiscard]] constexpr const RenderModules& GetModules() const noexcept
+        [[nodiscard]] RenderModules GetModules() const noexcept
         {
             return m_Modules;
         }
@@ -104,21 +93,11 @@ namespace luvk
         };
 
         [[nodiscard]] bool InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext);
-        void               InitializeRenderLoop() const;
-        void               DrawFrame();
+        void               DrawFrame() const;
         void               SetPaused(bool Paused);
         void               Refresh(const VkExtent2D& Extent) const;
 
-        void EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd);
-        void SetPreRenderCallback(std::function<void(VkCommandBuffer)>&& Callback);
-        void SetDrawCallback(std::function<void(VkCommandBuffer)>&& Callback);
-
     protected:
         void ClearResources() override;
-
-    private:
-        void SetupFrames() const;
-        void RecordCommands(Synchronization::FrameData& Frame, std::uint32_t ImageIndex);
-        void SubmitFrame(Synchronization::FrameData& Frame, std::uint32_t ImageIndex) const;
     };
 } // namespace luvk

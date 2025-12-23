@@ -4,10 +4,12 @@
 
 #pragma once
 
+#include <array>
 #include <memory>
+#include <vector>
 #include <volk.h>
+#include "luvk/Constants/Rendering.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
@@ -16,26 +18,25 @@ namespace luvk
     class CommandPool;
     class CommandBufferPool;
 
+    struct LUVKMODULE_API FrameData
+    {
+        bool                         Submitted{false};
+        VkFence                      InFlight{VK_NULL_HANDLE};
+        VkSemaphore                  ImageAvailable{VK_NULL_HANDLE};
+        VkCommandBuffer              CommandBuffer{VK_NULL_HANDLE};
+        std::vector<VkCommandBuffer> SecondaryBuffers{};
+    };
+
     class LUVKMODULE_API Synchronization : public IRenderModule
     {
-    public:
-        struct FrameData
-        {
-            VkCommandBuffer         CommandBuffer{VK_NULL_HANDLE};
-            Vector<VkCommandBuffer> SecondaryBuffers{};
-            VkSemaphore             ImageAvailable{VK_NULL_HANDLE};
-            VkFence                 InFlight{VK_NULL_HANDLE};
-            bool                    Submitted{false};
-        };
-
     protected:
-        Vector<FrameData>                  m_Frames{};
-        Vector<VkSemaphore>                m_RenderFinished{};
-        std::size_t                        m_CurrentFrame{0};
-        std::shared_ptr<CommandBufferPool> m_SecondaryPool{};
-        std::shared_ptr<Device>            m_DeviceModule{};
-        std::shared_ptr<SwapChain>         m_SwapChainModule{};
-        std::shared_ptr<CommandPool>       m_CommandPoolModule{};
+        std::array<FrameData, Constants::ImageCount>   m_Frames{};
+        std::array<VkSemaphore, Constants::ImageCount> m_RenderFinished{};
+        std::size_t                                    m_CurrentFrame{0};
+        std::shared_ptr<CommandBufferPool>             m_SecondaryPool{};
+        std::shared_ptr<Device>                        m_DeviceModule{};
+        std::shared_ptr<SwapChain>                     m_SwapChainModule{};
+        std::shared_ptr<CommandPool>                   m_CommandPoolModule{};
 
     public:
         Synchronization() = delete;
@@ -51,17 +52,12 @@ namespace luvk
         void Initialize();
         void SetupFrames();
 
-        [[nodiscard]] constexpr std::size_t GetFrameCount() const noexcept
-        {
-            return std::size(m_Frames);
-        }
-
         [[nodiscard]] constexpr FrameData& GetFrame(const std::size_t Index) noexcept
         {
             return m_Frames.at(Index);
         }
 
-        [[nodiscard]] constexpr VkSemaphore& GetRenderFinished(const std::size_t Index) noexcept
+        [[nodiscard]] constexpr VkSemaphore GetRenderFinished(const std::size_t Index) noexcept
         {
             return m_RenderFinished.at(Index);
         }

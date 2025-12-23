@@ -3,14 +3,13 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Pipeline.hpp"
+#include <array>
 #include <iterator>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Resources/PipelineCache.hpp"
-#include "luvk/Types/Array.hpp"
-#include "luvk/Types/Vector.hpp"
 
-static VkShaderModule CreateShader(const VkDevice& Device, std::span<const std::uint32_t> Code)
+static VkShaderModule CreateShader(const VkDevice Device, std::span<const std::uint32_t> Code)
 {
     const VkShaderModuleCreateInfo Info{.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
                                         .codeSize = std::size(Code) * sizeof(std::uint32_t),
@@ -35,8 +34,8 @@ luvk::Pipeline::~Pipeline()
 
 void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
 {
-    m_Type                        = Type::Graphics;
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    m_Type                       = Type::Graphics;
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     VkShaderModule VertModule = CreateShader(LogicalDevice, Arguments.VertexShader);
     VkShaderModule FragModule = CreateShader(LogicalDevice, Arguments.FragmentShader);
@@ -104,7 +103,7 @@ void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
                                                          .attachmentCount = 1,
                                                          .pAttachments = &ColorBlendAttachment};
 
-    constexpr luvk::Array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    constexpr std::array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     const VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
                                                    .pNext = nullptr,
@@ -136,7 +135,7 @@ void luvk::Pipeline::CreateGraphicsPipeline(const CreationArguments& Arguments)
                                                                   .minDepthBounds = 0.F,
                                                                   .maxDepthBounds = 1.F};
 
-    const luvk::Array            Stages{VertStage, FragStage};
+    const std::array             Stages{VertStage, FragStage};
     VkGraphicsPipelineCreateInfo PipelineInfo{.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                               .pNext = nullptr,
                                               .flags = 0,
@@ -179,7 +178,7 @@ void luvk::Pipeline::CreateComputePipeline(const ComputeCreationArguments& Argum
 {
     m_Type = Type::Compute;
 
-    const VkDevice&      LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice       LogicalDevice = m_DeviceModule->GetLogicalDevice();
     const VkShaderModule CompModule    = CreateShader(LogicalDevice, Arguments.ComputeShader);
 
     const VkPipelineShaderStageCreateInfo CompStage{.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -229,8 +228,8 @@ void luvk::Pipeline::RecreateComputePipeline(const ComputeCreationArguments& Arg
 
 void luvk::Pipeline::CreateMeshPipeline(const MeshCreationArguments& Arguments)
 {
-    m_Type                        = Type::Mesh;
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    m_Type                       = Type::Mesh;
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     VkShaderModule MeshModule = CreateShader(LogicalDevice, Arguments.MeshShader);
     VkShaderModule TaskModule = VK_NULL_HANDLE;
@@ -246,7 +245,7 @@ void luvk::Pipeline::CreateMeshPipeline(const MeshCreationArguments& Arguments)
         FragModule = CreateShader(LogicalDevice, Arguments.FragmentShader);
     }
 
-    Vector<VkPipelineShaderStageCreateInfo> Stages{};
+    std::vector<VkPipelineShaderStageCreateInfo> Stages{};
     if (TaskModule != VK_NULL_HANDLE)
     {
         Stages.push_back({.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -313,7 +312,7 @@ void luvk::Pipeline::CreateMeshPipeline(const MeshCreationArguments& Arguments)
                                                          .attachmentCount = 1,
                                                          .pAttachments = &ColorBlendAttachment};
 
-    constexpr luvk::Array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    constexpr std::array DynamicStates{VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
 
     const VkPipelineDynamicStateCreateInfo Dynamic{.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
                                                    .pNext = nullptr,
@@ -414,7 +413,7 @@ void luvk::Pipeline::Clear()
         return;
     }
 
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     if (m_Pipeline != VK_NULL_HANDLE)
     {

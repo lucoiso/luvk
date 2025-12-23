@@ -29,9 +29,9 @@ namespace luvk
             Debug::ClearResources();
         }
 
-        [[nodiscard]] constexpr ExtensionsMap GetInstanceExtensions() const noexcept override
+        [[nodiscard]] ExtensionMap GetInstanceExtensions() const noexcept override
         {
-            return ToExtensionMap("VK_LAYER_KHRONOS_validation", {VK_EXT_DEBUG_UTILS_EXTENSION_NAME});
+            return {{"VK_LAYER_KHRONOS_validation", {VK_EXT_DEBUG_UTILS_EXTENSION_NAME}}};
         }
 
     protected:

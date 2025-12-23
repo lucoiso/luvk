@@ -17,8 +17,8 @@ luvk::Image::Image(const std::shared_ptr<Device>& DeviceModule, const std::share
 
 luvk::Image::~Image()
 {
-    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
-    const VkDevice&     Device    = m_DeviceModule->GetLogicalDevice();
+    const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
+    const VkDevice     Device    = m_DeviceModule->GetLogicalDevice();
 
     if (m_View != VK_NULL_HANDLE)
     {
@@ -39,7 +39,7 @@ void luvk::Image::CreateImage(const CreationArguments& Arguments)
     m_Width  = Arguments.Extent.width;
     m_Height = Arguments.Extent.height;
 
-    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
+    const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
 
     constexpr VkImageTiling Tiling = VK_IMAGE_TILING_OPTIMAL;
 
@@ -78,24 +78,24 @@ void luvk::Image::CreateImage(const CreationArguments& Arguments)
     }
 }
 
-void luvk::Image::Upload(const std::span<const std::byte>& Data) const
+void luvk::Image::Upload(const std::span<const std::byte> Data) const
 {
-    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
-    void*               Mapping   = nullptr;
-    if (!LUVK_EXECUTE(vmaMapMemory(Allocator, m_Allocation, &Mapping)))
+    const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
+    void*              Map       = nullptr;
+    if (!LUVK_EXECUTE(vmaMapMemory(Allocator, m_Allocation, &Map)))
     {
-        throw std::runtime_error("Failed to map image memory.");
+        throw std::runtime_error("Failed to std::unordered_map image memory.");
     }
-    std::memcpy(Mapping, std::data(Data), std::size(Data));
+    std::memcpy(Map, std::data(Data), std::size(Data));
     vmaFlushAllocation(Allocator, m_Allocation, 0, std::size(Data));
     vmaUnmapMemory(Allocator, m_Allocation);
 }
 
 void luvk::Image::Upload(const std::shared_ptr<Buffer>& Staging) const
 {
-    const VkDevice&     LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice      LogicalDevice = m_DeviceModule->GetLogicalDevice();
     const std::uint32_t QueueFamily   = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
-    const VkQueue&      Queue         = m_DeviceModule->GetQueue(QueueFamily);
+    const VkQueue       Queue         = m_DeviceModule->GetQueue(QueueFamily);
 
     const VkCommandPoolCreateInfo PoolInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
                                            .pNext = nullptr,

@@ -4,12 +4,14 @@
 
 #pragma once
 
+#include <array>
+#include <span>
 #include <volk.h>
 #include "luvk/Module.hpp"
+#include "luvk/Constants/Rendering.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
@@ -29,7 +31,7 @@ namespace luvk
         VkCompositeAlphaFlagBitsKHR   CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
         VkExtent2D                    Extent{.width = 0U, .height = 0U};
         VkSurfaceKHR                  Surface{VK_NULL_HANDLE};
-        Vector<std::uint32_t>         QueueIndices{};
+        std::vector<std::uint32_t>    QueueIndices{};
     };
 
     enum class SwapChainEvents : std::uint8_t
@@ -44,17 +46,21 @@ namespace luvk
     protected:
         using CreationArguments = SwapChainCreationArguments;
 
-        VkSwapchainKHR                 m_SwapChain{VK_NULL_HANDLE};
-        VkSwapchainKHR                 m_PreviousSwapChain{VK_NULL_HANDLE};
-        Vector<VkImage>                m_Images{};
-        Vector<VkImageView>            m_ImageViews{};
-        Vector<VkFramebuffer>          m_Framebuffers{};
-        Vector<std::shared_ptr<Image>> m_DepthImages{};
-        VkFormat                       m_DepthFormat{VK_FORMAT_UNDEFINED};
-        VkRenderPass                   m_RenderPass{VK_NULL_HANDLE};
-        std::shared_ptr<Device>        m_DeviceModule{};
-        std::shared_ptr<Memory>        m_MemoryModule{};
-        CreationArguments              m_Arguments{};
+        VkSwapchainKHR m_SwapChain{VK_NULL_HANDLE};
+        VkSwapchainKHR m_PreviousSwapChain{VK_NULL_HANDLE};
+
+        VkFormat     m_DepthFormat{VK_FORMAT_UNDEFINED};
+        VkRenderPass m_RenderPass{VK_NULL_HANDLE};
+
+        std::array<VkImage, Constants::ImageCount>                m_Images{};
+        std::array<VkImageView, Constants::ImageCount>            m_ImageViews{};
+        std::array<VkFramebuffer, Constants::ImageCount>          m_Framebuffers{};
+        std::array<std::shared_ptr<Image>, Constants::ImageCount> m_DepthImages{};
+
+        std::shared_ptr<Device> m_DeviceModule{};
+        std::shared_ptr<Memory> m_MemoryModule{};
+
+        CreationArguments m_Arguments{};
 
     public:
         SwapChain() = delete;
@@ -66,27 +72,27 @@ namespace luvk
             SwapChain::ClearResources();
         }
 
-        [[nodiscard]] constexpr ExtensionsMap GetDeviceExtensions() const noexcept override
+        [[nodiscard]] ExtensionMap GetDeviceExtensions() const noexcept override
         {
-            return ToExtensionMap("", {VK_KHR_SWAPCHAIN_EXTENSION_NAME});
+            return {{"", {VK_KHR_SWAPCHAIN_EXTENSION_NAME}}};
         }
 
-        [[nodiscard]] constexpr const VkSwapchainKHR& GetHandle() const noexcept
+        [[nodiscard]] constexpr VkSwapchainKHR GetHandle() const noexcept
         {
             return m_SwapChain;
         }
 
-        [[nodiscard]] constexpr const Vector<VkImage>& GetImages() const noexcept
+        [[nodiscard]] constexpr std::span<const VkImage> GetImages() const noexcept
         {
             return m_Images;
         }
 
-        [[nodiscard]] constexpr const Vector<VkImageView>& GetImageViews() const noexcept
+        [[nodiscard]] constexpr std::span<const VkImageView> GetImageViews() const noexcept
         {
             return m_ImageViews;
         }
 
-        [[nodiscard]] constexpr const VkFramebuffer& GetFramebuffer(const std::size_t Index) const noexcept
+        [[nodiscard]] constexpr VkFramebuffer GetFramebuffer(const std::size_t Index) const noexcept
         {
             return m_Framebuffers.at(Index);
         }
@@ -96,7 +102,7 @@ namespace luvk
             return m_DepthImages.at(Index);
         }
 
-        [[nodiscard]] constexpr const Vector<std::shared_ptr<Image>> GetDepthImages() const noexcept
+        [[nodiscard]] constexpr std::span<const std::shared_ptr<Image>> GetDepthImages() const noexcept
         {
             return m_DepthImages;
         }
@@ -106,12 +112,12 @@ namespace luvk
             return m_DepthFormat;
         }
 
-        [[nodiscard]] constexpr const VkRenderPass& GetRenderPass() const noexcept
+        [[nodiscard]] constexpr VkRenderPass GetRenderPass() const noexcept
         {
             return m_RenderPass;
         }
 
-        [[nodiscard]] constexpr const VkExtent2D& GetExtent() const noexcept
+        [[nodiscard]] constexpr VkExtent2D GetExtent() const noexcept
         {
             return m_Arguments.Extent;
         }
@@ -122,20 +128,20 @@ namespace luvk
         }
 
         virtual void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
-        void         Recreate(VkExtent2D NewExtent, void* const& pNext);
+        void         Recreate(const VkExtent2D& NewExtent, void* const& pNext);
 
     protected:
         void ClearResources() override;
 
     private:
-        void                   CreateSwapChainImages(const VkDevice& LogicalDevice);
-        void                   DestroySwapChainImages(const VkDevice& LogicalDevice);
-        void                   CreateRenderPass(const VkDevice& LogicalDevice);
-        void                   DestroyRenderPass(const VkDevice& LogicalDevice);
-        void                   CreateFramebuffers(const VkDevice& LogicalDevice);
-        void                   DestroyFramebuffers(const VkDevice& LogicalDevice);
+        void                   CreateSwapChainImages(VkDevice LogicalDevice);
+        void                   DestroySwapChainImages(VkDevice LogicalDevice);
+        void                   CreateRenderPass(VkDevice LogicalDevice);
+        void                   DestroyRenderPass(VkDevice LogicalDevice);
+        void                   CreateFramebuffers(VkDevice LogicalDevice);
+        void                   DestroyFramebuffers(VkDevice LogicalDevice);
         void                   CreateDepthResources();
         void                   DestroyDepthResources();
-        [[nodiscard]] VkFormat SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice) const;
+        [[nodiscard]] VkFormat SelectDepthFormat(VkPhysicalDevice PhysicalDevice) const;
     };
 } // namespace luvk

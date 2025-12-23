@@ -20,7 +20,7 @@ luvk::Sampler::~Sampler()
 
 void luvk::Sampler::CreateSampler(const CreationArguments& Arguments)
 {
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     const VkSamplerCreateInfo Info{.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
                                    .pNext = nullptr,

@@ -11,14 +11,13 @@
 #include <thread>
 #include "luvk/Module.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
     class LUVKMODULE_API ThreadPool : public IRenderModule
     {
     protected:
-        Vector<std::thread>               m_Threads{};
+        std::vector<std::thread>          m_Threads{};
         std::queue<std::function<void()>> m_Tasks{};
         std::mutex                        m_Mutex{};
         std::condition_variable           m_Condition{};

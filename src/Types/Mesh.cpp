@@ -13,22 +13,11 @@ using namespace luvk;
 
 Mesh::Mesh(const std::shared_ptr<Device>& Device, const std::shared_ptr<Memory>& Memory)
     : m_Device(Device),
-      m_Memory(Memory)
-{
-    m_VertexBuffers.resize(luvk::Constants::ImageCount);
-    m_IndexBuffers.resize(luvk::Constants::ImageCount);
-    m_InstanceBuffers.resize(luvk::Constants::ImageCount);
-    m_UniformBuffers.resize(luvk::Constants::ImageCount);
-}
-
-void Mesh::SetMaterial(const std::shared_ptr<Material>& MaterialObj)
-{
-    m_Material = MaterialObj;
-}
+      m_Memory(Memory) {}
 
 void Mesh::UploadVertices(const std::span<const std::byte> Data, const std::uint32_t VertexCount, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= luvk::Constants::ImageCount)
+    if (FrameIndex >= Constants::ImageCount)
     {
         return;
     }
@@ -38,10 +27,10 @@ void Mesh::UploadVertices(const std::span<const std::byte> Data, const std::uint
     if (!Buffer || Buffer->GetSize() < Data.size_bytes())
     {
         Buffer = std::make_shared<luvk::Buffer>(m_Device, m_Memory);
-        Buffer->CreateBuffer({.Name = "Mesh VTX",
-                              .Size = Data.size_bytes(),
+        Buffer->CreateBuffer({.Size = Data.size_bytes(),
                               .Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+                              .Name = "Mesh VTX"});
     }
     Buffer->Upload(Data);
     m_VertexCount = VertexCount;
@@ -49,7 +38,7 @@ void Mesh::UploadVertices(const std::span<const std::byte> Data, const std::uint
 
 void Mesh::UploadIndices(const std::span<const std::uint16_t> Data, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= luvk::Constants::ImageCount)
+    if (FrameIndex >= Constants::ImageCount)
     {
         return;
     }
@@ -60,10 +49,10 @@ void Mesh::UploadIndices(const std::span<const std::uint16_t> Data, const std::u
     if (!Buffer || Buffer->GetSize() < Bytes)
     {
         Buffer = std::make_shared<luvk::Buffer>(m_Device, m_Memory);
-        Buffer->CreateBuffer({.Name = "Mesh IDX",
-                              .Size = Bytes,
+        Buffer->CreateBuffer({.Size = Bytes,
                               .Usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+                              .Name = "Mesh IDX"});
     }
     Buffer->Upload(std::as_bytes(Data));
     m_IndexCount = static_cast<std::uint32_t>(std::size(Data));
@@ -71,7 +60,7 @@ void Mesh::UploadIndices(const std::span<const std::uint16_t> Data, const std::u
 
 void Mesh::UploadIndices(const std::span<const std::uint32_t> Data, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= luvk::Constants::ImageCount)
+    if (FrameIndex >= Constants::ImageCount)
     {
         return;
     }
@@ -82,10 +71,10 @@ void Mesh::UploadIndices(const std::span<const std::uint32_t> Data, const std::u
     if (!Buffer || Buffer->GetSize() < Bytes)
     {
         Buffer = std::make_shared<luvk::Buffer>(m_Device, m_Memory);
-        Buffer->CreateBuffer({.Name = "Mesh IDX",
-                              .Size = Bytes,
+        Buffer->CreateBuffer({.Size = Bytes,
                               .Usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+                              .Name = "Mesh IDX"});
     }
     Buffer->Upload(std::as_bytes(Data));
     m_IndexCount = static_cast<std::uint32_t>(std::size(Data));
@@ -93,7 +82,7 @@ void Mesh::UploadIndices(const std::span<const std::uint32_t> Data, const std::u
 
 void Mesh::UpdateInstances(const std::span<const std::byte> Data, const std::uint32_t Count, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= luvk::Constants::ImageCount)
+    if (FrameIndex >= Constants::ImageCount)
     {
         return;
     }
@@ -103,10 +92,10 @@ void Mesh::UpdateInstances(const std::span<const std::byte> Data, const std::uin
     if (!Buffer || Buffer->GetSize() < Data.size_bytes())
     {
         Buffer = std::make_shared<luvk::Buffer>(m_Device, m_Memory);
-        Buffer->CreateBuffer({.Name = "Instance Data",
-                              .Size = Data.size_bytes(),
+        Buffer->CreateBuffer({.Size = Data.size_bytes(),
                               .Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+                              .Name = "Instance Data"});
     }
     Buffer->Upload(Data);
     m_InstanceCount = Count;
@@ -114,7 +103,7 @@ void Mesh::UpdateInstances(const std::span<const std::byte> Data, const std::uin
 
 void Mesh::UpdateUniformBuffer(const std::span<const std::byte> Data, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= luvk::Constants::ImageCount)
+    if (FrameIndex >= Constants::ImageCount)
     {
         return;
     }
@@ -124,17 +113,17 @@ void Mesh::UpdateUniformBuffer(const std::span<const std::byte> Data, const std:
     if (!Buffer || Buffer->GetSize() < Data.size_bytes())
     {
         Buffer = std::make_shared<luvk::Buffer>(m_Device, m_Memory);
-        Buffer->CreateBuffer({.Name = "Mesh UBO",
-                              .Size = Data.size_bytes(),
+        Buffer->CreateBuffer({.Size = Data.size_bytes(),
                               .Usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU});
+                              .MemoryUsage = VMA_MEMORY_USAGE_CPU_TO_GPU,
+                              .Name = "Mesh UBO"});
     }
     Buffer->Upload(Data);
 }
 
 void Mesh::UploadVerticesToAll(const std::span<const std::byte> Data, const std::uint32_t VertexCount)
 {
-    for (std::uint32_t It = 0; It < luvk::Constants::ImageCount; ++It)
+    for (std::uint32_t It = 0; It < Constants::ImageCount; ++It)
     {
         UploadVertices(Data, VertexCount, It);
     }
@@ -142,7 +131,7 @@ void Mesh::UploadVerticesToAll(const std::span<const std::byte> Data, const std:
 
 void Mesh::UploadIndicesToAll(const std::span<const std::uint16_t> Data)
 {
-    for (std::uint32_t It = 0; It < luvk::Constants::ImageCount; ++It)
+    for (std::uint32_t It = 0; It < Constants::ImageCount; ++It)
     {
         UploadIndices(Data, It);
     }
@@ -150,7 +139,7 @@ void Mesh::UploadIndicesToAll(const std::span<const std::uint16_t> Data)
 
 void Mesh::UploadIndicesToAll(const std::span<const std::uint32_t> Data)
 {
-    for (std::uint32_t It = 0; It < luvk::Constants::ImageCount; ++It)
+    for (std::uint32_t It = 0; It < Constants::ImageCount; ++It)
     {
         UploadIndices(Data, It);
     }
@@ -170,14 +159,14 @@ void Mesh::SetPushConstantData(const std::span<const std::byte> Data)
 
 void Mesh::Tick(const float DeltaTime) {}
 
-void Mesh::Render(const VkCommandBuffer& CommandBuffer, const std::uint32_t CurrentFrame) const
+void Mesh::Render(const VkCommandBuffer CommandBuffer, const std::uint32_t CurrentFrame) const
 {
     if (!m_Material)
     {
         return;
     }
 
-    if (CurrentFrame < luvk::Constants::ImageCount && m_UniformBuffers.at(CurrentFrame))
+    if (CurrentFrame < Constants::ImageCount && m_UniformBuffers.at(CurrentFrame))
     {
         m_Material->SetUniformBuffer(m_UniformBuffers.at(CurrentFrame), 0);
     }
@@ -229,19 +218,22 @@ void Mesh::Render(const VkCommandBuffer& CommandBuffer, const std::uint32_t Curr
         return;
     }
 
-    Vector<VkBuffer>     VtxBuffers;
-    Vector<VkDeviceSize> Offsets;
+    std::vector<VkBuffer>     VtxBuffers;
+    std::vector<VkDeviceSize> Offsets;
 
-    if (CurrentFrame < luvk::Constants::ImageCount && m_VertexBuffers.at(CurrentFrame))
+    if (CurrentFrame < Constants::ImageCount)
     {
-        VtxBuffers.push_back(m_VertexBuffers.at(CurrentFrame)->GetHandle());
-        Offsets.push_back(0);
-    }
+        if (m_VertexBuffers.at(CurrentFrame))
+        {
+            VtxBuffers.push_back(m_VertexBuffers.at(CurrentFrame)->GetHandle());
+            Offsets.push_back(0);
+        }
 
-    if (CurrentFrame < luvk::Constants::ImageCount && m_InstanceBuffers.at(CurrentFrame))
-    {
-        VtxBuffers.push_back(m_InstanceBuffers.at(CurrentFrame)->GetHandle());
-        Offsets.push_back(0);
+        if (m_InstanceBuffers.at(CurrentFrame))
+        {
+            VtxBuffers.push_back(m_InstanceBuffers.at(CurrentFrame)->GetHandle());
+            Offsets.push_back(0);
+        }
     }
 
     if (!std::empty(VtxBuffers))
@@ -249,7 +241,7 @@ void Mesh::Render(const VkCommandBuffer& CommandBuffer, const std::uint32_t Curr
         vkCmdBindVertexBuffers(CommandBuffer, 0, static_cast<std::uint32_t>(std::size(VtxBuffers)), std::data(VtxBuffers), std::data(Offsets));
     }
 
-    if (CurrentFrame < luvk::Constants::ImageCount && m_IndexBuffers.at(CurrentFrame))
+    if (CurrentFrame < Constants::ImageCount && m_IndexBuffers.at(CurrentFrame))
     {
         vkCmdBindIndexBuffer(CommandBuffer, m_IndexBuffers.at(CurrentFrame)->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
         vkCmdDrawIndexed(CommandBuffer, m_IndexCount, std::max(1U, m_InstanceCount), 0, 0, 0);

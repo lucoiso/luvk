@@ -6,9 +6,9 @@
 
 #include <memory>
 #include <span>
+#include <vector>
 #include <volk.h>
 #include "luvk/Module.hpp"
-#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
@@ -26,11 +26,11 @@ namespace luvk
         };
 
     protected:
-        Type                        m_Type{Type::Graphics};
-        VkPipelineLayout            m_PipelineLayout{VK_NULL_HANDLE};
-        VkPipeline                  m_Pipeline{VK_NULL_HANDLE};
-        Vector<VkPushConstantRange> m_PushConstants{};
-        std::shared_ptr<Device>     m_DeviceModule{};
+        Type                             m_Type{Type::Graphics};
+        VkPipelineLayout                 m_PipelineLayout{VK_NULL_HANDLE};
+        VkPipeline                       m_Pipeline{VK_NULL_HANDLE};
+        std::vector<VkPushConstantRange> m_PushConstants{};
+        std::shared_ptr<Device>          m_DeviceModule{};
 
     public:
         Pipeline() = delete;
@@ -92,12 +92,12 @@ namespace luvk
         void CreateMeshPipeline(const MeshCreationArguments& Arguments);
         void RecreateMeshPipeline(const MeshCreationArguments& Arguments);
 
-        [[nodiscard]] constexpr const VkPipeline& GetPipeline() const noexcept
+        [[nodiscard]] constexpr VkPipeline GetPipeline() const noexcept
         {
             return m_Pipeline;
         }
 
-        [[nodiscard]] constexpr const VkPipelineLayout& GetPipelineLayout() const noexcept
+        [[nodiscard]] constexpr VkPipelineLayout GetPipelineLayout() const noexcept
         {
             return m_PipelineLayout;
         }

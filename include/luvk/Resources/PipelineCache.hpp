@@ -29,22 +29,22 @@ namespace luvk
 
         void Create();
 
-        [[nodiscard]] constexpr const VkPipelineCache& GetPreRasterCache() const noexcept
+        [[nodiscard]] constexpr VkPipelineCache GetPreRasterCache() const noexcept
         {
             return m_PreRaster;
         }
 
-        [[nodiscard]] constexpr const VkPipelineCache& GetFragmentCache() const noexcept
+        [[nodiscard]] constexpr VkPipelineCache GetFragmentCache() const noexcept
         {
             return m_Fragment;
         }
 
-        [[nodiscard]] constexpr const VkPipelineCache& GetOutputCache() const noexcept
+        [[nodiscard]] constexpr VkPipelineCache GetOutputCache() const noexcept
         {
             return m_Output;
         }
 
-        [[nodiscard]] constexpr const VkPipelineCache& GetCompositeCache() const noexcept
+        [[nodiscard]] constexpr VkPipelineCache GetCompositeCache() const noexcept
         {
             return m_Composite;
         }

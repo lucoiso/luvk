@@ -32,7 +32,7 @@ void luvk::Material::AllocateDescriptorSet(const std::span<const VkDescriptorSet
     }
 }
 
-void luvk::Material::Bind(const VkCommandBuffer& CommandBuffer) const
+void luvk::Material::Bind(const VkCommandBuffer CommandBuffer) const
 {
     if (!m_Pipeline)
     {
@@ -44,7 +44,7 @@ void luvk::Material::Bind(const VkCommandBuffer& CommandBuffer) const
 
     if (m_DescriptorSet && m_DescriptorSet->GetHandle() != VK_NULL_HANDLE)
     {
-        const VkDescriptorSet& SetHandle = m_DescriptorSet->GetHandle();
+        const VkDescriptorSet SetHandle = m_DescriptorSet->GetHandle();
         vkCmdBindDescriptorSets(CommandBuffer, BindPoint, m_Pipeline->GetPipelineLayout(), 0, 1, &SetHandle, 0, nullptr);
     }
 }

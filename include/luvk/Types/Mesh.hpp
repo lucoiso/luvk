@@ -4,12 +4,14 @@
 
 #pragma once
 
+#include <array>
 #include <memory>
 #include <span>
+#include <vector>
 #include <volk.h>
 #include "luvk/Module.hpp"
+#include "luvk/Constants/Rendering.hpp"
 #include "luvk/Types/Transform.hpp"
-#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
@@ -23,18 +25,18 @@ namespace luvk
     public:
         struct InstanceInfo
         {
-            Transform             XForm{};
-            luvk::Array<float, 4> Color{1.F, 1.F, 1.F, 1.F};
+            Transform            XForm{};
+            std::array<float, 4> Color{1.F, 1.F, 1.F, 1.F};
         };
 
     protected:
-        Vector<std::shared_ptr<Buffer>> m_VertexBuffers{};
-        Vector<std::shared_ptr<Buffer>> m_IndexBuffers{};
-        Vector<std::shared_ptr<Buffer>> m_InstanceBuffers{};
-        Vector<std::shared_ptr<Buffer>> m_UniformBuffers{};
-        std::shared_ptr<Material>       m_Material{};
+        std::array<std::shared_ptr<Buffer>, Constants::ImageCount> m_VertexBuffers{};
+        std::array<std::shared_ptr<Buffer>, Constants::ImageCount> m_IndexBuffers{};
+        std::array<std::shared_ptr<Buffer>, Constants::ImageCount> m_InstanceBuffers{};
+        std::array<std::shared_ptr<Buffer>, Constants::ImageCount> m_UniformBuffers{};
+        std::shared_ptr<Material>                                  m_Material{};
 
-        Vector<std::byte> m_PushConstantData{};
+        std::vector<std::byte> m_PushConstantData{};
 
         std::shared_ptr<Device> m_Device{};
         std::shared_ptr<Memory> m_Memory{};
@@ -52,7 +54,10 @@ namespace luvk
         explicit Mesh(const std::shared_ptr<Device>& Device, const std::shared_ptr<Memory>& Memory);
         virtual  ~Mesh() = default;
 
-        void SetMaterial(const std::shared_ptr<Material>& MaterialObj);
+        void SetMaterial(const std::shared_ptr<Material>& MaterialObj)
+        {
+            m_Material = MaterialObj;
+        }
 
         [[nodiscard]] std::shared_ptr<Material> GetMaterial() const noexcept
         {
@@ -73,6 +78,6 @@ namespace luvk
         void SetPushConstantData(std::span<const std::byte> Data);
 
         virtual void Tick(float DeltaTime);
-        virtual void Render(const VkCommandBuffer& CommandBuffer, std::uint32_t CurrentFrame) const;
+        virtual void Render(VkCommandBuffer CommandBuffer, std::uint32_t CurrentFrame) const;
     };
 }

@@ -4,41 +4,25 @@
 
 #pragma once
 
-#include <initializer_list>
 #include <string_view>
+#include <unordered_map>
 #include "luvk/Module.hpp"
-#include "luvk/Types/UnorderedMap.hpp"
-#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
-    using ExtensionsMap = UnorderedMap<std::string_view, Vector<std::string_view>>;
-
-    template <typename KeyType, typename ValueType>
-    constexpr ExtensionsMap ToExtensionMap(KeyType&& Key, std::initializer_list<ValueType>&& Values)
-    {
-        Vector<std::string_view> NewEntries;
-        NewEntries.reserve(std::size(Values));
-
-        for (const auto& ValueIt : Values)
-        {
-            NewEntries.push_back(std::string_view{ValueIt});
-        }
-
-        return ExtensionsMap{{std::string_view{Key}, std::move(NewEntries)}};
-    }
+    using ExtensionMap = std::unordered_map<std::string_view, std::vector<std::string_view>>;
 
     class LUVKMODULE_API IExtensionsModule
     {
     public:
         virtual ~IExtensionsModule() = default;
 
-        [[nodiscard]] virtual ExtensionsMap GetInstanceExtensions() const noexcept
+        [[nodiscard]] virtual ExtensionMap GetInstanceExtensions() const noexcept
         {
             return {};
         }
 
-        [[nodiscard]] virtual ExtensionsMap GetDeviceExtensions() const noexcept
+        [[nodiscard]] virtual ExtensionMap GetDeviceExtensions() const noexcept
         {
             return {};
         }

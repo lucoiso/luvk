@@ -11,9 +11,9 @@
 luvk::DescriptorPool::DescriptorPool(const std::shared_ptr<Device>& DeviceModule)
     : m_DeviceModule(DeviceModule) {}
 
-void luvk::DescriptorPool::CreateDescriptorPool(const std::uint32_t                          MaxSets,
-                                                const std::span<const VkDescriptorPoolSize>& PoolSizes,
-                                                const VkDescriptorPoolCreateFlags            Flags)
+void luvk::DescriptorPool::CreateDescriptorPool(const std::uint32_t                         MaxSets,
+                                                const std::span<const VkDescriptorPoolSize> PoolSizes,
+                                                const VkDescriptorPoolCreateFlags           Flags)
 {
     const VkDescriptorPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
                                           .flags = Flags,

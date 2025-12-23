@@ -8,17 +8,15 @@
 #include <functional>
 #include <memory>
 #include "luvk/Module.hpp"
-#include "luvk/Types/Map.hpp"
-#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
     class LUVKMODULE_API EventNode : public std::enable_shared_from_this<EventNode>
     {
     protected:
-        bool                               m_OneTime{false};
-        std::function<void()>              m_Binding{};
-        Vector<std::shared_ptr<EventNode>> m_SubNodes{};
+        bool                                    m_OneTime{false};
+        std::function<void()>                   m_Binding{};
+        std::vector<std::shared_ptr<EventNode>> m_SubNodes{};
 
     public:
         constexpr EventNode() = default;
@@ -41,7 +39,7 @@ namespace luvk
 
     class LUVKMODULE_API EventGraph
     {
-        Map<std::size_t, Vector<std::shared_ptr<EventNode>>> m_Nodes{};
+        std::unordered_map<std::size_t, std::vector<std::shared_ptr<EventNode>>> m_Nodes{};
 
     public:
         constexpr EventGraph() = default;

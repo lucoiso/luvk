@@ -13,7 +13,7 @@
 luvk::Device::Device(const std::shared_ptr<Renderer>& RendererModule)
     : m_RendererModule(RendererModule) {}
 
-void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice& Device)
+void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice Device)
 {
     m_PhysicalDevice = Device;
     m_Extensions.SetDevice(Device);
@@ -65,7 +65,7 @@ void luvk::Device::SetPhysicalDevice(const VkPhysicalDeviceType Type)
     }
 }
 
-void luvk::Device::SetSurface(const VkSurfaceKHR& Surface)
+void luvk::Device::SetSurface(const VkSurfaceKHR Surface)
 {
     m_Surface = Surface;
 
@@ -78,16 +78,16 @@ void luvk::Device::SetSurface(const VkSurfaceKHR& Surface)
     GetEventSystem().Execute(DeviceEvents::OnSetSurface);
 }
 
-void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t>&& QueueIndices, const void* pNext)
+void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, const void* pNext)
 {
     const void* FeatureChain = ConfigureExtensions(pNext);
 
-    Vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
+    std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
     QueueCreateInfos.reserve(std::size(QueueIndices));
 
-    static constexpr luvk::Array<float, 64U> Priorities = []
+    static constexpr std::array<float, 64U> Priorities = []
     {
-        luvk::Array<float, 64U> Out{};
+        std::array<float, 64U> Out{};
         Out.fill(1.F);
         return Out;
     }();
@@ -121,7 +121,7 @@ void luvk::Device::CreateLogicalDevice(UnorderedMap<std::uint32_t, std::uint32_t
 
     for (const auto& QueueCreateInfoIt : QueueCreateInfos)
     {
-        Vector<VkQueue> QueueList(QueueCreateInfoIt.queueCount);
+        std::vector<VkQueue> QueueList(QueueCreateInfoIt.queueCount);
 
         for (std::uint32_t Index = 0U; Index < QueueCreateInfoIt.queueCount; ++Index)
         {
@@ -215,7 +215,7 @@ const void* luvk::Device::ConfigureExtensions(const void* pNext)
     return FeatureChain;
 }
 
-void luvk::Device::FetchAvailableDevices(const VkInstance& Instance)
+void luvk::Device::FetchAvailableDevices(const VkInstance Instance)
 {
     std::uint32_t NumDevices = 0U;
     vkEnumeratePhysicalDevices(Instance, &NumDevices, nullptr);
@@ -242,9 +242,9 @@ VkQueue luvk::Device::GetQueue(const std::uint32_t FamilyIndex, const std::uint3
     if (const auto It = m_Queues.find(FamilyIndex);
         It != std::end(m_Queues))
     {
-        if (QueueIndex < std::size(It->Second))
+        if (QueueIndex < std::size(It->second))
         {
-            return It->Second.at(QueueIndex);
+            return It->second.at(QueueIndex);
         }
     }
 
@@ -259,7 +259,7 @@ void luvk::Device::WaitIdle() const
     }
 }
 
-void luvk::Device::Wait(const VkQueue& Queue) const
+void luvk::Device::Wait(const VkQueue Queue) const
 {
     if (Queue != VK_NULL_HANDLE)
     {
@@ -267,7 +267,7 @@ void luvk::Device::Wait(const VkQueue& Queue) const
     }
 }
 
-void luvk::Device::Wait(const VkFence& Fence, const VkBool32 WaitAll, const std::uint64_t Timeout) const
+void luvk::Device::Wait(const VkFence Fence, const VkBool32 WaitAll, const std::uint64_t Timeout) const
 {
     if (Fence != VK_NULL_HANDLE)
     {

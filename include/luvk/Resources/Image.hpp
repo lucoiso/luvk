@@ -45,15 +45,15 @@ namespace luvk
 
         void CreateImage(const CreationArguments& Arguments);
 
-        void Upload(const std::span<const std::byte>& Data) const;
+        void Upload(std::span<const std::byte> Data) const;
         void Upload(const std::shared_ptr<Buffer>& Staging) const;
 
-        [[nodiscard]] constexpr const VkImage& GetHandle() const noexcept
+        [[nodiscard]] constexpr VkImage GetHandle() const noexcept
         {
             return m_Image;
         }
 
-        [[nodiscard]] constexpr const VkImageView& GetView() const noexcept
+        [[nodiscard]] constexpr VkImageView GetView() const noexcept
         {
             return m_View;
         }

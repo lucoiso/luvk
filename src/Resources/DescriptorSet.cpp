@@ -17,7 +17,7 @@ luvk::DescriptorSet::DescriptorSet(const std::shared_ptr<Device>&         Device
 
 luvk::DescriptorSet::~DescriptorSet()
 {
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     if (m_Set != VK_NULL_HANDLE && m_PoolModule)
     {
@@ -48,7 +48,7 @@ void luvk::DescriptorSet::CreateLayout(const LayoutInfo& Info)
     }
 }
 
-void luvk::DescriptorSet::UseLayout(const VkDescriptorSetLayout& Layout)
+void luvk::DescriptorSet::UseLayout(const VkDescriptorSetLayout Layout)
 {
     m_Layout     = Layout;
     m_OwnsLayout = false;
@@ -67,7 +67,7 @@ void luvk::DescriptorSet::Allocate()
     }
 }
 
-void luvk::DescriptorSet::UpdateBuffer(const VkBuffer&        Buffer,
+void luvk::DescriptorSet::UpdateBuffer(const VkBuffer         Buffer,
                                        const VkDeviceSize     Size,
                                        const std::uint32_t    Binding,
                                        const VkDescriptorType Type) const
@@ -84,8 +84,8 @@ void luvk::DescriptorSet::UpdateBuffer(const VkBuffer&        Buffer,
     vkUpdateDescriptorSets(m_DeviceModule->GetLogicalDevice(), 1, &Write, 0, nullptr);
 }
 
-void luvk::DescriptorSet::UpdateImage(const VkImageView&     View,
-                                      const VkSampler&       Sampler,
+void luvk::DescriptorSet::UpdateImage(const VkImageView      View,
+                                      const VkSampler        Sampler,
                                       const std::uint32_t    Binding,
                                       const VkDescriptorType Type) const
 {

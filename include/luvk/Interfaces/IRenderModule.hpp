@@ -17,7 +17,7 @@ namespace luvk
         virtual void ClearResources() {}
     };
 
-    using RenderModulePtr = std::shared_ptr<luvk::IRenderModule>;
+    using RenderModulePtr = std::shared_ptr<IRenderModule>;
 
     template <typename ModuleType, typename... Arguments>
     static std::shared_ptr<ModuleType> CreateModule(Arguments&&... Args)

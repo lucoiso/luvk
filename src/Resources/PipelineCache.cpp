@@ -14,7 +14,7 @@ PipelineCache::PipelineCache(const std::shared_ptr<Device>& DeviceModule)
 
 PipelineCache::~PipelineCache()
 {
-    const VkDevice& Device = m_DeviceModule->GetLogicalDevice();
+    const VkDevice Device = m_DeviceModule->GetLogicalDevice();
     if (m_PreRaster != VK_NULL_HANDLE)
     {
         vkDestroyPipelineCache(Device, m_PreRaster, nullptr);
@@ -39,7 +39,7 @@ PipelineCache::~PipelineCache()
 
 void PipelineCache::Create()
 {
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     constexpr VkPipelineCacheCreateInfo info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
 

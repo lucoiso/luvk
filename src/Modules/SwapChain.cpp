@@ -9,7 +9,6 @@
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
 #include "luvk/Resources/Image.hpp"
-#include "luvk/Types/Array.hpp"
 
 luvk::SwapChain::SwapChain(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
     : m_DeviceModule(DeviceModule),
@@ -28,7 +27,7 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
                                                        .pNext = pNext,
                                                        .flags = Arguments.Flags,
                                                        .surface = Arguments.Surface,
-                                                       .minImageCount = luvk::Constants::ImageCount,
+                                                       .minImageCount = Constants::ImageCount,
                                                        .imageFormat = Arguments.Format,
                                                        .imageColorSpace = Arguments.ColorSpace,
                                                        .imageExtent = Arguments.Extent,
@@ -43,7 +42,7 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
                                                        .clipped = Arguments.Clip,
                                                        .oldSwapchain = m_PreviousSwapChain};
 
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     if (!LUVK_EXECUTE(vkCreateSwapchainKHR(LogicalDevice, &SwapChainCreateInfo, nullptr, &m_SwapChain)))
     {
@@ -71,7 +70,7 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
 
 void luvk::SwapChain::ClearResources()
 {
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     DestroySwapChainImages(LogicalDevice);
     DestroyDepthResources();
@@ -85,14 +84,13 @@ void luvk::SwapChain::ClearResources()
     }
 }
 
-void luvk::SwapChain::Recreate(const VkExtent2D NewExtent,
-                               void* const&     pNext)
+void luvk::SwapChain::Recreate(const VkExtent2D& NewExtent, void* const& pNext)
 {
     m_Arguments.Extent = NewExtent;
     CreateSwapChain(CreationArguments(m_Arguments), pNext);
 }
 
-void luvk::SwapChain::CreateSwapChainImages(const VkDevice& LogicalDevice)
+void luvk::SwapChain::CreateSwapChainImages(const VkDevice LogicalDevice)
 {
     std::uint32_t NumImages = 0U;
     if (!LUVK_EXECUTE(vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &NumImages, nullptr)))
@@ -100,13 +98,11 @@ void luvk::SwapChain::CreateSwapChainImages(const VkDevice& LogicalDevice)
         throw std::runtime_error("Failed to get the number of swap chain images.");
     }
 
-    m_Images.resize(NumImages);
     if (!LUVK_EXECUTE(vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &NumImages, std::data(m_Images))))
     {
         throw std::runtime_error("Failed to get the swap chain images.");
     }
 
-    m_ImageViews.resize(std::size(m_Images));
     for (std::size_t Index = 0; Index < std::size(m_Images); ++Index)
     {
         const VkImageViewCreateInfo ViewInfo{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -126,7 +122,7 @@ void luvk::SwapChain::CreateSwapChainImages(const VkDevice& LogicalDevice)
     }
 }
 
-void luvk::SwapChain::DestroySwapChainImages(const VkDevice& LogicalDevice)
+void luvk::SwapChain::DestroySwapChainImages(const VkDevice LogicalDevice)
 {
     for (VkImageView& ImageViewIt : m_ImageViews)
     {
@@ -136,31 +132,29 @@ void luvk::SwapChain::DestroySwapChainImages(const VkDevice& LogicalDevice)
             ImageViewIt = VK_NULL_HANDLE;
         }
     }
-
-    m_ImageViews.clear();
 }
 
-void luvk::SwapChain::CreateRenderPass(const VkDevice& LogicalDevice)
+void luvk::SwapChain::CreateRenderPass(const VkDevice LogicalDevice)
 {
-    const luvk::Array Attachments{VkAttachmentDescription{.format = m_Arguments.Format,
-                                                          .samples = VK_SAMPLE_COUNT_1_BIT,
-                                                          .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                          .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-                                                          .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                          .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                          .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                          .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
-                                  VkAttachmentDescription{.format = m_DepthFormat,
-                                                          .samples = VK_SAMPLE_COUNT_1_BIT,
-                                                          .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                          .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                          .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                          .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                          .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                          .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+    const std::array Attachments{VkAttachmentDescription{.format = m_Arguments.Format,
+                                                         .samples = VK_SAMPLE_COUNT_1_BIT,
+                                                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+                                                         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                                                         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                                                         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
+                                 VkAttachmentDescription{.format = m_DepthFormat,
+                                                         .samples = VK_SAMPLE_COUNT_1_BIT,
+                                                         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                                                         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+                                                         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+                                                         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                         .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
 
-    constexpr luvk::Array AttachmentReferences{VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
-                                               VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+    constexpr std::array AttachmentReferences{VkAttachmentReference{0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
+                                              VkAttachmentReference{1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
 
     VkSubpassDescription Subpass{.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
                                  .colorAttachmentCount = 1U,
@@ -188,7 +182,7 @@ void luvk::SwapChain::CreateRenderPass(const VkDevice& LogicalDevice)
     LUVK_EXECUTE(vkCreateRenderPass(LogicalDevice, &Info, nullptr, &m_RenderPass));
 }
 
-void luvk::SwapChain::DestroyRenderPass(const VkDevice& LogicalDevice)
+void luvk::SwapChain::DestroyRenderPass(const VkDevice LogicalDevice)
 {
     if (m_RenderPass != VK_NULL_HANDLE)
     {
@@ -197,13 +191,12 @@ void luvk::SwapChain::DestroyRenderPass(const VkDevice& LogicalDevice)
     }
 }
 
-void luvk::SwapChain::CreateFramebuffers(const VkDevice& LogicalDevice)
+void luvk::SwapChain::CreateFramebuffers(const VkDevice LogicalDevice)
 {
-    m_Framebuffers.resize(std::size(m_ImageViews));
     for (std::size_t FramebufferIndex = 0; FramebufferIndex < std::size(m_ImageViews); ++FramebufferIndex)
     {
-        luvk::Array Views{m_ImageViews.at(FramebufferIndex),
-                          m_DepthImages.at(FramebufferIndex)->GetView()};
+        std::array Views{m_ImageViews.at(FramebufferIndex),
+                         m_DepthImages.at(FramebufferIndex)->GetView()};
 
         VkFramebufferCreateInfo Info{.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
                                      .renderPass = m_RenderPass,
@@ -217,7 +210,7 @@ void luvk::SwapChain::CreateFramebuffers(const VkDevice& LogicalDevice)
     }
 }
 
-void luvk::SwapChain::DestroyFramebuffers(const VkDevice& LogicalDevice)
+void luvk::SwapChain::DestroyFramebuffers(const VkDevice LogicalDevice)
 {
     for (VkFramebuffer& FramebufferIt : m_Framebuffers)
     {
@@ -227,7 +220,6 @@ void luvk::SwapChain::DestroyFramebuffers(const VkDevice& LogicalDevice)
             FramebufferIt = VK_NULL_HANDLE;
         }
     }
-    m_Framebuffers.clear();
 }
 
 void luvk::SwapChain::CreateDepthResources()
@@ -235,11 +227,10 @@ void luvk::SwapChain::CreateDepthResources()
     m_DepthFormat = SelectDepthFormat(m_DeviceModule->GetPhysicalDevice());
 
     const bool HasStencil = m_DepthFormat == VK_FORMAT_D24_UNORM_S8_UINT || m_DepthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || m_DepthFormat == VK_FORMAT_D16_UNORM_S8_UINT;
-    m_DepthImages.reserve(std::size(m_Images));
 
     for (std::size_t Index = 0; Index < std::size(m_Images); ++Index)
     {
-        const auto DepthImage = m_DepthImages.emplace_back(std::make_shared<Image>(m_DeviceModule, m_MemoryModule));
+        const auto DepthImage = std::make_shared<Image>(m_DeviceModule, m_MemoryModule);
 
         const VkImageAspectFlags Aspect = HasStencil
                                               ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
@@ -250,18 +241,23 @@ void luvk::SwapChain::CreateDepthResources()
                                  .Usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                                  .Aspect = Aspect,
                                  .MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY});
+
+        m_DepthImages.at(Index) = DepthImage;
     }
 }
 
 void luvk::SwapChain::DestroyDepthResources()
 {
-    m_DepthImages.clear();
+    for (std::shared_ptr<Image>& DepthIt : m_DepthImages)
+    {
+        DepthIt.reset();
+    }
 }
 
-VkFormat luvk::SwapChain::SelectDepthFormat(const VkPhysicalDevice& PhysicalDevice) const
+VkFormat luvk::SwapChain::SelectDepthFormat(const VkPhysicalDevice PhysicalDevice) const
 {
-    for (constexpr luvk::Array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
-         const VkFormat        Format : Candidates)
+    for (constexpr std::array Candidates{VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D16_UNORM};
+         const VkFormat       Format : Candidates)
     {
         VkFormatProperties Props{};
         vkGetPhysicalDeviceFormatProperties(PhysicalDevice, Format, &Props);

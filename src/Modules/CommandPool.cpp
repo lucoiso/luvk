@@ -26,14 +26,14 @@ void luvk::CommandPool::CreateCommandPool(const std::uint32_t QueueFamilyIndex, 
     GetEventSystem().Execute(CommandPoolEvents::OnCreatedPool);
 }
 
-luvk::Vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(const std::uint32_t Count, const VkCommandBufferLevel Level)
+std::vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(const std::uint32_t Count, const VkCommandBufferLevel Level)
 {
     const VkCommandBufferAllocateInfo AllocateInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
                                                    .commandPool = m_CommandPool,
                                                    .level = Level,
                                                    .commandBufferCount = Count};
 
-    Vector<VkCommandBuffer> Buffers(Count);
+    std::vector<VkCommandBuffer> Buffers(Count);
     if (!LUVK_EXECUTE(vkAllocateCommandBuffers(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, std::data(Buffers))))
     {
         throw std::runtime_error("Failed to allocate command buffers.");
@@ -52,7 +52,7 @@ void luvk::CommandPool::ClearResources()
         return;
     }
 
-    const VkDevice& LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     if (!std::empty(m_Buffers))
     {

@@ -14,7 +14,7 @@ luvk::Buffer::Buffer(const std::shared_ptr<Device>& DeviceModule, const std::sha
 
 luvk::Buffer::~Buffer()
 {
-    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
+    const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
     if (m_Buffer != VK_NULL_HANDLE)
     {
         vmaDestroyBuffer(Allocator, m_Buffer, m_Allocation);
@@ -23,7 +23,7 @@ luvk::Buffer::~Buffer()
 
 void luvk::Buffer::CreateBuffer(const CreationArguments& Arguments)
 {
-    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
+    const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
 
     m_Size = Arguments.Size;
     const VkBufferCreateInfo Info{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -55,7 +55,7 @@ void luvk::Buffer::CreateBuffer(const CreationArguments& Arguments)
 
 void luvk::Buffer::RecreateBuffer(const CreationArguments& Arguments)
 {
-    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
+    const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
 
     if (m_Buffer != VK_NULL_HANDLE)
     {
@@ -67,9 +67,9 @@ void luvk::Buffer::RecreateBuffer(const CreationArguments& Arguments)
     CreateBuffer(Arguments);
 }
 
-void luvk::Buffer::Upload(const std::span<const std::byte>& Data) const
+void luvk::Buffer::Upload(const std::span<const std::byte> Data) const
 {
-    const VmaAllocator& Allocator = m_MemoryModule->GetAllocator();
+    const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
 
     VkMemoryPropertyFlags MemoryFlags;
     vmaGetAllocationMemoryProperties(Allocator, m_Allocation, &MemoryFlags);
@@ -90,7 +90,7 @@ void luvk::Buffer::Upload(const std::span<const std::byte>& Data) const
         void* Mapping = nullptr;
         if (!LUVK_EXECUTE(vmaMapMemory(Allocator, m_Allocation, &Mapping)))
         {
-            throw std::runtime_error("Failed to map buffer memory.");
+            throw std::runtime_error("Failed to std::unordered_map buffer memory.");
         }
 
         if (std::size(Data) > m_Size)

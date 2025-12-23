@@ -28,11 +28,11 @@ namespace luvk
             DescriptorPool::ClearResources();
         }
 
-        void CreateDescriptorPool(std::uint32_t                                MaxSets,
-                                  const std::span<const VkDescriptorPoolSize>& PoolSizes,
-                                  VkDescriptorPoolCreateFlags                  Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+        void CreateDescriptorPool(std::uint32_t                         MaxSets,
+                                  std::span<const VkDescriptorPoolSize> PoolSizes,
+                                  VkDescriptorPoolCreateFlags           Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
-        [[nodiscard]] constexpr const VkDescriptorPool& GetHandle() const noexcept
+        [[nodiscard]] constexpr VkDescriptorPool GetHandle() const noexcept
         {
             return m_Pool;
         }

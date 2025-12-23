@@ -33,18 +33,18 @@ namespace luvk
 
         struct CreationArguments
         {
-            std::string        Name{};
             VkDeviceSize       Size{0};
             VkBufferUsageFlags Usage{};
             VmaMemoryUsage     MemoryUsage{VMA_MEMORY_USAGE_AUTO};
             float              Priority{1.F};
+            std::string        Name{};
         };
 
         void CreateBuffer(const CreationArguments& Arguments);
         void RecreateBuffer(const CreationArguments& Arguments);
-        void Upload(const std::span<const std::byte>& Data) const;
+        void Upload(std::span<const std::byte> Data) const;
 
-        [[nodiscard]] constexpr const VkBuffer& GetHandle() const noexcept
+        [[nodiscard]] constexpr VkBuffer GetHandle() const noexcept
         {
             return m_Buffer;
         }

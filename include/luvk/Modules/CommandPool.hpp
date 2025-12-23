@@ -8,7 +8,6 @@
 #include "luvk/Module.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Types/Vector.hpp"
 
 namespace luvk
 {
@@ -25,9 +24,9 @@ namespace luvk
                                        public IEventModule
     {
     protected:
-        VkCommandPool           m_CommandPool{VK_NULL_HANDLE};
-        Vector<VkCommandBuffer> m_Buffers{};
-        std::shared_ptr<Device> m_DeviceModule{};
+        VkCommandPool                m_CommandPool{VK_NULL_HANDLE};
+        std::vector<VkCommandBuffer> m_Buffers{};
+        std::shared_ptr<Device>      m_DeviceModule{};
 
     public:
         CommandPool() = delete;
@@ -41,10 +40,10 @@ namespace luvk
         void CreateCommandPool(std::uint32_t            QueueFamilyIndex,
                                VkCommandPoolCreateFlags Flags);
 
-        [[nodiscard]] Vector<VkCommandBuffer> AllocateBuffers(std::uint32_t        Count,
-                                                              VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        [[nodiscard]] std::vector<VkCommandBuffer> AllocateBuffers(std::uint32_t        Count,
+                                                                   VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
-        [[nodiscard]] constexpr const VkCommandPool& GetCommandPool() const
+        [[nodiscard]] constexpr VkCommandPool GetCommandPool() const noexcept
         {
             return m_CommandPool;
         }
