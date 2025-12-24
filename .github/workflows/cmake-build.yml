@@ -62,15 +62,6 @@ jobs:
             libgl-dev libgl1-mesa-dev libx11-dev libx11-xcb-dev \
             libfontenc-dev libice-dev libsm-dev libxau-dev libxaw7-dev
 
-      - name: Install Vulkan SDK
-        uses: lucoiso/install-vulkan-sdk-action@ff3a36588514be8557bccef15874d5fc8d4132e8
-        with:
-          vulkan_version: 1.4.321.0
-          optional_components: com.lunarg.vulkan.vma, com.lunarg.vulkan.volk, com.lunarg.vulkan.glm
-          install_runtime: false
-          cache: true
-          stripdown: true
-
       - name: Configure
         run: cmake -S . -B ${{ steps.strings.outputs.build-output-dir }} -G Ninja -DCMAKE_BUILD_TYPE=Release
 
