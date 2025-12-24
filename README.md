@@ -6,8 +6,8 @@
 
 A modular Vulkan-based rendering framework implemented in C++, providing a flexible foundation for graphics applications and engines, structured with distinct modules.
 
-- Sample Project: [luvk example](https://github.com/lucoiso/luvk-imgui-template)
-- Template Project: [luvk-imgui-template](https://github.com/lucoiso/luvk-imgui-template)
+- Sample Project: [luvk example](https://github.com/lucoiso/luvk_example)
+- Template Project: [UserInterface](https://github.com/lucoiso/luvk_example)
   
 ---
 
