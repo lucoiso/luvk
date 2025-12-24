@@ -11,19 +11,17 @@ bool luvk::IExtensions::SetLayerState(const std::string_view Layer, const bool S
 {
     for (auto& [Enabled, Name, Extensions] : m_Layers)
     {
-        if (std::equal(std::execution::unseq, std::cbegin(Name), std::cend(Name), std::cbegin(Layer), std::cend(Layer)))
+        if (std::ranges::equal(std::as_const(Name), Layer))
         {
             Enabled = State;
 
             if (State && EnableAllExtensions)
             {
-                std::for_each(std::execution::unseq,
-                              std::begin(Extensions),
-                              std::end(Extensions),
-                              [](auto& ExtensionIt)
-                              {
-                                  ExtensionIt.second = true;
-                              });
+                std::ranges::for_each(Extensions,
+                                      [](auto& ExtensionIt)
+                                      {
+                                          ExtensionIt.second = true;
+                                      });
             }
 
             return true;
@@ -37,11 +35,11 @@ bool luvk::IExtensions::SetExtensionState(const std::string_view FromLayer, cons
 {
     for (auto& [LayerEnabled, LayerName, LayerExtensions] : m_Layers)
     {
-        if (std::equal(std::execution::unseq, std::cbegin(LayerName), std::cend(LayerName), std::cbegin(FromLayer), std::cend(FromLayer)))
+        if (std::ranges::equal(std::as_const(LayerName), FromLayer))
         {
             for (auto& [ExtensionName, ExtensionEnabled] : LayerExtensions)
             {
-                if (std::equal(std::execution::unseq, std::cbegin(ExtensionName), std::cend(ExtensionName), std::cbegin(Extension), std::cend(Extension)))
+                if (std::ranges::equal(std::as_const(ExtensionName), Extension))
                 {
                     if (State)
                     {
@@ -116,26 +114,22 @@ void luvk::IExtensions::FillExtensionsContainer()
 
     const std::vector<VkLayerProperties> AvailableProperties = FetchAvailableLayers();
 
-    std::for_each(std::execution::unseq,
-                  std::begin(AvailableProperties),
-                  std::end(AvailableProperties),
-                  [this](const VkLayerProperties& Iterator)
-                  {
-                      const std::vector<VkExtensionProperties> AvailableExtensions = FetchAvailableLayerExtensions(Iterator.layerName);
+    std::ranges::for_each(AvailableProperties,
+                          [this](const VkLayerProperties& Iterator)
+                          {
+                              const std::vector<VkExtensionProperties> AvailableExtensions = FetchAvailableLayerExtensions(Iterator.layerName);
 
-                      Layer NewLayer{.Name = Iterator.layerName, .Extensions = {}};
-                      NewLayer.Extensions.reserve(g_ReservationSize);
+                              Layer NewLayer{.Name = Iterator.layerName, .Extensions = {}};
+                              NewLayer.Extensions.reserve(g_ReservationSize);
 
-                      std::for_each(std::execution::unseq,
-                                    std::begin(AvailableExtensions),
-                                    std::end(AvailableExtensions),
-                                    [&NewLayer](const VkExtensionProperties& ExtIt)
-                                    {
-                                        NewLayer.Extensions.push_back({ExtIt.extensionName, false});
-                                    });
+                              std::ranges::for_each(AvailableExtensions,
+                                                    [&NewLayer](const VkExtensionProperties& ExtIt)
+                                                    {
+                                                        NewLayer.Extensions.emplace_back(ExtIt.extensionName, false);
+                                                    });
 
-                      m_Layers.push_back(std::move(NewLayer));
-                  });
+                              m_Layers.push_back(std::move(NewLayer));
+                          });
 }
 
 std::vector<VkExtensionProperties> luvk::InstanceExtensions::FetchAvailableLayerExtensions(const std::string_view LayerName) const

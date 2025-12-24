@@ -4,6 +4,7 @@
 
 #include "luvk/Resources/Image.hpp"
 #include <cstddef>
+#include <cstring>
 #include <iterator>
 #include <span>
 #include "luvk/Libraries/VulkanHelpers.hpp"

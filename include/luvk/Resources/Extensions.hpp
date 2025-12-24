@@ -4,7 +4,7 @@
 
 #pragma once
 
-#include <execution>
+#include <algorithm>
 #include <string>
 #include <vector>
 #include <volk.h>
@@ -35,36 +35,25 @@ namespace luvk
         {
             const auto CompareLayerName = [&LayerName](const Layer& Iterator)
             {
-                return std::equal(std::execution::unseq,
-                                  std::cbegin(Iterator.Name),
-                                  std::cend(Iterator.Name),
-                                  std::cbegin(LayerName),
-                                  std::cend(LayerName));
+                return std::ranges::equal(Iterator.Name, LayerName);
             };
 
-            return std::find_if(std::execution::unseq, std::cbegin(m_Layers), std::cend(m_Layers), CompareLayerName) != std::cend(m_Layers);
+            return std::ranges::find_if(m_Layers, CompareLayerName) != std::cend(m_Layers);
         }
 
         [[nodiscard]] constexpr bool HasAvailableExtension(const std::string_view ExtensionName) const noexcept
         {
             const auto CompareExtensionName = [&ExtensionName](const std::pair<std::string, bool>& Iterator)
             {
-                return std::equal(std::execution::unseq,
-                                  std::cbegin(Iterator.first),
-                                  std::cend(Iterator.first),
-                                  std::cbegin(ExtensionName),
-                                  std::cend(ExtensionName));
+                return std::ranges::equal(Iterator.first, ExtensionName);
             };
 
             const auto CheckLayerExtensions = [&CompareExtensionName](const Layer& Iterator)
             {
-                return std::find_if(std::execution::unseq,
-                                    std::cbegin(Iterator.Extensions),
-                                    std::cend(Iterator.Extensions),
-                                    CompareExtensionName) != std::cend(Iterator.Extensions);
+                return std::ranges::find_if(Iterator.Extensions, CompareExtensionName) != std::cend(Iterator.Extensions);
             };
 
-            return std::find_if(std::execution::unseq, std::cbegin(m_Layers), std::cend(m_Layers), CheckLayerExtensions) != std::cend(m_Layers);
+            return std::ranges::find_if(m_Layers, CheckLayerExtensions) != std::cend(m_Layers);
         }
 
         [[nodiscard]] const std::vector<Layer>& GetLayers() const noexcept
