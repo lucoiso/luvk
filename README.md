@@ -1,4 +1,4 @@
-[![CMake Build Workflow](https://github.com/lucoiso/luvk/actions/workflows/cmake-build.yml/badge.svg)](https://github.com/lucoiso/luvk/actions/workflows/cmake-build.yml)
+[![Build & Upload](https://github.com/lucoiso/luvk/actions/workflows/cmake-build.yml/badge.svg)](https://github.com/lucoiso/luvk/actions/workflows/cmake-build.yml)
 
 # LuVK
 
