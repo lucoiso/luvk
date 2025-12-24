@@ -4,6 +4,8 @@
 
 #pragma once
 
+#ifdef LUVK_SLANG_INCLUDED
+
 #include <cstdint>
 #include <string>
 #include <string_view>
@@ -24,3 +26,5 @@ namespace luvk
     [[nodiscard]] LUVK_API CompilationResult          CompileShaderSafe(std::string_view Source);
     [[nodiscard]] LUVK_API std::vector<std::uint32_t> CompileShader(std::string_view Source);
 } // namespace luvk
+
+#endif // LUVK_SLANG_INCLUDED

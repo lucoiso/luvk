@@ -2,6 +2,8 @@
 // Year: 2025
 // Repo : https://github.com/lucoiso/luvk
 
+#ifdef LUVK_SLANG_INCLUDED
+
 #include "luvk/Libraries/ShaderCompiler.hpp"
 #include <atomic>
 #include <cstring>
@@ -9,6 +11,8 @@
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <stdexcept>
+
+#include <iomanip>
 
 Slang::ComPtr<slang::IGlobalSession> GSlangGlobalSession;
 static constinit std::atomic_uint    GSlangInitCount{0};
@@ -100,6 +104,7 @@ luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view Source)
         std::memcpy(Output.Data.data(), Spirv->getBufferPointer(), Spirv->getBufferSize());
 
         Output.Result = true;
+
         return Output;
     }
 
@@ -110,3 +115,5 @@ std::vector<std::uint32_t> luvk::CompileShader(const std::string_view Source)
 {
     return CompileShaderSafe(Source).Data;
 }
+
+#endif // LUVK_SLANG_INCLUDED

@@ -41,7 +41,6 @@ namespace luvk
         VkPhysicalDeviceVulkan12Features                        m_Vulkan12Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
         VkPhysicalDeviceVulkan13Features                        m_Vulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
         VkPhysicalDeviceVulkan14Features                        m_Vulkan14Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
-        VkPhysicalDevicePageableDeviceLocalMemoryFeaturesEXT    m_PageableDeviceLocalMemoryFeatures{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT};
         VkPhysicalDeviceProperties                              m_DeviceProperties{};
         std::vector<VkPhysicalDevice>                           m_AvailableDevices{};
         std::vector<VkSurfaceFormatKHR>                         m_SurfaceFormat{};

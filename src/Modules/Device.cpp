@@ -18,18 +18,16 @@ void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice Device)
     m_PhysicalDevice = Device;
     m_Extensions.SetDevice(Device);
 
-    m_FeatureChain.pNext                = nullptr;
-    m_Vulkan11Features                  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
-    m_Vulkan12Features                  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-    m_Vulkan13Features                  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-    m_Vulkan14Features                  = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
-    m_PageableDeviceLocalMemoryFeatures = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PAGEABLE_DEVICE_LOCAL_MEMORY_FEATURES_EXT};
+    m_FeatureChain.pNext = nullptr;
+    m_Vulkan11Features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+    m_Vulkan12Features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+    m_Vulkan13Features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+    m_Vulkan14Features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
 
     m_FeatureChain.pNext     = &m_Vulkan11Features;
     m_Vulkan11Features.pNext = &m_Vulkan12Features;
     m_Vulkan12Features.pNext = &m_Vulkan13Features;
     m_Vulkan13Features.pNext = &m_Vulkan14Features;
-    m_Vulkan14Features.pNext = &m_PageableDeviceLocalMemoryFeatures;
 
     vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &m_FeatureChain);
     vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_DeviceProperties);
