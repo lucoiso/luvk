@@ -5,6 +5,7 @@
 #include "luvk/Resources/Buffer.hpp"
 #include <cstring>
 #include <iterator>
+#include <stdexcept>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"

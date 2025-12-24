@@ -4,6 +4,7 @@
 
 #include "luvk/Modules/Renderer.hpp"
 #include <algorithm>
+#include <stdexcept>
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Interfaces/IFeatureChainModule.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"

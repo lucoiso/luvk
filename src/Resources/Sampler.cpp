@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Sampler.hpp"
+#include <stdexcept>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 

@@ -4,6 +4,7 @@
 
 #include "luvk/Modules/SwapChain.hpp"
 #include <iterator>
+#include <stdexcept>
 #include "luvk/Constants/Rendering.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"

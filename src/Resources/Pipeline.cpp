@@ -5,6 +5,7 @@
 #include "luvk/Resources/Pipeline.hpp"
 #include <array>
 #include <iterator>
+#include <stdexcept>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Resources/PipelineCache.hpp"

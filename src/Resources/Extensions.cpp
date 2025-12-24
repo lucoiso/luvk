@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Extensions.hpp"
+#include <cstdint>
 #include <ostream>
 
 constexpr auto g_ReservationSize = 256U;
