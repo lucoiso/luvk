@@ -60,7 +60,7 @@ bool luvk::IExtensions::SetExtensionState(const std::string_view FromLayer, cons
 std::vector<const char*> luvk::IExtensions::GetEnabledLayersNames() const
 {
     std::vector<const char*> Output{};
-    Output.reserve(g_ReservationSize);
+    Output.reserve(std::size(m_Layers));
 
     for (const auto& [Enabled, Name, Extensions] : m_Layers)
     {

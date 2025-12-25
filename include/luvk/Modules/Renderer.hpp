@@ -46,6 +46,15 @@ namespace luvk
         std::vector<std::shared_ptr<IRenderModule>> ExtraModules{};
     };
 
+    struct InstanceCreationArguments
+    {
+        std::string_view ApplicationName = "luvk";
+        std::string_view EngineName = "luvk";
+        std::uint32_t    ApplicationVersion = VK_MAKE_VERSION(1U, 0U, 0U);
+        std::uint32_t    EngineVersion = VK_MAKE_VERSION(1U, 0U, 0U);
+        std::uint32_t    VulkanApiVersion = VK_API_VERSION_1_0;
+    };
+
     class LUVK_API Renderer : public IRenderModule,
                               public IEventModule
     {
@@ -53,6 +62,7 @@ namespace luvk
         bool               m_Paused{false};
         VkInstance         m_Instance{VK_NULL_HANDLE};
         InstanceExtensions m_Extensions{};
+        InstanceCreationArguments m_InstanceCreationArguments{};
         RenderModules      m_Modules{};
 
     public:
@@ -78,16 +88,12 @@ namespace luvk
             return m_Modules;
         }
 
-        void RegisterModules(RenderModules&& Modules);
-
-        struct InstanceCreationArguments
+        [[nodiscard]] constexpr const InstanceCreationArguments& GetInstanceCreationArguments() const noexcept
         {
-            std::string_view ApplicationName = "luvk";
-            std::string_view EngineName = "luvk";
-            std::uint32_t    ApplicationVersion = VK_MAKE_VERSION(1U, 0U, 0U);
-            std::uint32_t    EngineVersion = VK_MAKE_VERSION(1U, 0U, 0U);
-            std::uint32_t    VulkanApiVersion = VK_API_VERSION_1_0;
-        };
+            return m_InstanceCreationArguments;
+        }
+
+        void RegisterModules(RenderModules&& Modules);
 
         [[nodiscard]] bool InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext);
         void               DrawFrame() const;

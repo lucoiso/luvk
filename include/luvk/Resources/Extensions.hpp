@@ -32,29 +32,26 @@ namespace luvk
             return std::empty(m_Layers);
         }
 
-        [[nodiscard]] constexpr bool HasAvailableLayer(const std::string_view LayerName) const noexcept
+        [[nodiscard]] constexpr bool HasAvailableLayer(std::string_view LayerName) const noexcept
         {
-            const auto CompareLayerName = [&LayerName](const Layer& Iterator)
-            {
-                return std::ranges::equal(Iterator.Name, LayerName);
-            };
-
-            return std::ranges::find_if(m_Layers, CompareLayerName) != std::cend(m_Layers);
+            return std::ranges::any_of(m_Layers,
+                                       [&LayerName](const Layer& Iterator)
+                                       {
+                                           return std::ranges::equal(Iterator.Name, LayerName);
+                                       });
         }
 
-        [[nodiscard]] constexpr bool HasAvailableExtension(const std::string_view ExtensionName) const noexcept
+        [[nodiscard]] constexpr bool HasAvailableExtension(std::string_view ExtensionName) const noexcept
         {
-            const auto CompareExtensionName = [&ExtensionName](const std::pair<std::string, bool>& Iterator)
-            {
-                return std::ranges::equal(Iterator.first, ExtensionName);
-            };
-
-            const auto CheckLayerExtensions = [&CompareExtensionName](const Layer& Iterator)
-            {
-                return std::ranges::find_if(Iterator.Extensions, CompareExtensionName) != std::cend(Iterator.Extensions);
-            };
-
-            return std::ranges::find_if(m_Layers, CheckLayerExtensions) != std::cend(m_Layers);
+            return std::ranges::any_of(m_Layers,
+                                       [&ExtensionName](const Layer& Iterator)
+                                       {
+                                           return std::ranges::any_of(Iterator.Extensions,
+                                                                      [&ExtensionName](const std::pair<std::string, bool>& ExtIterator)
+                                                                      {
+                                                                          return std::ranges::equal(ExtIterator.first, ExtensionName);
+                                                                      });
+                                       });
         }
 
         [[nodiscard]] const std::vector<Layer>& GetLayers() const noexcept
@@ -92,7 +89,7 @@ namespace luvk
 
     public:
         constexpr          DeviceExtensions() = default;
-        constexpr explicit DeviceExtensions(VkPhysicalDevice Device) noexcept : m_Device(Device) {}
+        constexpr explicit DeviceExtensions(const VkPhysicalDevice Device) noexcept : m_Device(Device) {}
         ~DeviceExtensions() override = default;
 
         constexpr void SetDevice(VkPhysicalDevice Device) noexcept

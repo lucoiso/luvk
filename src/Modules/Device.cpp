@@ -16,20 +16,31 @@ luvk::Device::Device(const std::shared_ptr<Renderer>& RendererModule)
 void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice Device)
 {
     m_PhysicalDevice = Device;
+
     m_Extensions.SetDevice(Device);
+    m_Extensions.FillExtensionsContainer();
 
-    m_FeatureChain.pNext = nullptr;
-    m_Vulkan11Features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
-    m_Vulkan12Features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-    m_Vulkan13Features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-    m_Vulkan14Features   = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+    m_DeviceFeatures.pNext = nullptr;
+    m_Vulkan11Features     = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+    m_Vulkan12Features     = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+    m_Vulkan13Features     = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+    m_Vulkan14Features     = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
 
-    m_FeatureChain.pNext     = &m_Vulkan11Features;
+    m_DeviceFeatures.pNext   = &m_Vulkan11Features;
     m_Vulkan11Features.pNext = &m_Vulkan12Features;
     m_Vulkan12Features.pNext = &m_Vulkan13Features;
     m_Vulkan13Features.pNext = &m_Vulkan14Features;
 
-    vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &m_FeatureChain);
+    if (m_RendererModule->GetInstanceCreationArguments().VulkanApiVersion > VK_API_VERSION_1_0 ||
+        m_Extensions.HasAvailableExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
+    {
+        vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &m_DeviceFeatures);
+    }
+    else
+    {
+        vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &m_DeviceFeatures.features);
+    }
+
     vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_DeviceProperties);
 
     std::uint32_t NumProperties = 0U;
@@ -37,8 +48,6 @@ void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice Device)
 
     m_DeviceQueueFamilyProperties.resize(NumProperties);
     vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &NumProperties, std::data(m_DeviceQueueFamilyProperties));
-
-    m_Extensions.FillExtensionsContainer();
 
     GetEventSystem().Execute(DeviceEvents::OnSelectedPhysicalDevice);
 }

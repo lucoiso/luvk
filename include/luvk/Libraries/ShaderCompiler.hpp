@@ -23,8 +23,8 @@ namespace luvk
         std::string                Error{};
     };
 
-    [[nodiscard]] LUVK_API CompilationResult          CompileShaderSafe(std::string_view Source);
-    [[nodiscard]] LUVK_API std::vector<std::uint32_t> CompileShader(std::string_view Source);
+    [[nodiscard]] LUVK_API CompilationResult          CompileShaderSafe(std::string_view Source, std::string_view Profile = "spirv_1_0");
+    [[nodiscard]] LUVK_API std::vector<std::uint32_t> CompileShader(std::string_view Source, std::string_view Profile = "spirv_1_0");
 } // namespace luvk
 
 #endif // LUVK_SLANG_INCLUDED

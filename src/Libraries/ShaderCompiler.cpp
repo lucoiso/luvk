@@ -7,12 +7,11 @@
 #include "luvk/Libraries/ShaderCompiler.hpp"
 #include <atomic>
 #include <cstring>
+#include <iomanip>
 #include <iostream>
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <stdexcept>
-
-#include <iomanip>
 
 Slang::ComPtr<slang::IGlobalSession> GSlangGlobalSession;
 static constinit std::atomic_uint    GSlangInitCount{0};
@@ -37,7 +36,7 @@ void luvk::ShutdownShaderCompiler()
     }
 }
 
-luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view Source)
+luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view Source, const std::string_view Profile)
 {
     CompilationResult Output{};
     if (!GSlangGlobalSession)
@@ -48,7 +47,7 @@ luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view Source)
     Slang::ComPtr<slang::ISession> SlangSession;
 
     const slang::TargetDesc Target{.format = SLANG_SPIRV,
-                                   .profile = GSlangGlobalSession->findProfile("spirv_1_6"),
+                                   .profile = GSlangGlobalSession->findProfile(std::data(Profile)),
                                    .flags = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY};
 
     slang::CompilerOptionEntry Option{slang::CompilerOptionName::Optimization, {slang::CompilerOptionValueKind::Int, SLANG_OPTIMIZATION_LEVEL_MAXIMAL}};
@@ -111,9 +110,9 @@ luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view Source)
     return Output;
 }
 
-std::vector<std::uint32_t> luvk::CompileShader(const std::string_view Source)
+std::vector<std::uint32_t> luvk::CompileShader(const std::string_view Source, const std::string_view Profile)
 {
-    return CompileShaderSafe(Source).Data;
+    return CompileShaderSafe(Source, Profile).Data;
 }
 
 #endif // LUVK_SLANG_INCLUDED

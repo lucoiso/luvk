@@ -34,6 +34,8 @@ void luvk::Renderer::RegisterModules(RenderModules&& Modules)
 
 bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext)
 {
+    m_InstanceCreationArguments = Arguments;
+
     std::vector<std::shared_ptr<IRenderModule>> AllModules{m_Modules.DebugModule,
                                                            m_Modules.DeviceModule,
                                                            m_Modules.MemoryModule,

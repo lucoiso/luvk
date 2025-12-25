@@ -35,8 +35,7 @@ namespace luvk
         VkSurfaceKHR                                            m_Surface{VK_NULL_HANDLE};
         std::shared_ptr<Renderer>                               m_RendererModule{};
         DeviceExtensions                                        m_Extensions{};
-        VkPhysicalDeviceFeatures2                               m_FeatureChain{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-        VkPhysicalDeviceFeatures&                               m_DeviceFeatures = m_FeatureChain.features;
+        VkPhysicalDeviceFeatures2                               m_DeviceFeatures{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
         VkPhysicalDeviceVulkan11Features                        m_Vulkan11Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
         VkPhysicalDeviceVulkan12Features                        m_Vulkan12Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
         VkPhysicalDeviceVulkan13Features                        m_Vulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
@@ -92,7 +91,7 @@ namespace luvk
             return m_DeviceProperties.apiVersion;
         }
 
-        [[nodiscard]] constexpr const VkPhysicalDeviceFeatures& GetDeviceFeatures() const noexcept
+        [[nodiscard]] constexpr const VkPhysicalDeviceFeatures2& GetDeviceFeatures() const noexcept
         {
             return m_DeviceFeatures;
         }
@@ -139,7 +138,7 @@ namespace luvk
 
         [[nodiscard]] const void* GetDeviceFeatureChain() const noexcept override
         {
-            return &m_FeatureChain;
+            return &m_DeviceFeatures;
         }
 
         [[nodiscard]] std::optional<std::uint32_t> FindQueueFamilyIndex(VkQueueFlags Flags) const;

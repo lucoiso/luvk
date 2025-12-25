@@ -48,19 +48,18 @@ void luvk::Synchronization::SetupFrames()
 {
     m_DeviceModule->WaitIdle();
 
-    const VkDevice    LogicalDevice = m_DeviceModule->GetLogicalDevice();
-    const std::size_t ImageCount    = std::size(m_SwapChainModule->GetImageViews());
-
-    const std::vector<VkCommandBuffer> Buffers = m_CommandPoolModule->AllocateBuffers(static_cast<std::uint32_t>(ImageCount));
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    m_CommandPoolModule->AllocateBuffers();
+    const std::span<const VkCommandBuffer> Buffers = m_CommandPoolModule->GetBuffers();
 
     m_SecondaryPool->Reset();
 
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
-    for (std::size_t Index = 0; Index < ImageCount; ++Index)
+    for (std::size_t Index = 0; Index < Constants::ImageCount; ++Index)
     {
         FrameData& Frame    = m_Frames.at(Index);
-        Frame.CommandBuffer = Buffers.at(Index);
+        Frame.CommandBuffer = Buffers[Index];
         Frame.SecondaryBuffers.clear();
 
         if (Frame.ImageAvailable != VK_NULL_HANDLE)

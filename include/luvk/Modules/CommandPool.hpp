@@ -4,7 +4,10 @@
 
 #pragma once
 
+#include <array>
+#include <span>
 #include <volk.h>
+#include "luvk/Constants/Rendering.hpp"
 #include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 
@@ -24,7 +27,7 @@ namespace luvk
     {
     protected:
         VkCommandPool                m_CommandPool{VK_NULL_HANDLE};
-        std::vector<VkCommandBuffer> m_Buffers{};
+        std::array<VkCommandBuffer, Constants::ImageCount> m_Buffers{};
         std::shared_ptr<Device>      m_DeviceModule{};
 
     public:
@@ -39,8 +42,12 @@ namespace luvk
         void CreateCommandPool(std::uint32_t            QueueFamilyIndex,
                                VkCommandPoolCreateFlags Flags);
 
-        [[nodiscard]] std::vector<VkCommandBuffer> AllocateBuffers(std::uint32_t        Count,
-                                                                   VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        void AllocateBuffers(VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+        [[nodiscard]] constexpr std::span<const VkCommandBuffer> GetBuffers() const noexcept
+        {
+            return m_Buffers;
+        }
 
         [[nodiscard]] constexpr VkCommandPool GetCommandPool() const noexcept
         {
