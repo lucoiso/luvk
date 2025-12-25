@@ -82,10 +82,11 @@ namespace luvk
 
         struct InstanceCreationArguments
         {
-            std::string_view ApplicationName;
-            std::string_view EngineName;
-            std::uint32_t    ApplicationVersion;
-            std::uint32_t    EngineVersion;
+            std::string_view ApplicationName = "luvk";
+            std::string_view EngineName = "luvk";
+            std::uint32_t    ApplicationVersion = VK_MAKE_VERSION(1U, 0U, 0U);
+            std::uint32_t    EngineVersion = VK_MAKE_VERSION(1U, 0U, 0U);
+            std::uint32_t    VulkanApiVersion = VK_API_VERSION_1_0;
         };
 
         [[nodiscard]] bool InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext);

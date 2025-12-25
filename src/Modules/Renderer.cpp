@@ -43,6 +43,7 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
                                                            m_Modules.ThreadPoolModule,
                                                            m_Modules.DescriptorPoolModule,
                                                            m_Modules.DrawModule};
+
     AllModules.insert(std::end(AllModules), std::begin(m_Modules.ExtraModules), std::end(m_Modules.ExtraModules));
 
     const void* FeatureChain = pNext;
@@ -85,7 +86,7 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
                                     .applicationVersion = Arguments.ApplicationVersion,
                                     .pEngineName = std::data(Arguments.EngineName),
                                     .engineVersion = Arguments.EngineVersion,
-                                    .apiVersion = VK_API_VERSION_1_4};
+                                    .apiVersion = Arguments.VulkanApiVersion};
 
     const std::vector<const char*> Layers     = m_Extensions.GetEnabledLayersNames();
     const std::vector<const char*> Extensions = m_Extensions.GetEnabledExtensionsNames();

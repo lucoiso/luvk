@@ -7,7 +7,7 @@
 A modular Vulkan-based rendering framework implemented in C++, providing a flexible foundation for graphics applications and engines, structured with distinct modules.
 
 - Sample Project: [luvk example](https://github.com/lucoiso/luvk_example)
-- Template Project: [luvk-imgui-template](https://github.com/lucoiso/luvk-imgui-template)
+- Template Project: [luvk-imgui-template](https://github.com/lucoiso/overlay-exp)
   
 ---
 
@@ -17,5 +17,3 @@ A modular Vulkan-based rendering framework implemented in C++, providing a flexi
 |----------------------|-----------------|--------------------------------------------|
 | C++ Compiler         | C++23           | Any modern compiler (MSVC, Clang, GCC)    |
 | CMake                | 3.28+           | Build system configuration                 |
-| Conan                | 2.x             | Dependency management                      |
-| Vulkan SDK           | 1.4+            | For headers, libraries, and validation layers |
