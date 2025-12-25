@@ -76,6 +76,7 @@ namespace luvk
         void SetDispatchCount(std::uint32_t X, std::uint32_t Y, std::uint32_t Z);
         void SetPushConstantData(std::span<const std::byte> Data);
 
+    public:
         virtual void Tick(float DeltaTime);
         virtual void Render(VkCommandBuffer CommandBuffer, std::uint32_t CurrentFrame) const;
     };
