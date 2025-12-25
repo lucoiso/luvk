@@ -23,10 +23,11 @@ void luvk::Draw::RecordCommands(const FrameData& Frame, const std::uint32_t Imag
 
     LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin));
 
-    if (m_PreRenderCallback != nullptr)
-    {
-        m_PreRenderCallback(Frame.CommandBuffer);
-    }
+    std::erase_if(m_PreRenderCallbacks,
+                  [&](const DrawCallbackInfo& CB)
+                  {
+                      return !CB.Callback(Frame.CommandBuffer);
+                  });
 
     const VkRenderPass  RenderPass  = m_SwapChainModule->GetRenderPass();
     const VkFramebuffer FrameBuffer = m_SwapChainModule->GetFramebuffer(ImageIndex);
@@ -47,16 +48,17 @@ void luvk::Draw::RecordCommands(const FrameData& Frame, const std::uint32_t Imag
     vkCmdSetViewport(Frame.CommandBuffer, 0U, 1U, &Viewport);
     vkCmdSetScissor(Frame.CommandBuffer, 0U, 1U, &Scissor);
 
-    if (m_DrawCallback != nullptr)
-    {
-        m_DrawCallback(Frame.CommandBuffer);
-    }
+    std::erase_if(m_DrawCallbacks,
+                  [&](const DrawCallbackInfo& CB)
+                  {
+                      return !CB.Callback(Frame.CommandBuffer);
+                  });
 
-    for (const auto& PostCmd : m_PostRenderCommands)
-    {
-        PostCmd(Frame.CommandBuffer);
-    }
-    m_PostRenderCommands.clear();
+    std::erase_if(m_PostRenderCallbacks,
+                  [&](const DrawCallbackInfo& CB)
+                  {
+                      return !CB.Callback(Frame.CommandBuffer);
+                  });
 
     vkCmdEndRenderPass(Frame.CommandBuffer);
     LUVK_EXECUTE(vkEndCommandBuffer(Frame.CommandBuffer));

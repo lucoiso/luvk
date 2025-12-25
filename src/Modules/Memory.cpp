@@ -29,6 +29,7 @@ luvk::Memory::Memory(const std::shared_ptr<Renderer>& RendererModule, const std:
 void luvk::Memory::InitializeAllocator(const VmaAllocatorCreateFlags Flags)
 {
     VkPhysicalDeviceMemoryProperties MemProps{};
+
     vkGetPhysicalDeviceMemoryProperties(m_DeviceModule->GetPhysicalDevice(), &MemProps);
 
     const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr,

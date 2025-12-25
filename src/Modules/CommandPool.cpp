@@ -43,11 +43,6 @@ void luvk::CommandPool::AllocateBuffers(const VkCommandBufferLevel Level)
 
 void luvk::CommandPool::ClearResources()
 {
-    if (!m_DeviceModule)
-    {
-        return;
-    }
-
     const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     if (!std::empty(m_Buffers))

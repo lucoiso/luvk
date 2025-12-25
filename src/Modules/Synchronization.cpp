@@ -10,7 +10,6 @@
 #include "luvk/Modules/CommandPool.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/SwapChain.hpp"
-#include "luvk/Resources/CommandBufferPool.hpp"
 
 luvk::Synchronization::Synchronization(const std::shared_ptr<Device>&      DeviceModule,
                                        const std::shared_ptr<SwapChain>&   SwapChainModule,
@@ -21,11 +20,7 @@ luvk::Synchronization::Synchronization(const std::shared_ptr<Device>&      Devic
 
 void luvk::Synchronization::Initialize()
 {
-    m_SecondaryPool              = std::make_shared<CommandBufferPool>(m_DeviceModule);
     const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
-    const std::uint32_t GraphicsFamily = m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value();
-    m_SecondaryPool->Create(GraphicsFamily, 0);
 
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
     constexpr VkFenceCreateInfo     FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
@@ -47,12 +42,10 @@ void luvk::Synchronization::Initialize()
 void luvk::Synchronization::SetupFrames()
 {
     m_DeviceModule->WaitIdle();
-
     const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
+
     m_CommandPoolModule->AllocateBuffers();
     const std::span<const VkCommandBuffer> Buffers = m_CommandPoolModule->GetBuffers();
-
-    m_SecondaryPool->Reset();
 
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
 
@@ -89,11 +82,6 @@ void luvk::Synchronization::SetupFrames()
 
 void luvk::Synchronization::ClearResources()
 {
-    if (!m_DeviceModule)
-    {
-        return;
-    }
-
     const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
     for (FrameData& Frame : m_Frames)

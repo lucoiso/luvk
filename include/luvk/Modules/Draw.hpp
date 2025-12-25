@@ -18,14 +18,20 @@ namespace luvk
     class Synchronization;
     struct FrameData;
 
+    struct LUVK_API DrawCallbackInfo
+    {
+        std::function<bool(VkCommandBuffer)> Callback;
+    };
+
     class LUVK_API Draw : public IRenderModule
     {
     protected:
         std::array<VkClearValue, 2U> m_ClearValues{VkClearValue{.color = {0.2F, 0.2F, 0.2F, 1.F}},
                                                    VkClearValue{.depthStencil = {1.F, 0}}};
-        std::vector<std::function<void(VkCommandBuffer)>> m_PostRenderCommands{};
-        std::function<void(VkCommandBuffer)>              m_PreRenderCallback{nullptr};
-        std::function<void(VkCommandBuffer)>              m_DrawCallback{nullptr};
+
+        std::vector<DrawCallbackInfo> m_PreRenderCallbacks{};
+        std::vector<DrawCallbackInfo> m_DrawCallbacks{};
+        std::vector<DrawCallbackInfo> m_PostRenderCallbacks{};
 
         std::shared_ptr<Device>          m_DeviceModule{};
         std::shared_ptr<SwapChain>       m_SwapChainModule{};
@@ -49,19 +55,19 @@ namespace luvk
             std::ranges::copy(Values, std::begin(m_ClearValues));
         }
 
-        void EnqueueCommand(std::function<void(VkCommandBuffer)>&& Cmd)
+        void RegisterPreRenderCommand(DrawCallbackInfo&& Cmd)
         {
-            m_PostRenderCommands.emplace_back(std::move(Cmd));
+            m_PreRenderCallbacks.emplace_back(std::move(Cmd));
         }
 
-        void SetPreRenderCallback(std::function<void(VkCommandBuffer)>&& Callback)
+        void RegisterDrawCommand(DrawCallbackInfo&& Cmd)
         {
-            m_PreRenderCallback = std::move(Callback);
+            m_DrawCallbacks.emplace_back(std::move(Cmd));
         }
 
-        void SetDrawCallback(std::function<void(VkCommandBuffer)>&& Callback)
+        void RegisterPostRenderCommand(DrawCallbackInfo&& Cmd)
         {
-            m_DrawCallback = std::move(Callback);
+            m_PostRenderCallbacks.emplace_back(std::move(Cmd));
         }
 
         void RecordCommands(const FrameData& Frame, std::uint32_t ImageIndex);

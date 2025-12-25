@@ -26,9 +26,9 @@ namespace luvk
                                  public IEventModule
     {
     protected:
-        VkCommandPool                m_CommandPool{VK_NULL_HANDLE};
+        VkCommandPool                                      m_CommandPool{VK_NULL_HANDLE};
         std::array<VkCommandBuffer, Constants::ImageCount> m_Buffers{};
-        std::shared_ptr<Device>      m_DeviceModule{};
+        std::shared_ptr<Device>                            m_DeviceModule{};
 
     public:
         CommandPool() = delete;
@@ -39,9 +39,7 @@ namespace luvk
             CommandPool::ClearResources();
         }
 
-        void CreateCommandPool(std::uint32_t            QueueFamilyIndex,
-                               VkCommandPoolCreateFlags Flags);
-
+        void CreateCommandPool(std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
         void AllocateBuffers(VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         [[nodiscard]] constexpr std::span<const VkCommandBuffer> GetBuffers() const noexcept

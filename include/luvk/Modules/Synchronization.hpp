@@ -16,7 +16,6 @@ namespace luvk
     class Device;
     class SwapChain;
     class CommandPool;
-    class CommandBufferPool;
 
     struct LUVK_API FrameData
     {
@@ -33,7 +32,6 @@ namespace luvk
         std::array<FrameData, Constants::ImageCount>   m_Frames{};
         std::array<VkSemaphore, Constants::ImageCount> m_RenderFinished{};
         std::size_t                                    m_CurrentFrame{0};
-        std::shared_ptr<CommandBufferPool>             m_SecondaryPool{};
         std::shared_ptr<Device>                        m_DeviceModule{};
         std::shared_ptr<SwapChain>                     m_SwapChainModule{};
         std::shared_ptr<CommandPool>                   m_CommandPoolModule{};
@@ -57,7 +55,7 @@ namespace luvk
             return m_Frames.at(Index);
         }
 
-        [[nodiscard]] constexpr VkSemaphore GetRenderFinished(const std::size_t Index) noexcept
+        [[nodiscard]] constexpr VkSemaphore GetRenderFinished(const std::size_t Index) const noexcept
         {
             return m_RenderFinished.at(Index);
         }
@@ -65,11 +63,6 @@ namespace luvk
         [[nodiscard]] constexpr std::size_t GetCurrentFrame() const noexcept
         {
             return m_CurrentFrame;
-        }
-
-        [[nodiscard]] std::shared_ptr<CommandBufferPool> GetSecondaryPool() const noexcept
-        {
-            return m_SecondaryPool;
         }
 
         constexpr void AdvanceFrame()

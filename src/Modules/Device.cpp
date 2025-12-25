@@ -173,7 +173,7 @@ const void* luvk::Device::ConfigureExtensions(const void* pNext)
             return;
         }
 
-        if (const IExtensionsModule* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get());
+        if (const auto* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get());
             ExtModule != nullptr)
         {
             for (const auto& [LayerIt, ExtensionContainerIt] : ExtModule->GetDeviceExtensions())
@@ -187,13 +187,13 @@ const void* luvk::Device::ConfigureExtensions(const void* pNext)
             }
         }
 
-        if (const IFeatureChainModule* const FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get());
+        if (const auto FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get());
             FeatChainModule != nullptr)
         {
             if (const void* const Chain = FeatChainModule->GetDeviceFeatureChain();
                 Chain != nullptr)
             {
-                VkBaseOutStructure* Base = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(Chain));
+                auto Base = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(Chain));
 
                 while (Base->pNext != nullptr)
                 {

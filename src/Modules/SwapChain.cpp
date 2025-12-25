@@ -22,6 +22,7 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
     m_Arguments         = Arguments;
 
     VkSurfaceCapabilitiesKHR Caps{};
+
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_DeviceModule->GetPhysicalDevice(), Arguments.Surface, &Caps);
 
     const VkSwapchainCreateInfoKHR SwapChainCreateInfo{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,

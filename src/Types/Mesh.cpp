@@ -17,11 +17,6 @@ Mesh::Mesh(const std::shared_ptr<Device>& Device, const std::shared_ptr<Memory>&
 
 void Mesh::UploadVertices(const std::span<const std::byte> Data, const std::uint32_t VertexCount, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= Constants::ImageCount)
-    {
-        return;
-    }
-
     auto& Buffer = m_VertexBuffers.at(FrameIndex);
 
     if (!Buffer || Buffer->GetSize() < Data.size_bytes())
@@ -38,15 +33,12 @@ void Mesh::UploadVertices(const std::span<const std::byte> Data, const std::uint
 
 void Mesh::UploadIndices(const std::span<const std::uint16_t> Data, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= Constants::ImageCount)
-    {
-        return;
-    }
+    m_IndexType = VK_INDEX_TYPE_UINT16;
 
-    auto&             Buffer = m_IndexBuffers.at(FrameIndex);
-    const std::size_t Bytes  = Data.size_bytes();
+    auto& Buffer = m_IndexBuffers.at(FrameIndex);
 
-    if (!Buffer || Buffer->GetSize() < Bytes)
+    if (const std::size_t Bytes = Data.size_bytes();
+        !Buffer || Buffer->GetSize() < Bytes)
     {
         Buffer = std::make_shared<luvk::Buffer>(m_Device, m_Memory);
         Buffer->CreateBuffer({.Size = Bytes,
@@ -60,15 +52,12 @@ void Mesh::UploadIndices(const std::span<const std::uint16_t> Data, const std::u
 
 void Mesh::UploadIndices(const std::span<const std::uint32_t> Data, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= Constants::ImageCount)
-    {
-        return;
-    }
+    m_IndexType = VK_INDEX_TYPE_UINT32;
 
-    auto&             Buffer = m_IndexBuffers.at(FrameIndex);
-    const std::size_t Bytes  = Data.size_bytes();
+    auto& Buffer = m_IndexBuffers.at(FrameIndex);
 
-    if (!Buffer || Buffer->GetSize() < Bytes)
+    if (const std::size_t Bytes = Data.size_bytes();
+        !Buffer || Buffer->GetSize() < Bytes)
     {
         Buffer = std::make_shared<luvk::Buffer>(m_Device, m_Memory);
         Buffer->CreateBuffer({.Size = Bytes,
@@ -82,11 +71,6 @@ void Mesh::UploadIndices(const std::span<const std::uint32_t> Data, const std::u
 
 void Mesh::UpdateInstances(const std::span<const std::byte> Data, const std::uint32_t Count, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= Constants::ImageCount)
-    {
-        return;
-    }
-
     auto& Buffer = m_InstanceBuffers.at(FrameIndex);
 
     if (!Buffer || Buffer->GetSize() < Data.size_bytes())
@@ -103,11 +87,6 @@ void Mesh::UpdateInstances(const std::span<const std::byte> Data, const std::uin
 
 void Mesh::UpdateUniformBuffer(const std::span<const std::byte> Data, const std::uint32_t FrameIndex)
 {
-    if (FrameIndex >= Constants::ImageCount)
-    {
-        return;
-    }
-
     auto& Buffer = m_UniformBuffers.at(FrameIndex);
 
     if (!Buffer || Buffer->GetSize() < Data.size_bytes())
@@ -119,30 +98,6 @@ void Mesh::UpdateUniformBuffer(const std::span<const std::byte> Data, const std:
                               .Name = "Mesh UBO"});
     }
     Buffer->Upload(Data);
-}
-
-void Mesh::UploadVerticesToAll(const std::span<const std::byte> Data, const std::uint32_t VertexCount)
-{
-    for (std::uint32_t It = 0; It < Constants::ImageCount; ++It)
-    {
-        UploadVertices(Data, VertexCount, It);
-    }
-}
-
-void Mesh::UploadIndicesToAll(const std::span<const std::uint16_t> Data)
-{
-    for (std::uint32_t It = 0; It < Constants::ImageCount; ++It)
-    {
-        UploadIndices(Data, It);
-    }
-}
-
-void Mesh::UploadIndicesToAll(const std::span<const std::uint32_t> Data)
-{
-    for (std::uint32_t It = 0; It < Constants::ImageCount; ++It)
-    {
-        UploadIndices(Data, It);
-    }
 }
 
 void Mesh::SetDispatchCount(const std::uint32_t X, const std::uint32_t Y, const std::uint32_t Z)
@@ -243,7 +198,7 @@ void Mesh::Render(const VkCommandBuffer CommandBuffer, const std::uint32_t Curre
 
     if (CurrentFrame < Constants::ImageCount && m_IndexBuffers.at(CurrentFrame))
     {
-        vkCmdBindIndexBuffer(CommandBuffer, m_IndexBuffers.at(CurrentFrame)->GetHandle(), 0, VK_INDEX_TYPE_UINT16);
+        vkCmdBindIndexBuffer(CommandBuffer, m_IndexBuffers.at(CurrentFrame)->GetHandle(), 0, m_IndexType);
         vkCmdDrawIndexed(CommandBuffer, m_IndexCount, std::max(1U, m_InstanceCount), 0, 0, 0);
     }
     else

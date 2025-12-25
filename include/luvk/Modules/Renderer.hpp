@@ -48,22 +48,22 @@ namespace luvk
 
     struct InstanceCreationArguments
     {
-        std::string_view ApplicationName = "luvk";
-        std::string_view EngineName = "luvk";
+        std::string_view ApplicationName    = "luvk";
+        std::string_view EngineName         = "luvk";
         std::uint32_t    ApplicationVersion = VK_MAKE_VERSION(1U, 0U, 0U);
-        std::uint32_t    EngineVersion = VK_MAKE_VERSION(1U, 0U, 0U);
-        std::uint32_t    VulkanApiVersion = VK_API_VERSION_1_0;
+        std::uint32_t    EngineVersion      = VK_MAKE_VERSION(1U, 0U, 0U);
+        std::uint32_t    VulkanApiVersion   = VK_API_VERSION_1_0;
     };
 
     class LUVK_API Renderer : public IRenderModule,
                               public IEventModule
     {
     protected:
-        bool               m_Paused{false};
-        VkInstance         m_Instance{VK_NULL_HANDLE};
-        InstanceExtensions m_Extensions{};
+        bool                      m_Paused{false};
+        VkInstance                m_Instance{VK_NULL_HANDLE};
+        InstanceExtensions        m_Extensions{};
         InstanceCreationArguments m_InstanceCreationArguments{};
-        RenderModules      m_Modules{};
+        RenderModules             m_Modules{};
 
     public:
         constexpr Renderer() = default;
@@ -83,9 +83,14 @@ namespace luvk
             return m_Extensions;
         }
 
-        [[nodiscard]] RenderModules GetModules() const noexcept
+        [[nodiscard]] constexpr const RenderModules& GetModules() const noexcept
         {
             return m_Modules;
+        }
+
+        [[nodiscard]] std::uint32_t GetCurrentFrame() const noexcept
+        {
+            return static_cast<std::uint32_t>(m_Modules.SynchronizationModule->GetCurrentFrame());
         }
 
         [[nodiscard]] constexpr const InstanceCreationArguments& GetInstanceCreationArguments() const noexcept
