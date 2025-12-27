@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Memory.hpp"
 #include <stdexcept>
@@ -43,7 +43,7 @@ void luvk::Memory::InitializeAllocator(const VmaAllocatorCreateFlags Flags)
                                                .pDeviceMemoryCallbacks = nullptr,
                                                .pHeapSizeLimit = nullptr,
                                                .pVulkanFunctions = &VulkanFunctions,
-                                               .instance = m_RendererModule->GetInstance(),
+                                               .instance = m_RendererModule.lock()->GetInstance(),
                                                .vulkanApiVersion = VK_MAKE_API_VERSION(0, 1, 0, 0),
                                                .pTypeExternalMemoryHandleTypes = nullptr};
 
@@ -51,8 +51,6 @@ void luvk::Memory::InitializeAllocator(const VmaAllocatorCreateFlags Flags)
     {
         throw std::runtime_error("Failed to initialize the allocator.");
     }
-
-    GetEventSystem().Execute(MemoryEvents::OnAllocatorCreated);
 }
 
 void luvk::Memory::ClearResources()
@@ -61,7 +59,5 @@ void luvk::Memory::ClearResources()
     {
         vmaDestroyAllocator(m_Allocator);
         m_Allocator = VK_NULL_HANDLE;
-
-        GetEventSystem().Execute(MemoryEvents::OnAllocatorDestroyed);
     }
 }

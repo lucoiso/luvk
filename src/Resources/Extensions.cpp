@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Extensions.hpp"
 #include <cstdint>

@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
@@ -9,7 +9,6 @@
 #include <span>
 #include <unordered_map>
 #include <volk.h>
-#include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IFeatureChainModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 #include "luvk/Resources/Extensions.hpp"
@@ -18,22 +17,14 @@ namespace luvk
 {
     class Renderer;
 
-    enum class DeviceEvents : std::uint8_t
-    {
-        OnSelectedPhysicalDevice,
-        OnCreatedLogicalDevice,
-        OnSetSurface,
-    };
-
     class LUVK_API Device : public IRenderModule,
-                            public IEventModule,
                             public IFeatureChainModule
     {
     protected:
         VkDevice                                                m_LogicalDevice{VK_NULL_HANDLE};
         VkPhysicalDevice                                        m_PhysicalDevice{VK_NULL_HANDLE};
         VkSurfaceKHR                                            m_Surface{VK_NULL_HANDLE};
-        std::shared_ptr<Renderer>                               m_RendererModule{};
+        std::weak_ptr<Renderer>                                 m_RendererModule{};
         DeviceExtensions                                        m_Extensions{};
         VkPhysicalDeviceFeatures2                               m_DeviceFeatures{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
         VkPhysicalDeviceVulkan11Features                        m_Vulkan11Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
@@ -142,11 +133,12 @@ namespace luvk
         }
 
         [[nodiscard]] std::optional<std::uint32_t> FindQueueFamilyIndex(VkQueueFlags Flags) const;
-        [[nodiscard]] VkQueue                      GetQueue(std::uint32_t FamilyIndex, std::uint32_t QueueIndex = 0U) const;
+        [[nodiscard]] VkQueue                      GetQueue(std::uint32_t FamilyIndex, std::uint32_t QueueIndex) const;
+        [[nodiscard]] VkQueue                      GetQueue(VkQueueFlags Flags) const;
 
         void WaitIdle() const;
-        void Wait(VkQueue Queue) const;
-        void Wait(VkFence Fence, VkBool32 WaitAll = VK_TRUE, std::uint64_t Timeout = UINT64_MAX) const;
+        void WaitQueue(VkQueue Queue) const;
+        void WaitQueue(VkQueueFlags Flags) const;
 
     protected:
         void InitializeResources() override;

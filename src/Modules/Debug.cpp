@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Debug.hpp"
 #include <cstdio>
@@ -44,7 +44,7 @@ void luvk::Debug::InitializeResources()
                                                             .pfnUserCallback = &ValidationLayerDebugCallback,
                                                             .pUserData = nullptr};
 
-    if (!LUVK_EXECUTE(vkCreateDebugUtilsMessengerEXT(m_RendererModule->GetInstance(), &CreateInfo, nullptr, &m_Messenger)))
+    if (!LUVK_EXECUTE(vkCreateDebugUtilsMessengerEXT(m_RendererModule.lock()->GetInstance(), &CreateInfo, nullptr, &m_Messenger)))
     {
         throw std::runtime_error("Failed to create the debug messenger.");
     }
@@ -54,7 +54,7 @@ void luvk::Debug::ClearResources()
 {
     if (m_Messenger != VK_NULL_HANDLE)
     {
-        vkDestroyDebugUtilsMessengerEXT(m_RendererModule->GetInstance(), m_Messenger, nullptr);
+        vkDestroyDebugUtilsMessengerEXT(m_RendererModule.lock()->GetInstance(), m_Messenger, nullptr);
         m_Messenger = VK_NULL_HANDLE;
     }
 }

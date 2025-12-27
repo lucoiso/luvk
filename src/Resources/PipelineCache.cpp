@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/PipelineCache.hpp"
 #include <stdexcept>
@@ -15,21 +15,25 @@ PipelineCache::PipelineCache(const std::shared_ptr<Device>& DeviceModule)
 PipelineCache::~PipelineCache()
 {
     const VkDevice Device = m_DeviceModule->GetLogicalDevice();
+
     if (m_PreRaster != VK_NULL_HANDLE)
     {
         vkDestroyPipelineCache(Device, m_PreRaster, nullptr);
         m_PreRaster = VK_NULL_HANDLE;
     }
+
     if (m_Fragment != VK_NULL_HANDLE)
     {
         vkDestroyPipelineCache(Device, m_Fragment, nullptr);
         m_Fragment = VK_NULL_HANDLE;
     }
+
     if (m_Output != VK_NULL_HANDLE)
     {
         vkDestroyPipelineCache(Device, m_Output, nullptr);
         m_Output = VK_NULL_HANDLE;
     }
+
     if (m_Composite != VK_NULL_HANDLE)
     {
         vkDestroyPipelineCache(Device, m_Composite, nullptr);

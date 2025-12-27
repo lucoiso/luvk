@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Image.hpp"
 #include <cstddef>
@@ -84,11 +84,14 @@ void luvk::Image::Upload(const std::span<const std::byte> Data) const
 {
     const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
     void*              Map       = nullptr;
+
     if (!LUVK_EXECUTE(vmaMapMemory(Allocator, m_Allocation, &Map)))
     {
         throw std::runtime_error("Failed to std::unordered_map image memory.");
     }
+
     std::memcpy(Map, std::data(Data), std::size(Data));
+
     vmaFlushAllocation(Allocator, m_Allocation, 0, std::size(Data));
     vmaUnmapMemory(Allocator, m_Allocation);
 }
@@ -205,6 +208,7 @@ void luvk::Image::Upload(const std::shared_ptr<Buffer>& Staging) const
     {
         vkFreeCommandBuffers(LogicalDevice, Pool, 1, &CommandBuffer);
         vkDestroyCommandPool(LogicalDevice, Pool, nullptr);
+
         throw std::runtime_error("Failed to submit image upload command");
     }
 

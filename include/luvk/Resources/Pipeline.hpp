@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
@@ -86,8 +86,10 @@ namespace luvk
 
         void CreateGraphicsPipeline(const CreationArguments& Arguments);
         void RecreateGraphicsPipeline(const CreationArguments& Arguments);
+
         void CreateComputePipeline(const ComputeCreationArguments& Arguments);
         void RecreateComputePipeline(const ComputeCreationArguments& Arguments);
+
         void CreateMeshPipeline(const MeshCreationArguments& Arguments);
         void RecreateMeshPipeline(const MeshCreationArguments& Arguments);
 
@@ -113,16 +115,15 @@ namespace luvk
 
         [[nodiscard]] constexpr VkPipelineBindPoint GetBindPoint() const noexcept
         {
-            switch (m_Type)
-            {
-            case Type::Compute: return VK_PIPELINE_BIND_POINT_COMPUTE;
-            case Type::Graphics:
-            case Type::Mesh:
-            default: return VK_PIPELINE_BIND_POINT_GRAPHICS;
-            }
+            return m_Type == Type::Compute
+                       ? VK_PIPELINE_BIND_POINT_COMPUTE
+                       : VK_PIPELINE_BIND_POINT_GRAPHICS;
         }
 
     protected:
         void Clear();
+
+    private:
+        void SetupPipelineLayout(std::span<const VkDescriptorSetLayout> SetLayouts, std::span<const VkPushConstantRange> PushConstants);
     };
 } // namespace luvk

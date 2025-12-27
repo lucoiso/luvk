@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
@@ -18,6 +18,7 @@ namespace luvk
     {
     protected:
         bool                            m_OwnsLayout{false};
+        bool                            m_Owned{true};
         VkDescriptorSetLayout           m_Layout{VK_NULL_HANDLE};
         VkDescriptorSet                 m_Set{VK_NULL_HANDLE};
         std::shared_ptr<Device>         m_DeviceModule{};
@@ -26,9 +27,16 @@ namespace luvk
 
     public:
         DescriptorSet() = delete;
+
         explicit DescriptorSet(const std::shared_ptr<Device>&         DeviceModule,
                                const std::shared_ptr<DescriptorPool>& PoolModule,
                                const std::shared_ptr<Memory>&         MemoryModule);
+
+        explicit DescriptorSet(const std::shared_ptr<Device>&         DeviceModule,
+                               const std::shared_ptr<DescriptorPool>& PoolModule,
+                               const std::shared_ptr<Memory>&         MemoryModule,
+                               VkDescriptorSet                        ExistingSet,
+                               VkDescriptorSetLayout                  ExistingLayout = VK_NULL_HANDLE);
 
         ~DescriptorSet();
 

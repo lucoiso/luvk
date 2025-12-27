@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
@@ -30,6 +30,11 @@ namespace luvk
         void CreateDescriptorPool(std::uint32_t                         MaxSets,
                                   std::span<const VkDescriptorPoolSize> PoolSizes,
                                   VkDescriptorPoolCreateFlags           Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
+
+        [[nodiscard]] bool AllocateSets(std::span<const VkDescriptorSetLayout> Layouts,
+                                        std::span<VkDescriptorSet>             OutSets) const;
+
+        void ResetPool() const;
 
         [[nodiscard]] constexpr VkDescriptorPool GetHandle() const noexcept
         {

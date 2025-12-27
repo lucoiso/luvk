@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/SwapChain.hpp"
 #include <iterator>
@@ -9,11 +9,15 @@
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Memory.hpp"
+#include "luvk/Modules/Synchronization.hpp"
 #include "luvk/Resources/Image.hpp"
 
-luvk::SwapChain::SwapChain(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Memory>& MemoryModule)
+luvk::SwapChain::SwapChain(const std::shared_ptr<Device>&          DeviceModule,
+                           const std::shared_ptr<Memory>&          MemoryModule,
+                           const std::shared_ptr<Synchronization>& SyncModule)
     : m_DeviceModule(DeviceModule),
-      m_MemoryModule(MemoryModule) {}
+      m_MemoryModule(MemoryModule),
+      m_SyncModule(SyncModule) {}
 
 void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
                                       void* const&        pNext)
@@ -22,7 +26,6 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
     m_Arguments         = Arguments;
 
     VkSurfaceCapabilitiesKHR Caps{};
-
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_DeviceModule->GetPhysicalDevice(), Arguments.Surface, &Caps);
 
     const VkSwapchainCreateInfoKHR SwapChainCreateInfo{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -48,7 +51,7 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
 
     if (!LUVK_EXECUTE(vkCreateSwapchainKHR(LogicalDevice, &SwapChainCreateInfo, nullptr, &m_SwapChain)))
     {
-        throw std::runtime_error("Failed to (re) create the swap chain.");
+        throw std::runtime_error("Failed to create the swap chain.");
     }
 
     DestroySwapChainImages(LogicalDevice);
@@ -66,8 +69,6 @@ void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments,
     CreateDepthResources();
     CreateRenderPass(LogicalDevice);
     CreateFramebuffers(LogicalDevice);
-
-    GetEventSystem().Execute(SwapChainEvents::OnCreated);
 }
 
 void luvk::SwapChain::ClearResources()
@@ -92,15 +93,79 @@ void luvk::SwapChain::Recreate(const VkExtent2D& NewExtent, void* const& pNext)
     CreateSwapChain(CreationArguments(m_Arguments), pNext);
 }
 
-void luvk::SwapChain::CreateSwapChainImages(const VkDevice LogicalDevice)
+std::optional<std::uint32_t> luvk::SwapChain::Acquire(FrameData& Frame) const
 {
-    std::uint32_t NumImages = 0U;
-    if (!LUVK_EXECUTE(vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &NumImages, nullptr)))
+    if (m_SyncModule.expired())
     {
-        throw std::runtime_error("Failed to get the number of swap chain images.");
+        return std::nullopt;
     }
 
-    if (!LUVK_EXECUTE(vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &NumImages, std::data(m_Images))))
+    const auto LockSyncModule = m_SyncModule.lock();
+    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
+
+    if (Frame.Submitted)
+    {
+        LockSyncModule->WaitFrame(Frame, VK_TRUE, UINT64_MAX);
+        vkResetFences(LogicalDevice, 1, &Frame.InFlight);
+        Frame.Submitted = false;
+    }
+
+    std::uint32_t  ImageIndex    = 0U;
+    const VkResult AcquireResult = vkAcquireNextImageKHR(LogicalDevice,
+                                                         m_SwapChain,
+                                                         UINT64_MAX,
+                                                         Frame.ImageAvailable,
+                                                         VK_NULL_HANDLE,
+                                                         &ImageIndex);
+
+    if (AcquireResult == VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        return std::nullopt;
+    }
+
+    if (AcquireResult != VK_SUCCESS && AcquireResult != VK_SUBOPTIMAL_KHR)
+    {
+        throw std::runtime_error("Failed to acquire swap chain image.");
+    }
+
+    if (LUVK_EXECUTE(vkResetCommandBuffer(Frame.CommandBuffer, 0U)) == false)
+    {
+        throw std::runtime_error("Failed to reset command buffer.");
+    }
+
+    return ImageIndex;
+}
+
+void luvk::SwapChain::Present(const std::uint32_t ImageIndex) const
+{
+    if (m_SyncModule.expired())
+    {
+        return;
+    }
+
+    const auto LockSyncModule = m_SyncModule.lock();
+    const VkSemaphore Semaphore = LockSyncModule->GetRenderFinished(ImageIndex);
+
+    const VkPresentInfoKHR Present{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                                   .waitSemaphoreCount = 1U,
+                                   .pWaitSemaphores = &Semaphore,
+                                   .swapchainCount = 1U,
+                                   .pSwapchains = &m_SwapChain,
+                                   .pImageIndices = &ImageIndex};
+
+    const VkQueue GraphicsQueue = m_DeviceModule->GetQueue(VK_QUEUE_GRAPHICS_BIT);
+
+    if (const VkResult PresentResult = vkQueuePresentKHR(GraphicsQueue, &Present);
+        PresentResult != VK_SUCCESS && PresentResult != VK_SUBOPTIMAL_KHR && PresentResult != VK_ERROR_OUT_OF_DATE_KHR)
+    {
+        throw std::runtime_error("Present failed");
+    }
+}
+
+void luvk::SwapChain::CreateSwapChainImages(const VkDevice LogicalDevice)
+{
+    static std::uint32_t ImageCount = Constants::ImageCount;
+    if (!LUVK_EXECUTE(vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &ImageCount, std::data(m_Images))))
     {
         throw std::runtime_error("Failed to get the swap chain images.");
     }

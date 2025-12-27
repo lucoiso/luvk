@@ -1,16 +1,18 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/Sampler.hpp"
 #include <stdexcept>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 
-luvk::Sampler::Sampler(const std::shared_ptr<Device>& DeviceModule)
+using namespace luvk;
+
+Sampler::Sampler(const std::shared_ptr<Device>& DeviceModule)
     : m_DeviceModule(DeviceModule) {}
 
-luvk::Sampler::~Sampler()
+Sampler::~Sampler()
 {
     if (m_Sampler != VK_NULL_HANDLE)
     {
@@ -19,7 +21,7 @@ luvk::Sampler::~Sampler()
     }
 }
 
-void luvk::Sampler::CreateSampler(const CreationArguments& Arguments)
+void Sampler::CreateSampler(const CreationArguments& Arguments)
 {
     const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 

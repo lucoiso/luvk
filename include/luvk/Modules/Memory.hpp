@@ -1,12 +1,11 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
 #include <memory>
 #include <vk_mem_alloc.h>
-#include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
 
 namespace luvk
@@ -14,19 +13,12 @@ namespace luvk
     class Renderer;
     class Device;
 
-    enum class MemoryEvents : std::uint8_t
-    {
-        OnAllocatorCreated,
-        OnAllocatorDestroyed
-    };
-
-    class LUVK_API Memory : public IRenderModule,
-                            public IEventModule
+    class LUVK_API Memory : public IRenderModule
     {
     protected:
-        VmaAllocator              m_Allocator{VK_NULL_HANDLE};
-        std::shared_ptr<Device>   m_DeviceModule{};
-        std::shared_ptr<Renderer> m_RendererModule{};
+        VmaAllocator            m_Allocator{VK_NULL_HANDLE};
+        std::shared_ptr<Device> m_DeviceModule{};
+        std::weak_ptr<Renderer> m_RendererModule{};
 
     public:
         Memory() = delete;

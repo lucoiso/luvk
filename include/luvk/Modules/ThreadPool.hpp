@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
@@ -34,6 +34,21 @@ namespace luvk
         void Start(std::uint32_t ThreadCount);
         void Submit(std::function<void()> Task);
         void WaitIdle();
+
+        [[nodiscard]] bool IsRunning() const noexcept
+        {
+            return m_Stop;
+        }
+
+        [[nodiscard]] std::uint32_t GetActiveThreadCount() const noexcept
+        {
+            return m_Active;
+        }
+
+        [[nodiscard]] std::uint32_t GetThreadCount() const noexcept
+        {
+            return std::size(m_Threads);
+        }
 
     protected:
         void ClearResources() override;

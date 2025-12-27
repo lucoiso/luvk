@@ -1,12 +1,13 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
 #include <array>
 #include <memory>
 #include <span>
+#include <string_view>
 #include <vector>
 #include <volk.h>
 #include "luvk/Constants/Rendering.hpp"
@@ -76,8 +77,14 @@ namespace luvk
         void SetDispatchCount(std::uint32_t X, std::uint32_t Y, std::uint32_t Z);
         void SetPushConstantData(std::span<const std::byte> Data);
 
+    private:
+        void EnsureCapacityAndUpload(std::shared_ptr<Buffer>&   BufferObj,
+                                     std::span<const std::byte> Data,
+                                     VkBufferUsageFlags         Usage,
+                                     std::string_view           Name);
+
     public:
         virtual void Tick(float DeltaTime);
         virtual void Render(VkCommandBuffer CommandBuffer, std::uint32_t CurrentFrame) const;
     };
-}
+} // namespace luvk

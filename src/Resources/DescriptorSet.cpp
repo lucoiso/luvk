@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Resources/DescriptorSet.hpp"
 #include <stdexcept>
@@ -16,11 +16,23 @@ luvk::DescriptorSet::DescriptorSet(const std::shared_ptr<Device>&         Device
       m_PoolModule(PoolModule),
       m_MemoryModule(MemoryModule) {}
 
+luvk::DescriptorSet::DescriptorSet(const std::shared_ptr<Device>&         DeviceModule,
+                                   const std::shared_ptr<DescriptorPool>& PoolModule,
+                                   const std::shared_ptr<Memory>&         MemoryModule,
+                                   const VkDescriptorSet                  ExistingSet,
+                                   const VkDescriptorSetLayout            ExistingLayout)
+    : m_Owned(false),
+      m_Layout(ExistingLayout),
+      m_Set(ExistingSet),
+      m_DeviceModule(DeviceModule),
+      m_PoolModule(PoolModule),
+      m_MemoryModule(MemoryModule) {}
+
 luvk::DescriptorSet::~DescriptorSet()
 {
     const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
 
-    if (m_Set != VK_NULL_HANDLE && m_PoolModule)
+    if (m_Owned && m_Set != VK_NULL_HANDLE && m_PoolModule)
     {
         vkFreeDescriptorSets(LogicalDevice, m_PoolModule->GetHandle(), 1, &m_Set);
         m_Set = VK_NULL_HANDLE;
@@ -57,15 +69,13 @@ void luvk::DescriptorSet::UseLayout(const VkDescriptorSetLayout Layout)
 
 void luvk::DescriptorSet::Allocate()
 {
-    const VkDescriptorSetAllocateInfo AllocateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                                                   .descriptorPool = m_PoolModule->GetHandle(),
-                                                   .descriptorSetCount = 1,
-                                                   .pSetLayouts = &m_Layout};
-
-    if (!LUVK_EXECUTE(vkAllocateDescriptorSets(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, &m_Set)))
+    if (m_PoolModule && m_PoolModule->AllocateSets({&m_Layout, 1}, {&m_Set, 1}))
     {
-        throw std::runtime_error("Failed to allocate descriptor set.");
+        m_Owned = true;
+        return;
     }
+
+    throw std::runtime_error("Failed to allocate descriptor set.");
 }
 
 void luvk::DescriptorSet::UpdateBuffer(const VkBuffer         Buffer,
@@ -73,7 +83,9 @@ void luvk::DescriptorSet::UpdateBuffer(const VkBuffer         Buffer,
                                        const std::uint32_t    Binding,
                                        const VkDescriptorType Type) const
 {
-    const VkDescriptorBufferInfo BufferInfo{.buffer = Buffer, .offset = 0, .range = Size};
+    const VkDescriptorBufferInfo BufferInfo{.buffer = Buffer,
+                                            .offset = 0,
+                                            .range = Size};
 
     const VkWriteDescriptorSet Write{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                      .dstSet = m_Set,

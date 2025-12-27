@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
@@ -16,8 +16,8 @@ namespace luvk
                            public IExtensionsModule
     {
     protected:
-        VkDebugUtilsMessengerEXT  m_Messenger{VK_NULL_HANDLE};
-        std::shared_ptr<Renderer> m_RendererModule{};
+        VkDebugUtilsMessengerEXT m_Messenger{VK_NULL_HANDLE};
+        std::weak_ptr<Renderer>  m_RendererModule{};
 
     public:
         Debug() = delete;

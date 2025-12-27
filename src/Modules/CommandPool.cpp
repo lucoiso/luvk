@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/CommandPool.hpp"
 #include <iterator>
@@ -22,23 +22,38 @@ void luvk::CommandPool::CreateCommandPool(const std::uint32_t QueueFamilyIndex, 
     {
         throw std::runtime_error("Failed to create command pool.");
     }
-
-    GetEventSystem().Execute(CommandPoolEvents::OnCreatedPool);
 }
 
-void luvk::CommandPool::AllocateBuffers(const VkCommandBufferLevel Level)
+std::vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(const std::uint32_t Count, const VkCommandBufferLevel Level)
 {
+    std::vector<VkCommandBuffer> Buffers(Count, VK_NULL_HANDLE);
+
     const VkCommandBufferAllocateInfo AllocateInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
                                                    .commandPool = m_CommandPool,
                                                    .level = Level,
-                                                   .commandBufferCount = Constants::ImageCount};
+                                                   .commandBufferCount = Count};
 
-    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, std::data(m_Buffers))))
+    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, std::data(Buffers))))
     {
         throw std::runtime_error("Failed to allocate command buffers.");
     }
 
-    GetEventSystem().Execute(CommandPoolEvents::OnAllocatedBuffers);
+    m_Buffers.insert_range(std::end(m_Buffers), Buffers);
+
+    return Buffers;
+}
+
+std::array<VkCommandBuffer, luvk::Constants::ImageCount> luvk::CommandPool::AllocateRenderCommandBuffers(VkCommandBufferLevel Level)
+{
+    const std::vector<VkCommandBuffer> AllocatedBuffers = AllocateBuffers(Constants::ImageCount, Level);
+
+    std::array<VkCommandBuffer, Constants::ImageCount> Output{};
+    for (std::int32_t Index = 0; Index < Constants::ImageCount; ++Index)
+    {
+        Output[Index] = AllocatedBuffers[Index];
+    }
+
+    return Output;
 }
 
 void luvk::CommandPool::ClearResources()
@@ -47,7 +62,7 @@ void luvk::CommandPool::ClearResources()
 
     if (!std::empty(m_Buffers))
     {
-        vkFreeCommandBuffers(LogicalDevice, m_CommandPool, Constants::ImageCount, std::data(m_Buffers));
+        vkFreeCommandBuffers(LogicalDevice, m_CommandPool, static_cast<std::uint32_t>(std::size(m_Buffers)), std::data(m_Buffers));
 
         for (VkCommandBuffer& BufferIt : m_Buffers)
         {
@@ -59,7 +74,5 @@ void luvk::CommandPool::ClearResources()
     {
         vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
         m_CommandPool = VK_NULL_HANDLE;
-
-        GetEventSystem().Execute(CommandPoolEvents::OnDestroyedPool);
     }
 }

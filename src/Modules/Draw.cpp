@@ -1,27 +1,27 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Draw.hpp"
 #include <stdexcept>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/SwapChain.hpp"
 #include "luvk/Modules/Synchronization.hpp"
 
 luvk::Draw::Draw(const std::shared_ptr<Device>&          DeviceModule,
-                 const std::shared_ptr<SwapChain>&       SwapChainModule,
                  const std::shared_ptr<Synchronization>& SyncModule)
     : m_DeviceModule(DeviceModule),
-      m_SwapChainModule(SwapChainModule),
       m_SyncModule(SyncModule) {}
 
-void luvk::Draw::RecordCommands(const FrameData& Frame, const std::uint32_t ImageIndex)
+void luvk::Draw::RecordCommands(const FrameData& Frame, const RenderTarget& Target)
 {
     constexpr VkCommandBufferBeginInfo Begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
                                              .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-    LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin));
+    if (!LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin)))
+    {
+        throw std::runtime_error("Failed to begin command buffer");
+    }
 
     std::erase_if(m_PreRenderCallbacks,
                   [&](const DrawCallbackInfo& CB)
@@ -29,16 +29,16 @@ void luvk::Draw::RecordCommands(const FrameData& Frame, const std::uint32_t Imag
                       return !CB.Callback(Frame.CommandBuffer);
                   });
 
-    const VkRenderPass  RenderPass  = m_SwapChainModule->GetRenderPass();
-    const VkFramebuffer FrameBuffer = m_SwapChainModule->GetFramebuffer(ImageIndex);
-    const VkExtent2D&   Extent      = m_SwapChainModule->GetExtent();
+    const VkRenderPass  RenderPass  = Target.RenderPass;
+    const VkFramebuffer FrameBuffer = Target.Framebuffer;
+    const VkExtent2D&   Extent      = Target.Extent;
 
     const VkRenderPassBeginInfo BeginPass{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
                                           .renderPass = RenderPass,
                                           .framebuffer = FrameBuffer,
                                           .renderArea = {{0, 0}, {Extent.width, Extent.height}},
-                                          .clearValueCount = static_cast<std::uint32_t>(std::size(m_ClearValues)),
-                                          .pClearValues = std::data(m_ClearValues)};
+                                          .clearValueCount = static_cast<std::uint32_t>(std::size(Target.ClearValues)),
+                                          .pClearValues = std::data(Target.ClearValues)};
 
     vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginPass, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -61,14 +61,24 @@ void luvk::Draw::RecordCommands(const FrameData& Frame, const std::uint32_t Imag
                   });
 
     vkCmdEndRenderPass(Frame.CommandBuffer);
-    LUVK_EXECUTE(vkEndCommandBuffer(Frame.CommandBuffer));
+
+    if (!LUVK_EXECUTE(vkEndCommandBuffer(Frame.CommandBuffer)))
+    {
+        throw std::runtime_error("Failed to end command buffer");
+    }
 }
 
 void luvk::Draw::SubmitFrame(FrameData& Frame, const std::uint32_t ImageIndex) const
 {
+    if (m_SyncModule.expired())
+    {
+        return;
+    }
+
+    const auto LockSyncModule = m_SyncModule.lock();
     constexpr VkPipelineStageFlags WaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    const VkSemaphore Semaphore = m_SyncModule->GetRenderFinished(ImageIndex);
+    const VkSemaphore Semaphore = LockSyncModule->GetRenderFinished(ImageIndex);
 
     const VkSubmitInfo Submit{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                               .waitSemaphoreCount = 1U,
@@ -79,25 +89,13 @@ void luvk::Draw::SubmitFrame(FrameData& Frame, const std::uint32_t ImageIndex) c
                               .signalSemaphoreCount = 1U,
                               .pSignalSemaphores = &Semaphore};
 
-    const VkQueue GraphicsQueue = m_DeviceModule->GetQueue(m_DeviceModule->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT).value());
+    const VkQueue GraphicsQueue = m_DeviceModule->GetQueue(VK_QUEUE_GRAPHICS_BIT);
 
-    LUVK_EXECUTE(vkQueueSubmit(GraphicsQueue, 1U, &Submit, Frame.InFlight));
-    Frame.Submitted = true;
-
-    const VkSwapchainKHR Handle = m_SwapChainModule->GetHandle();
-
-    const VkPresentInfoKHR Present{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                   .waitSemaphoreCount = 1U,
-                                   .pWaitSemaphores = &Semaphore,
-                                   .swapchainCount = 1U,
-                                   .pSwapchains = &Handle,
-                                   .pImageIndices = &ImageIndex};
-
-    const VkResult PresentResult = vkQueuePresentKHR(GraphicsQueue, &Present);
-    if (PresentResult != VK_SUCCESS && PresentResult != VK_SUBOPTIMAL_KHR && PresentResult != VK_ERROR_OUT_OF_DATE_KHR)
+    if (!LUVK_EXECUTE(vkQueueSubmit(GraphicsQueue, 1U, &Submit, Frame.InFlight)))
     {
-        throw std::runtime_error("Present failed");
+        throw std::runtime_error("Failed to submit graphics queue");
     }
 
-    m_SyncModule->AdvanceFrame();
+    Frame.Submitted = true;
+    LockSyncModule->AdvanceFrame();
 }

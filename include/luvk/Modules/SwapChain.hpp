@@ -1,22 +1,25 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
 #include <array>
+#include <optional>
 #include <span>
 #include <volk.h>
 #include "luvk/Constants/Rendering.hpp"
-#include "luvk/Interfaces/IEventModule.hpp"
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Interfaces/IRenderModule.hpp"
+#include "luvk/Types/FrameData.hpp"
+#include "luvk/Types/RenderTarget.hpp"
 
 namespace luvk
 {
     class Device;
     class Memory;
     class Image;
+    class Synchronization;
 
     struct SwapChainCreationArguments
     {
@@ -33,13 +36,7 @@ namespace luvk
         std::vector<std::uint32_t>    QueueIndices{};
     };
 
-    enum class SwapChainEvents : std::uint8_t
-    {
-        OnCreated
-    };
-
     class LUVK_API SwapChain : public IRenderModule,
-                               public IEventModule,
                                public IExtensionsModule
     {
     protected:
@@ -56,15 +53,17 @@ namespace luvk
         std::array<VkFramebuffer, Constants::ImageCount>          m_Framebuffers{};
         std::array<std::shared_ptr<Image>, Constants::ImageCount> m_DepthImages{};
 
-        std::shared_ptr<Device> m_DeviceModule{};
-        std::shared_ptr<Memory> m_MemoryModule{};
+        std::shared_ptr<Device>        m_DeviceModule{};
+        std::shared_ptr<Memory>        m_MemoryModule{};
+        std::weak_ptr<Synchronization> m_SyncModule{};
 
         CreationArguments m_Arguments{};
 
     public:
         SwapChain() = delete;
-        explicit SwapChain(const std::shared_ptr<Device>& DeviceModule,
-                           const std::shared_ptr<Memory>& MemoryModule);
+        explicit SwapChain(const std::shared_ptr<Device>&          DeviceModule,
+                           const std::shared_ptr<Memory>&          MemoryModule,
+                           const std::shared_ptr<Synchronization>& SyncModule);
 
         ~SwapChain() override
         {
@@ -126,21 +125,35 @@ namespace luvk
             return m_Arguments;
         }
 
+        [[nodiscard]] constexpr RenderTarget GetRenderTarget(const std::uint32_t ImageIndex) const noexcept
+        {
+            return RenderTarget{.RenderPass = m_RenderPass,
+                                .Framebuffer = m_Framebuffers.at(ImageIndex),
+                                .Extent = m_Arguments.Extent};
+        }
+
         virtual void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
         void         Recreate(const VkExtent2D& NewExtent, void* const& pNext);
+
+        [[nodiscard]] std::optional<std::uint32_t> Acquire(FrameData& Frame) const;
+        void                                       Present(std::uint32_t ImageIndex) const;
 
     protected:
         void ClearResources() override;
 
     private:
-        void                   CreateSwapChainImages(VkDevice LogicalDevice);
-        void                   DestroySwapChainImages(VkDevice LogicalDevice);
-        void                   CreateRenderPass(VkDevice LogicalDevice);
-        void                   DestroyRenderPass(VkDevice LogicalDevice);
-        void                   CreateFramebuffers(VkDevice LogicalDevice);
-        void                   DestroyFramebuffers(VkDevice LogicalDevice);
-        void                   CreateDepthResources();
-        void                   DestroyDepthResources();
+        void CreateSwapChainImages(VkDevice LogicalDevice);
+        void DestroySwapChainImages(VkDevice LogicalDevice);
+
+        void CreateRenderPass(VkDevice LogicalDevice);
+        void DestroyRenderPass(VkDevice LogicalDevice);
+
+        void CreateFramebuffers(VkDevice LogicalDevice);
+        void DestroyFramebuffers(VkDevice LogicalDevice);
+
+        void CreateDepthResources();
+        void DestroyDepthResources();
+
         [[nodiscard]] VkFormat SelectDepthFormat(VkPhysicalDevice PhysicalDevice) const;
     };
 } // namespace luvk

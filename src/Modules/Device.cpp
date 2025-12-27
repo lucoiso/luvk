@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Device.hpp"
 #include <algorithm>
@@ -31,7 +31,7 @@ void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice Device)
     m_Vulkan12Features.pNext = &m_Vulkan13Features;
     m_Vulkan13Features.pNext = &m_Vulkan14Features;
 
-    if (m_RendererModule->GetInstanceCreationArguments().VulkanApiVersion > VK_API_VERSION_1_0 ||
+    if (m_RendererModule.lock()->GetInstanceCreationArguments().VulkanApiVersion > VK_API_VERSION_1_0 ||
         m_Extensions.HasAvailableExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
     {
         vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &m_DeviceFeatures);
@@ -48,8 +48,6 @@ void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice Device)
 
     m_DeviceQueueFamilyProperties.resize(NumProperties);
     vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &NumProperties, std::data(m_DeviceQueueFamilyProperties));
-
-    GetEventSystem().Execute(DeviceEvents::OnSelectedPhysicalDevice);
 }
 
 void luvk::Device::SetPhysicalDevice(const std::uint8_t Index)
@@ -81,8 +79,6 @@ void luvk::Device::SetSurface(const VkSurfaceKHR Surface)
 
     m_SurfaceFormat.resize(NumFormats);
     vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &NumFormats, std::data(m_SurfaceFormat));
-
-    GetEventSystem().Execute(DeviceEvents::OnSetSurface);
 }
 
 void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, const void* pNext)
@@ -137,13 +133,11 @@ void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::ui
 
         m_Queues.emplace(QueueCreateInfoIt.queueFamilyIndex, std::move(QueueList));
     }
-
-    GetEventSystem().Execute(DeviceEvents::OnCreatedLogicalDevice);
 }
 
 void luvk::Device::InitializeResources()
 {
-    FetchAvailableDevices(m_RendererModule->GetInstance());
+    FetchAvailableDevices(m_RendererModule.lock()->GetInstance());
 }
 
 void luvk::Device::ClearResources()
@@ -156,7 +150,7 @@ void luvk::Device::ClearResources()
 
     if (m_Surface != VK_NULL_HANDLE)
     {
-        vkDestroySurfaceKHR(m_RendererModule->GetInstance(), m_Surface, nullptr);
+        vkDestroySurfaceKHR(m_RendererModule.lock()->GetInstance(), m_Surface, nullptr);
         m_Surface = VK_NULL_HANDLE;
     }
 }
@@ -164,7 +158,7 @@ void luvk::Device::ClearResources()
 const void* luvk::Device::ConfigureExtensions(const void* pNext)
 {
     const void*          FeatureChain = pNext;
-    const RenderModules& Modules      = m_RendererModule->GetModules();
+    const RenderModules& Modules      = m_RendererModule.lock()->GetModules();
 
     auto ProcessModule = [&](const std::shared_ptr<IRenderModule>& Module)
     {
@@ -258,6 +252,11 @@ VkQueue luvk::Device::GetQueue(const std::uint32_t FamilyIndex, const std::uint3
     return VK_NULL_HANDLE;
 }
 
+VkQueue luvk::Device::GetQueue(const VkQueueFlags Flags) const
+{
+    return GetQueue(FindQueueFamilyIndex(Flags).value(), 0U);
+}
+
 void luvk::Device::WaitIdle() const
 {
     if (m_LogicalDevice != VK_NULL_HANDLE)
@@ -266,7 +265,7 @@ void luvk::Device::WaitIdle() const
     }
 }
 
-void luvk::Device::Wait(const VkQueue Queue) const
+void luvk::Device::WaitQueue(const VkQueue Queue) const
 {
     if (Queue != VK_NULL_HANDLE)
     {
@@ -274,10 +273,11 @@ void luvk::Device::Wait(const VkQueue Queue) const
     }
 }
 
-void luvk::Device::Wait(const VkFence Fence, const VkBool32 WaitAll, const std::uint64_t Timeout) const
+void luvk::Device::WaitQueue(const VkQueueFlags Flags) const
 {
-    if (Fence != VK_NULL_HANDLE)
+    if (const VkQueue TargetQueue = GetQueue(Flags);
+        TargetQueue != VK_NULL_HANDLE)
     {
-        vkWaitForFences(m_LogicalDevice, 1, &Fence, WaitAll, Timeout);
+        WaitQueue(TargetQueue);;
     }
 }

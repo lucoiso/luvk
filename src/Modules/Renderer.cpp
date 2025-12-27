@@ -1,10 +1,9 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #include "luvk/Modules/Renderer.hpp"
 #include <algorithm>
-#include <stdexcept>
 #include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Interfaces/IFeatureChainModule.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
@@ -144,6 +143,7 @@ void luvk::Renderer::ClearResources()
         m_Instance = VK_NULL_HANDLE;
     }
 
+    GetEventSystem().Execute(RendererEvents::OnCleared);
     volkFinalize();
 }
 
@@ -154,41 +154,19 @@ void luvk::Renderer::DrawFrame() const
         return;
     }
 
-    const VkDevice LogicalDevice = m_Modules.DeviceModule->GetLogicalDevice();
-    FrameData&     Frame         = m_Modules.SynchronizationModule->GetFrame(m_Modules.SynchronizationModule->GetCurrentFrame());
+    FrameData&                         Frame      = m_Modules.SynchronizationModule->GetCurrentFrameData();
+    const std::optional<std::uint32_t> ImageIndex = m_Modules.SwapChainModule->Acquire(Frame);
 
-    if (Frame.Submitted == true)
-    {
-        m_Modules.DeviceModule->Wait(Frame.InFlight, VK_TRUE, UINT64_MAX);
-        vkResetFences(LogicalDevice, 1, &Frame.InFlight);
-        Frame.Submitted = false;
-    }
-
-    std::uint32_t  ImageIndex    = 0U;
-    const VkResult AcquireResult = vkAcquireNextImageKHR(LogicalDevice,
-                                                         m_Modules.SwapChainModule->GetHandle(),
-                                                         UINT64_MAX,
-                                                         Frame.ImageAvailable,
-                                                         VK_NULL_HANDLE,
-                                                         &ImageIndex);
-
-    if (AcquireResult == VK_ERROR_OUT_OF_DATE_KHR)
+    if (!ImageIndex.has_value())
     {
         return;
     }
 
-    if (AcquireResult != VK_SUCCESS && AcquireResult != VK_SUBOPTIMAL_KHR)
-    {
-        throw std::runtime_error("Failed to acquire swap chain image.");
-    }
+    const std::uint32_t IndexValue = ImageIndex.value();
 
-    if (LUVK_EXECUTE(vkResetCommandBuffer(Frame.CommandBuffer, 0U)) == false)
-    {
-        throw std::runtime_error("Failed to reset command buffer.");
-    }
-
-    m_Modules.DrawModule->RecordCommands(Frame, ImageIndex);
-    m_Modules.DrawModule->SubmitFrame(Frame, ImageIndex);
+    m_Modules.DrawModule->RecordCommands(Frame, m_Modules.SwapChainModule->GetRenderTarget(IndexValue));
+    m_Modules.DrawModule->SubmitFrame(Frame, IndexValue);
+    m_Modules.SwapChainModule->Present(IndexValue);
 }
 
 void luvk::Renderer::SetPaused(const bool Paused)
@@ -201,8 +179,8 @@ void luvk::Renderer::SetPaused(const bool Paused)
 
 void luvk::Renderer::Refresh(const VkExtent2D& Extent) const
 {
-    m_Modules.DeviceModule->WaitIdle();
+    m_Modules.DeviceModule->WaitQueue(VK_QUEUE_GRAPHICS_BIT);
     m_Modules.SwapChainModule->Recreate(Extent, nullptr);
-    m_Modules.SynchronizationModule->SetupFrames();
+    m_Modules.SynchronizationModule->ResetFrames();
     GetEventSystem().Execute(RendererEvents::OnRefreshed);
 }

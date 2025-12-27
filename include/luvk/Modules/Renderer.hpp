@@ -1,6 +1,6 @@
 // Author: Lucas Vilas-Boas
 // Year: 2025
-// Repo : https://github.com/lucoiso/luvk
+// Repo: https://github.com/lucoiso/luvk
 
 #pragma once
 
@@ -26,6 +26,7 @@ namespace luvk
     {
         OnModulesRegistered,
         OnInitialized,
+        OnCleared,
         OnRefreshed,
         OnPaused,
         OnResumed,
@@ -73,6 +74,8 @@ namespace luvk
             Renderer::ClearResources();
         }
 
+        void ClearResources() override;
+
         [[nodiscard]] constexpr VkInstance GetInstance() const noexcept
         {
             return m_Instance;
@@ -104,8 +107,5 @@ namespace luvk
         void               DrawFrame() const;
         void               SetPaused(bool Paused);
         void               Refresh(const VkExtent2D& Extent) const;
-
-    protected:
-        void ClearResources() override;
     };
 } // namespace luvk
