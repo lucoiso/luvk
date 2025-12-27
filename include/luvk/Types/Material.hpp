@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -52,4 +54,4 @@ namespace luvk
             return m_DescriptorSet;
         }
     };
-} // namespace luvk
+}

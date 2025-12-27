@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Modules/CommandPool.hpp"
 #include <iterator>
@@ -13,12 +15,12 @@ luvk::CommandPool::CommandPool(const std::shared_ptr<Device>& DeviceModule)
 
 void luvk::CommandPool::CreateCommandPool(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
 {
-    const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                                       .pNext = nullptr,
-                                       .flags = Flags,
+    const VkCommandPoolCreateInfo Info{.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                       .pNext            = nullptr,
+                                       .flags            = Flags,
                                        .queueFamilyIndex = QueueFamilyIndex};
 
-    if (!LUVK_EXECUTE(vkCreateCommandPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_CommandPool)))
+    if (!LUVK_EXECUTE(vkCreateCommandPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, & m_CommandPool)))
     {
         throw std::runtime_error("Failed to create command pool.");
     }
@@ -28,9 +30,9 @@ std::vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(const std::uint3
 {
     std::vector<VkCommandBuffer> Buffers(Count, VK_NULL_HANDLE);
 
-    const VkCommandBufferAllocateInfo AllocateInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                                   .commandPool = m_CommandPool,
-                                                   .level = Level,
+    const VkCommandBufferAllocateInfo AllocateInfo{.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                                   .commandPool        = m_CommandPool,
+                                                   .level              = Level,
                                                    .commandBufferCount = Count};
 
     if (!LUVK_EXECUTE(vkAllocateCommandBuffers(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, std::data(Buffers))))

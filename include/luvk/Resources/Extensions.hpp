@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -88,11 +90,13 @@ namespace luvk
         VkPhysicalDevice m_Device{VK_NULL_HANDLE};
 
     public:
-        constexpr          DeviceExtensions() = default;
+        constexpr DeviceExtensions() = default;
+
         constexpr explicit DeviceExtensions(const VkPhysicalDevice Device) noexcept : m_Device(Device) {}
+
         ~DeviceExtensions() override = default;
 
-        constexpr void SetDevice(VkPhysicalDevice Device) noexcept
+        constexpr void SetDevice(const VkPhysicalDevice Device) noexcept
         {
             m_Device = Device;
         }
@@ -101,4 +105,4 @@ namespace luvk
         [[nodiscard]] std::vector<VkExtensionProperties> FetchAvailableLayerExtensions(std::string_view LayerName) const override;
         [[nodiscard]] std::vector<VkLayerProperties>     FetchAvailableLayers() const override;
     };
-} // namespace luvk
+}

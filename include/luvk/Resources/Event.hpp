@@ -1,15 +1,40 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <unordered_map>
+#include <vector>
 
 namespace luvk
 {
+    class EventGraph;
+
+    class LUVK_API EventHandle
+    {
+        friend class EventGraph;
+        std::weak_ptr<EventGraph> m_Graph;
+        std::size_t               m_Key{0};
+        std::size_t               m_Id{0};
+
+        EventHandle(std::weak_ptr<EventGraph> Graph, std::size_t Key, std::size_t Id);
+
+    public:
+        EventHandle() = default;
+        ~EventHandle();
+
+        EventHandle(EventHandle&& Other) noexcept;
+        EventHandle& operator=(EventHandle&& Other) noexcept;
+
+        void Unbind();
+    };
+
     class LUVK_API EventNode : public std::enable_shared_from_this<EventNode>
     {
     protected:
@@ -36,30 +61,36 @@ namespace luvk
         [[nodiscard]] std::shared_ptr<EventNode>        Then(std::function<void()>&& Function, bool OneTime = false);
     };
 
-    class LUVK_API EventGraph
+    class LUVK_API EventGraph : public std::enable_shared_from_this<EventGraph>
     {
-        std::unordered_map<std::size_t, std::vector<std::shared_ptr<EventNode>>> m_Nodes{};
+        struct NodeData
+        {
+            std::size_t                Id;
+            std::shared_ptr<EventNode> Node;
+        };
+
+        std::unordered_map<std::size_t, std::vector<NodeData>> m_Nodes{};
+        std::size_t                                            m_NextNodeId{0};
 
     public:
         constexpr EventGraph() = default;
         ~EventGraph()          = default;
 
-        void AddNode(std::shared_ptr<EventNode>&& Node, std::size_t Key);
+        [[nodiscard]] EventHandle AddNode(std::shared_ptr<EventNode>&& Node, std::size_t Key);
+        void                      RemoveNode(std::size_t Key, std::size_t Id);
 
-        template <typename KeyType>
-            requires std::is_enum_v<KeyType>
-        constexpr void AddNode(std::shared_ptr<EventNode>&& Node, KeyType Key)
+        template <typename KeyType> requires std::is_enum_v<KeyType>
+        constexpr EventHandle AddNode(std::shared_ptr<EventNode>&& Node, KeyType Key)
         {
-            AddNode(std::move(Node), static_cast<std::size_t>(Key));
+            return AddNode(std::move(Node), static_cast<std::size_t>(Key));
         }
 
         void Execute(std::size_t Key);
 
-        template <typename KeyType>
-            requires std::is_enum_v<KeyType>
+        template <typename KeyType> requires std::is_enum_v<KeyType>
         constexpr void Execute(KeyType Key)
         {
             Execute(static_cast<std::size_t>(Key));
         }
     };
-} // namespace luvk
+}

@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Resources/DescriptorSet.hpp"
 #include <stdexcept>
@@ -49,11 +51,11 @@ void luvk::DescriptorSet::CreateLayout(const LayoutInfo& Info)
 {
     m_OwnsLayout = true;
 
-    const VkDescriptorSetLayoutCreateInfo CreateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-                                                     .pNext = nullptr,
-                                                     .flags = 0,
+    const VkDescriptorSetLayoutCreateInfo CreateInfo{.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+                                                     .pNext        = nullptr,
+                                                     .flags        = 0,
                                                      .bindingCount = static_cast<std::uint32_t>(std::size(Info.Bindings)),
-                                                     .pBindings = std::data(Info.Bindings)};
+                                                     .pBindings    = std::data(Info.Bindings)};
 
     if (!LUVK_EXECUTE(vkCreateDescriptorSetLayout(m_DeviceModule->GetLogicalDevice(), &CreateInfo, nullptr, &m_Layout)))
     {
@@ -69,7 +71,10 @@ void luvk::DescriptorSet::UseLayout(const VkDescriptorSetLayout Layout)
 
 void luvk::DescriptorSet::Allocate()
 {
-    if (m_PoolModule && m_PoolModule->AllocateSets({&m_Layout, 1}, {&m_Set, 1}))
+    if (m_PoolModule && m_PoolModule->AllocateSets({&m_Layout,
+                                                    1},
+                                                   {&m_Set,
+                                                    1}))
     {
         m_Owned = true;
         return;
@@ -78,40 +83,34 @@ void luvk::DescriptorSet::Allocate()
     throw std::runtime_error("Failed to allocate descriptor set.");
 }
 
-void luvk::DescriptorSet::UpdateBuffer(const VkBuffer         Buffer,
-                                       const VkDeviceSize     Size,
-                                       const std::uint32_t    Binding,
-                                       const VkDescriptorType Type) const
+void luvk::DescriptorSet::UpdateBuffer(const VkBuffer Buffer, const VkDeviceSize Size, const std::uint32_t Binding, const VkDescriptorType Type) const
 {
     const VkDescriptorBufferInfo BufferInfo{.buffer = Buffer,
                                             .offset = 0,
-                                            .range = Size};
+                                            .range  = Size};
 
-    const VkWriteDescriptorSet Write{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                     .dstSet = m_Set,
-                                     .dstBinding = Binding,
+    const VkWriteDescriptorSet Write{.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                     .dstSet          = m_Set,
+                                     .dstBinding      = Binding,
                                      .descriptorCount = 1,
-                                     .descriptorType = Type,
-                                     .pBufferInfo = &BufferInfo};
+                                     .descriptorType  = Type,
+                                     .pBufferInfo     = &BufferInfo};
 
     vkUpdateDescriptorSets(m_DeviceModule->GetLogicalDevice(), 1, &Write, 0, nullptr);
 }
 
-void luvk::DescriptorSet::UpdateImage(const VkImageView      View,
-                                      const VkSampler        Sampler,
-                                      const std::uint32_t    Binding,
-                                      const VkDescriptorType Type) const
+void luvk::DescriptorSet::UpdateImage(const VkImageView View, const VkSampler Sampler, const std::uint32_t Binding, const VkDescriptorType Type) const
 {
-    const VkDescriptorImageInfo ImageInfo{.sampler = Sampler,
-                                          .imageView = View,
+    const VkDescriptorImageInfo ImageInfo{.sampler     = Sampler,
+                                          .imageView   = View,
                                           .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL};
 
-    const VkWriteDescriptorSet Write{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                     .dstSet = m_Set,
-                                     .dstBinding = Binding,
+    const VkWriteDescriptorSet Write{.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                     .dstSet          = m_Set,
+                                     .dstBinding      = Binding,
                                      .descriptorCount = 1,
-                                     .descriptorType = Type,
-                                     .pImageInfo = &ImageInfo};
+                                     .descriptorType  = Type,
+                                     .pImageInfo      = &ImageInfo};
 
     vkUpdateDescriptorSets(m_DeviceModule->GetLogicalDevice(), 1, &Write, 0, nullptr);
 }

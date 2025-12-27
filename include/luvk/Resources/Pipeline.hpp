@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -39,7 +41,8 @@ namespace luvk
 
         struct CreationArguments
         {
-            VkExtent2D                                         Extent{0U, 0U};
+            VkExtent2D Extent{0U,
+                              0U};
             std::span<const VkFormat>                          ColorFormats{};
             VkRenderPass                                       RenderPass{VK_NULL_HANDLE};
             std::uint32_t                                      Subpass{0};
@@ -68,7 +71,8 @@ namespace luvk
 
         struct MeshCreationArguments
         {
-            VkExtent2D                             Extent{0U, 0U};
+            VkExtent2D Extent{0U,
+                              0U};
             std::span<const VkFormat>              ColorFormats{};
             VkRenderPass                           RenderPass{VK_NULL_HANDLE};
             std::uint32_t                          Subpass{0};
@@ -115,9 +119,7 @@ namespace luvk
 
         [[nodiscard]] constexpr VkPipelineBindPoint GetBindPoint() const noexcept
         {
-            return m_Type == Type::Compute
-                       ? VK_PIPELINE_BIND_POINT_COMPUTE
-                       : VK_PIPELINE_BIND_POINT_GRAPHICS;
+            return m_Type == Type::Compute ? VK_PIPELINE_BIND_POINT_COMPUTE : VK_PIPELINE_BIND_POINT_GRAPHICS;
         }
 
     protected:
@@ -126,4 +128,4 @@ namespace luvk
     private:
         void SetupPipelineLayout(std::span<const VkDescriptorSetLayout> SetLayouts, std::span<const VkPushConstantRange> PushConstants);
     };
-} // namespace luvk
+}

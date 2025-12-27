@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -12,8 +14,8 @@ namespace luvk
 {
     class Renderer;
 
-    class LUVK_API Debug : public IRenderModule,
-                           public IExtensionsModule
+    class LUVK_API Debug : public IRenderModule
+                         , public IExtensionsModule
     {
     protected:
         VkDebugUtilsMessengerEXT m_Messenger{VK_NULL_HANDLE};
@@ -30,11 +32,12 @@ namespace luvk
 
         [[nodiscard]] ExtensionMap GetInstanceExtensions() const noexcept override
         {
-            return {{"VK_LAYER_KHRONOS_validation", {VK_EXT_DEBUG_UTILS_EXTENSION_NAME}}};
+            return {{"VK_LAYER_KHRONOS_validation",
+                     {VK_EXT_DEBUG_UTILS_EXTENSION_NAME}}};
         }
 
     protected:
         void InitializeResources() override;
         void ClearResources() override;
     };
-} // namespace luvk
+}

@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -31,8 +33,8 @@ namespace luvk
             CommandPool::ClearResources();
         }
 
-        void                         CreateCommandPool(std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
-        std::vector<VkCommandBuffer> AllocateBuffers(std::uint32_t Count, VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+        void                                               CreateCommandPool(std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
+        std::vector<VkCommandBuffer>                       AllocateBuffers(std::uint32_t Count, VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
         std::array<VkCommandBuffer, Constants::ImageCount> AllocateRenderCommandBuffers(VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
 
         [[nodiscard]] constexpr std::span<const VkCommandBuffer> GetBuffers() const noexcept
@@ -48,4 +50,4 @@ namespace luvk
     protected:
         void ClearResources() override;
     };
-} // namespace luvk
+}

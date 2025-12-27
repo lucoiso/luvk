@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -14,7 +16,11 @@ namespace luvk
         VkRenderPass                 RenderPass;
         VkFramebuffer                Framebuffer;
         VkExtent2D                   Extent;
-        std::array<VkClearValue, 2U> ClearValues{VkClearValue{.color = {0.2F, 0.2F, 0.2F, 1.F}},
-                                                 VkClearValue{.depthStencil = {1.F, 0U}}};
+        std::array<VkClearValue, 2U> ClearValues{VkClearValue{.color = {0.2F,
+                                                                        0.2F,
+                                                                        0.2F,
+                                                                        1.F}},
+                                                 VkClearValue{.depthStencil = {1.F,
+                                                                               0U}}};
     };
-} // namespace luvk
+}

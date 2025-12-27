@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -34,7 +36,9 @@ namespace luvk
 
         struct CreationArguments
         {
-            VkExtent3D         Extent{0, 0, 1};
+            VkExtent3D Extent{0,
+                              0,
+                              1};
             VkFormat           Format{VK_FORMAT_R8G8B8A8_UNORM};
             VkImageUsageFlags  Usage{};
             VkImageAspectFlags Aspect{VK_IMAGE_ASPECT_COLOR_BIT};
@@ -57,4 +61,4 @@ namespace luvk
             return m_View;
         }
     };
-} // namespace luvk
+}

@@ -1,10 +1,13 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Modules/DescriptorPool.hpp"
 #include <iterator>
 #include <stdexcept>
+#include <vector>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 
@@ -15,31 +18,30 @@ void luvk::DescriptorPool::CreateDescriptorPool(const std::uint32_t             
                                                 const std::span<const VkDescriptorPoolSize> PoolSizes,
                                                 const VkDescriptorPoolCreateFlags           Flags)
 {
-    const VkDescriptorPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                          .flags = Flags,
-                                          .maxSets = MaxSets,
+    const VkDescriptorPoolCreateInfo Info{.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                          .flags         = Flags,
+                                          .maxSets       = MaxSets,
                                           .poolSizeCount = static_cast<std::uint32_t>(std::size(PoolSizes)),
-                                          .pPoolSizes = std::data(PoolSizes)};
+                                          .pPoolSizes    = std::data(PoolSizes)};
 
-    if (!LUVK_EXECUTE(vkCreateDescriptorPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_Pool)))
+    if (!LUVK_EXECUTE(vkCreateDescriptorPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, & m_Pool)))
     {
         throw std::runtime_error("Failed to create descriptor pool.");
     }
 }
 
-bool luvk::DescriptorPool::AllocateSets(const std::span<const VkDescriptorSetLayout> Layouts,
-                                        const std::span<VkDescriptorSet>             OutSets) const
+bool luvk::DescriptorPool::AllocateSets(const std::span<const VkDescriptorSetLayout> Layouts, const std::span<VkDescriptorSet> OutSets) const
 {
     if (std::empty(Layouts) || std::size(Layouts) != std::size(OutSets))
     {
         return false;
     }
 
-    const VkDescriptorSetAllocateInfo AllocateInfo{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                                                   .pNext = nullptr,
-                                                   .descriptorPool = m_Pool,
+    const VkDescriptorSetAllocateInfo AllocateInfo{.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                                   .pNext              = nullptr,
+                                                   .descriptorPool     = m_Pool,
                                                    .descriptorSetCount = static_cast<std::uint32_t>(std::size(Layouts)),
-                                                   .pSetLayouts = std::data(Layouts)};
+                                                   .pSetLayouts        = std::data(Layouts)};
 
     if (!LUVK_EXECUTE(vkAllocateDescriptorSets(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, std::data(OutSets))))
     {
@@ -47,6 +49,17 @@ bool luvk::DescriptorPool::AllocateSets(const std::span<const VkDescriptorSetLay
     }
 
     return true;
+}
+
+bool luvk::DescriptorPool::AllocateSets(const VkDescriptorSetLayout Layout, const std::uint32_t Count, const std::span<VkDescriptorSet> OutSets) const
+{
+    if (Count == 0 || std::size(OutSets) < Count)
+    {
+        return false;
+    }
+
+    std::vector<VkDescriptorSetLayout> Layouts(Count, Layout);
+    return AllocateSets(Layouts, OutSets);
 }
 
 void luvk::DescriptorPool::ResetPool() const

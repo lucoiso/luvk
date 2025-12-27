@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -49,15 +51,9 @@ namespace luvk
         void UseLayout(VkDescriptorSetLayout Layout);
         void Allocate();
 
-        void UpdateBuffer(VkBuffer         Buffer,
-                          VkDeviceSize     Size,
-                          std::uint32_t    Binding,
-                          VkDescriptorType Type) const;
+        void UpdateBuffer(VkBuffer Buffer, VkDeviceSize Size, std::uint32_t Binding, VkDescriptorType Type) const;
 
-        void UpdateImage(VkImageView      View,
-                         VkSampler        Sampler,
-                         std::uint32_t    Binding,
-                         VkDescriptorType Type) const;
+        void UpdateImage(VkImageView View, VkSampler Sampler, std::uint32_t Binding, VkDescriptorType Type) const;
 
         [[nodiscard]] constexpr VkDescriptorSetLayout GetLayout() const noexcept
         {
@@ -69,4 +65,4 @@ namespace luvk
             return m_Set;
         }
     };
-} // namespace luvk
+}

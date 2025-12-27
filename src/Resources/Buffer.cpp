@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Resources/Buffer.hpp"
 #include <cstring>
@@ -28,21 +30,22 @@ void luvk::Buffer::CreateBuffer(const CreationArguments& Arguments)
     const VmaAllocator Allocator = m_MemoryModule->GetAllocator();
 
     m_Size = Arguments.Size;
-    const VkBufferCreateInfo Info{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-                                  .pNext = nullptr,
-                                  .flags = 0,
-                                  .size = Arguments.Size,
-                                  .usage = Arguments.Usage,
+    const VkBufferCreateInfo Info{.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+                                  .pNext       = nullptr,
+                                  .flags       = 0,
+                                  .size        = Arguments.Size,
+                                  .usage       = Arguments.Usage,
                                   .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
 
-    const VmaAllocationCreateInfo AllocInfo{.flags = Arguments.MemoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU
-                                                         ? VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
-                                                         : 0U,
-                                            .usage = Arguments.MemoryUsage,
-                                            .priority = Arguments.Priority};
+    const VmaAllocationCreateInfo AllocInfo{
+        .flags = Arguments.MemoryUsage == VMA_MEMORY_USAGE_CPU_TO_GPU
+                     ? VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT
+                     : 0U,
+        .usage    = Arguments.MemoryUsage,
+        .priority = Arguments.Priority};
 
     VmaAllocationInfo AllocationInfo;
-    if (!LUVK_EXECUTE(vmaCreateBuffer(Allocator, &Info, &AllocInfo, &m_Buffer, &m_Allocation, &AllocationInfo)))
+    if (!LUVK_EXECUTE(vmaCreateBuffer(Allocator, &Info, &AllocInfo, &m_Buffer, &m_Allocation, & AllocationInfo)))
     {
         throw std::runtime_error("Failed to create buffer.");
     }

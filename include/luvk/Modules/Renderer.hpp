@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -56,8 +58,8 @@ namespace luvk
         std::uint32_t    VulkanApiVersion   = VK_API_VERSION_1_0;
     };
 
-    class LUVK_API Renderer : public IRenderModule,
-                              public IEventModule
+    class LUVK_API Renderer : public IRenderModule
+                            , public IEventModule
     {
     protected:
         bool                      m_Paused{false};
@@ -108,4 +110,4 @@ namespace luvk
         void               SetPaused(bool Paused);
         void               Refresh(const VkExtent2D& Extent) const;
     };
-} // namespace luvk
+}

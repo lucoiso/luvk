@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -31,13 +33,14 @@ namespace luvk
         VkColorSpaceKHR               ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
         VkImageUsageFlags             UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
         VkCompositeAlphaFlagBitsKHR   CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
-        VkExtent2D                    Extent{.width = 0U, .height = 0U};
-        VkSurfaceKHR                  Surface{VK_NULL_HANDLE};
-        std::vector<std::uint32_t>    QueueIndices{};
+        VkExtent2D                    Extent{.width  = 0U,
+                                             .height = 0U};
+        VkSurfaceKHR               Surface{VK_NULL_HANDLE};
+        std::vector<std::uint32_t> QueueIndices{};
     };
 
-    class LUVK_API SwapChain : public IRenderModule,
-                               public IExtensionsModule
+    class LUVK_API SwapChain : public IRenderModule
+                             , public IExtensionsModule
     {
     protected:
         using CreationArguments = SwapChainCreationArguments;
@@ -72,7 +75,8 @@ namespace luvk
 
         [[nodiscard]] ExtensionMap GetDeviceExtensions() const noexcept override
         {
-            return {{"", {VK_KHR_SWAPCHAIN_EXTENSION_NAME}}};
+            return {{"",
+                     {VK_KHR_SWAPCHAIN_EXTENSION_NAME}}};
         }
 
         [[nodiscard]] constexpr VkSwapchainKHR GetHandle() const noexcept
@@ -127,9 +131,9 @@ namespace luvk
 
         [[nodiscard]] constexpr RenderTarget GetRenderTarget(const std::uint32_t ImageIndex) const noexcept
         {
-            return RenderTarget{.RenderPass = m_RenderPass,
+            return RenderTarget{.RenderPass  = m_RenderPass,
                                 .Framebuffer = m_Framebuffers.at(ImageIndex),
-                                .Extent = m_Arguments.Extent};
+                                .Extent      = m_Arguments.Extent};
         }
 
         virtual void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
@@ -156,4 +160,4 @@ namespace luvk
 
         [[nodiscard]] VkFormat SelectDepthFormat(VkPhysicalDevice PhysicalDevice) const;
     };
-} // namespace luvk
+}

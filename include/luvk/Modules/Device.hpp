@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -17,8 +19,8 @@ namespace luvk
 {
     class Renderer;
 
-    class LUVK_API Device : public IRenderModule,
-                            public IFeatureChainModule
+    class LUVK_API Device : public IRenderModule
+                          , public IFeatureChainModule
     {
     protected:
         VkDevice                                                m_LogicalDevice{VK_NULL_HANDLE};
@@ -36,6 +38,9 @@ namespace luvk
         std::vector<VkSurfaceFormatKHR>                         m_SurfaceFormat{};
         std::vector<VkQueueFamilyProperties>                    m_DeviceQueueFamilyProperties{};
         std::unordered_map<std::uint32_t, std::vector<VkQueue>> m_Queues{};
+
+        mutable std::unordered_map<VkQueueFlags, std::uint32_t> m_QueueFamilyCache{};
+        mutable std::unordered_map<VkQueueFlags, VkQueue>       m_QueueCache{};
 
     public:
         Device() = delete;
@@ -149,4 +154,4 @@ namespace luvk
     private:
         void FetchAvailableDevices(VkInstance Instance);
     };
-} // namespace luvk
+}

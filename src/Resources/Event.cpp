@@ -1,11 +1,58 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Resources/Event.hpp"
-#include <memory>
+#include <algorithm>
 
-void luvk::EventNode::operator()()
+using namespace luvk;
+
+EventHandle::EventHandle(std::weak_ptr<EventGraph> Graph, const std::size_t Key, const std::size_t Id)
+    : m_Graph(std::move(Graph)),
+      m_Key(Key),
+      m_Id(Id) {}
+
+EventHandle::~EventHandle()
+{
+    Unbind();
+}
+
+EventHandle::EventHandle(EventHandle&& Other) noexcept
+    : m_Graph(std::move(Other.m_Graph)),
+      m_Key(Other.m_Key),
+      m_Id(Other.m_Id)
+{
+    Other.m_Id = 0;
+}
+
+EventHandle& EventHandle::operator=(EventHandle&& Other) noexcept
+{
+    if (this != &Other)
+    {
+        Unbind();
+        m_Graph    = std::move(Other.m_Graph);
+        m_Key      = Other.m_Key;
+        m_Id       = Other.m_Id;
+        Other.m_Id = 0;
+    }
+    return *this;
+}
+
+void EventHandle::Unbind()
+{
+    if (m_Id != 0)
+    {
+        if (const auto Ptr = m_Graph.lock())
+        {
+            Ptr->RemoveNode(m_Key, m_Id);
+        }
+        m_Id = 0;
+    }
+}
+
+void EventNode::operator()()
 {
     if (m_Binding)
     {
@@ -20,52 +67,59 @@ void luvk::EventNode::operator()()
                   });
 }
 
-std::shared_ptr<luvk::EventNode> luvk::EventNode::NewNode(std::function<void()>&& Function, const bool OneTime)
+std::shared_ptr<EventNode> EventNode::NewNode(std::function<void()>&& Function, const bool OneTime)
 {
     return std::make_shared<EventNode>(std::move(Function), OneTime);
 }
 
-std::shared_ptr<luvk::EventNode> luvk::EventNode::Then(std::function<void()>&& Function, const bool OneTime)
+std::shared_ptr<EventNode> EventNode::Then(std::function<void()>&& Function, const bool OneTime)
 {
     m_SubNodes.emplace_back(std::make_shared<EventNode>(std::move(Function), OneTime));
     return shared_from_this();
 }
 
-void luvk::EventGraph::AddNode(std::shared_ptr<EventNode>&& Node, const std::size_t Key)
+EventHandle EventGraph::AddNode(std::shared_ptr<EventNode>&& Node, const std::size_t Key)
 {
-    if (m_Nodes.contains(Key))
+    if (!m_Nodes.contains(Key))
     {
-        m_Nodes.at(Key).push_back(std::move(Node));
+        m_Nodes.emplace(Key, std::vector<NodeData>{});
     }
-    else
+
+    const std::size_t Id = ++m_NextNodeId;
+    m_Nodes.at(Key).push_back(NodeData{Id,
+                                       std::move(Node)});
+
+    return EventHandle(shared_from_this(), Key, Id);
+}
+
+void EventGraph::RemoveNode(const std::size_t Key, const std::size_t Id)
+{
+    if (const auto It = m_Nodes.find(Key);
+        It != std::end(m_Nodes))
     {
-        std::vector Nodes{std::move(Node)};
-        m_Nodes.emplace(Key, std::move(Nodes));
+        std::erase_if(It->second,
+                      [Id](const NodeData& Data)
+                      {
+                          return Data.Id == Id;
+                      });
     }
 }
 
-void luvk::EventGraph::Execute(const std::size_t Key)
+void EventGraph::Execute(const std::size_t Key)
 {
-    if (m_Nodes.contains(Key))
+    if (const auto It = m_Nodes.find(Key);
+        It != std::end(m_Nodes))
     {
-        bool EmptyNode = false;
+        std::erase_if(It->second,
+                      [](const NodeData& Data)
+                      {
+                          (*Data.Node)();
+                          return Data.Node->IsOneTime();
+                      });
 
+        if (std::empty(It->second))
         {
-            std::vector<std::shared_ptr<EventNode>>& Nodes = m_Nodes.at(Key);
-
-            std::erase_if(Nodes,
-                          [](const std::shared_ptr<EventNode>& NodeIt)
-                          {
-                              (*NodeIt)();
-                              return NodeIt->IsOneTime();
-                          });
-
-            EmptyNode = std::empty(Nodes);
-        }
-
-        if (EmptyNode)
-        {
-            m_Nodes.erase(Key);
+            m_Nodes.erase(It);
         }
     }
 }

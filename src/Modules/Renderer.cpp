@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Modules/Renderer.hpp"
 #include <algorithm>
@@ -82,25 +84,25 @@ bool luvk::Renderer::InitializeRenderer(const InstanceCreationArguments& Argumen
         }
     }
 
-    const VkApplicationInfo AppInfo{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-                                    .pApplicationName = std::data(Arguments.ApplicationName),
+    const VkApplicationInfo AppInfo{.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                                    .pApplicationName   = std::data(Arguments.ApplicationName),
                                     .applicationVersion = Arguments.ApplicationVersion,
-                                    .pEngineName = std::data(Arguments.EngineName),
-                                    .engineVersion = Arguments.EngineVersion,
-                                    .apiVersion = Arguments.VulkanApiVersion};
+                                    .pEngineName        = std::data(Arguments.EngineName),
+                                    .engineVersion      = Arguments.EngineVersion,
+                                    .apiVersion         = Arguments.VulkanApiVersion};
 
     const std::vector<const char*> Layers     = m_Extensions.GetEnabledLayersNames();
     const std::vector<const char*> Extensions = m_Extensions.GetEnabledExtensionsNames();
 
-    const VkInstanceCreateInfo InstanceCreateInfo{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-                                                  .pNext = FeatureChain,
-                                                  .pApplicationInfo = &AppInfo,
-                                                  .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
-                                                  .ppEnabledLayerNames = std::data(Layers),
-                                                  .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
+    const VkInstanceCreateInfo InstanceCreateInfo{.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+                                                  .pNext                   = FeatureChain,
+                                                  .pApplicationInfo        = &AppInfo,
+                                                  .enabledLayerCount       = static_cast<std::uint32_t>(std::size(Layers)),
+                                                  .ppEnabledLayerNames     = std::data(Layers),
+                                                  .enabledExtensionCount   = static_cast<std::uint32_t>(std::size(Extensions)),
                                                   .ppEnabledExtensionNames = std::data(Extensions)};
 
-    if (LUVK_EXECUTE(vkCreateInstance(&InstanceCreateInfo, nullptr, &m_Instance)) == false)
+    if (!LUVK_EXECUTE(vkCreateInstance(&InstanceCreateInfo, nullptr, &m_Instance)))
     {
         return false;
     }
@@ -172,9 +174,7 @@ void luvk::Renderer::DrawFrame() const
 void luvk::Renderer::SetPaused(const bool Paused)
 {
     m_Paused = Paused;
-    GetEventSystem().Execute(m_Paused
-                                 ? RendererEvents::OnPaused
-                                 : RendererEvents::OnResumed);
+    GetEventSystem().Execute(m_Paused ? RendererEvents::OnPaused : RendererEvents::OnResumed);
 }
 
 void luvk::Renderer::Refresh(const VkExtent2D& Extent) const

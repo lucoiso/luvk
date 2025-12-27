@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Types/Material.hpp"
 #include "luvk/Resources/Buffer.hpp"
@@ -44,10 +46,9 @@ void Material::Bind(const VkCommandBuffer CommandBuffer) const
     const VkPipelineBindPoint BindPoint = m_Pipeline->GetBindPoint();
     vkCmdBindPipeline(CommandBuffer, BindPoint, m_Pipeline->GetPipeline());
 
-    const VkDescriptorSet SetHandle = m_DescriptorSet ? m_DescriptorSet->GetHandle() : VK_NULL_HANDLE;
-
-    if (SetHandle != VK_NULL_HANDLE)
+    if (m_DescriptorSet)
     {
+        const VkDescriptorSet SetHandle = m_DescriptorSet->GetHandle();
         vkCmdBindDescriptorSets(CommandBuffer, BindPoint, m_Pipeline->GetPipelineLayout(), 0, 1, &SetHandle, 0, nullptr);
     }
 }
@@ -68,10 +69,7 @@ void Material::SetTexture(const std::shared_ptr<Texture>& TextureObj)
 
     if (m_DescriptorSet && m_Texture)
     {
-        m_DescriptorSet->UpdateImage(m_Texture->GetImage()->GetView(),
-                                     m_Texture->GetSampler()->GetHandle(),
-                                     0,
-                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+        m_DescriptorSet->UpdateImage(m_Texture->GetImage()->GetView(), m_Texture->GetSampler()->GetHandle(), 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     }
 }
 

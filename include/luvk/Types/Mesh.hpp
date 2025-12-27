@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -26,7 +28,10 @@ namespace luvk
         struct InstanceInfo
         {
             Transform            XForm{};
-            std::array<float, 4> Color{1.F, 1.F, 1.F, 1.F};
+            std::array<float, 4> Color{1.F,
+                                       1.F,
+                                       1.F,
+                                       1.F};
         };
 
     protected:
@@ -78,13 +83,10 @@ namespace luvk
         void SetPushConstantData(std::span<const std::byte> Data);
 
     private:
-        void EnsureCapacityAndUpload(std::shared_ptr<Buffer>&   BufferObj,
-                                     std::span<const std::byte> Data,
-                                     VkBufferUsageFlags         Usage,
-                                     std::string_view           Name);
+        void EnsureCapacityAndUpload(std::shared_ptr<Buffer>& BufferObj, std::span<const std::byte> Data, VkBufferUsageFlags Usage, std::string_view Name);
 
     public:
         virtual void Tick(float DeltaTime);
         virtual void Render(VkCommandBuffer CommandBuffer, std::uint32_t CurrentFrame) const;
     };
-} // namespace luvk
+}

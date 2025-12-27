@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Resources/PipelineCache.hpp"
 #include <stdexcept>
@@ -47,11 +49,23 @@ void PipelineCache::Create()
 
     constexpr VkPipelineCacheCreateInfo info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
 
-    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_PreRaster)) ||
-        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Fragment)) ||
-        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Output)) ||
-        !LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Composite)))
+    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_PreRaster)))
     {
-        throw std::runtime_error("Failed to create pipeline caches");
+        throw std::runtime_error("Failed to create pre raster pipeline cache");
+    }
+
+    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Fragment)))
+    {
+        throw std::runtime_error("Failed to create fragment pipeline cache");
+    }
+
+    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Output)))
+    {
+        throw std::runtime_error("Failed to create output pipeline cache");
+    }
+
+    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Composite)))
+    {
+        throw std::runtime_error("Failed to create composite pipeline cache");
     }
 }

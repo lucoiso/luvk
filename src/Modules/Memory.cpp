@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Modules/Memory.hpp"
 #include <stdexcept>
@@ -33,18 +35,18 @@ void luvk::Memory::InitializeAllocator(const VmaAllocatorCreateFlags Flags)
     vkGetPhysicalDeviceMemoryProperties(m_DeviceModule->GetPhysicalDevice(), &MemProps);
 
     const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-                                             .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
+                                             .vkGetDeviceProcAddr   = vkGetDeviceProcAddr};
 
-    const VmaAllocatorCreateInfo AllocatorInfo{.flags = Flags | VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT,
-                                               .physicalDevice = m_DeviceModule->GetPhysicalDevice(),
-                                               .device = m_DeviceModule->GetLogicalDevice(),
-                                               .preferredLargeHeapBlockSize = 0U,
-                                               .pAllocationCallbacks = nullptr,
-                                               .pDeviceMemoryCallbacks = nullptr,
-                                               .pHeapSizeLimit = nullptr,
-                                               .pVulkanFunctions = &VulkanFunctions,
-                                               .instance = m_RendererModule.lock()->GetInstance(),
-                                               .vulkanApiVersion = VK_MAKE_API_VERSION(0, 1, 0, 0),
+    const VmaAllocatorCreateInfo AllocatorInfo{.flags                          = Flags | VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT,
+                                               .physicalDevice                 = m_DeviceModule->GetPhysicalDevice(),
+                                               .device                         = m_DeviceModule->GetLogicalDevice(),
+                                               .preferredLargeHeapBlockSize    = 0U,
+                                               .pAllocationCallbacks           = nullptr,
+                                               .pDeviceMemoryCallbacks         = nullptr,
+                                               .pHeapSizeLimit                 = nullptr,
+                                               .pVulkanFunctions               = &VulkanFunctions,
+                                               .instance                       = m_RendererModule.lock()->GetInstance(),
+                                               .vulkanApiVersion               = VK_MAKE_API_VERSION(0, 1, 0, 0),
                                                .pTypeExternalMemoryHandleTypes = nullptr};
 
     if (!LUVK_EXECUTE(vmaCreateAllocator(&AllocatorInfo, &m_Allocator)))

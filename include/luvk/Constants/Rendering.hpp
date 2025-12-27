@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -9,4 +11,4 @@
 namespace luvk::Constants
 {
     constexpr static std::uint32_t ImageCount = 3U;
-} // namespace luvk
+}

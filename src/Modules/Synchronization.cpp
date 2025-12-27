@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Modules/Synchronization.hpp"
 #include <stdexcept>
@@ -10,7 +12,7 @@
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/SwapChain.hpp"
 
-luvk::Synchronization::Synchronization(const std::shared_ptr<Device>&      DeviceModule)
+luvk::Synchronization::Synchronization(const std::shared_ptr<Device>& DeviceModule)
     : m_DeviceModule(DeviceModule) {}
 
 void luvk::Synchronization::Initialize(std::span<const VkCommandBuffer, Constants::ImageCount> CommandBuffers)
@@ -25,11 +27,19 @@ void luvk::Synchronization::Initialize(std::span<const VkCommandBuffer, Constant
         FrameData& Frame    = m_Frames.at(Index);
         Frame.CommandBuffer = CommandBuffers[Index];
 
-        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &Frame.ImageAvailable)) ||
-            !LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &m_RenderFinished[Index])) ||
-            !LUVK_EXECUTE(vkCreateFence(LogicalDevice, &FenceInfo, nullptr, &Frame.InFlight)))
+        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &Frame.ImageAvailable)))
         {
-            throw std::runtime_error("Failed to create frame synchronization objects.");
+            throw std::runtime_error("Failed to create frame image semaphore.");
+        }
+
+        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &m_RenderFinished[Index])))
+        {
+            throw std::runtime_error("Failed to create frame render semaphore.");
+        }
+
+        if (!LUVK_EXECUTE(vkCreateFence(LogicalDevice, &FenceInfo, nullptr, &Frame.InFlight)))
+        {
+            throw std::runtime_error("Failed to create frame fence.");
         }
     }
 
@@ -53,7 +63,10 @@ void luvk::Synchronization::ResetFrames()
             FrameIt.ImageAvailable = VK_NULL_HANDLE;
         }
 
-        LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &FrameIt.ImageAvailable));
+        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &FrameIt.ImageAvailable)))
+        {
+            throw std::runtime_error("Failed to create semaphore");
+        }
 
         if (FrameIt.InFlight != VK_NULL_HANDLE)
         {
@@ -66,7 +79,10 @@ void luvk::Synchronization::ResetFrames()
     for (VkSemaphore& SemaphoreIt : m_RenderFinished)
     {
         vkDestroySemaphore(LogicalDevice, SemaphoreIt, nullptr);
-        LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &SemaphoreIt));
+        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &SemaphoreIt)))
+        {
+            throw std::runtime_error("Failed to create semaphore.");
+        }
     }
 }
 

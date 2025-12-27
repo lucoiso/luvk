@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Modules/Draw.hpp"
 #include <stdexcept>
@@ -8,8 +10,7 @@
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/Synchronization.hpp"
 
-luvk::Draw::Draw(const std::shared_ptr<Device>&          DeviceModule,
-                 const std::shared_ptr<Synchronization>& SyncModule)
+luvk::Draw::Draw(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Synchronization>& SyncModule)
     : m_DeviceModule(DeviceModule),
       m_SyncModule(SyncModule) {}
 
@@ -23,41 +24,45 @@ void luvk::Draw::RecordCommands(const FrameData& Frame, const RenderTarget& Targ
         throw std::runtime_error("Failed to begin command buffer");
     }
 
-    std::erase_if(m_PreRenderCallbacks,
-                  [&](const DrawCallbackInfo& CB)
+    std::erase_if(m_BeginFrameCallbacks,
+                  [&](const DrawCallbackInfo& Info)
                   {
-                      return !CB.Callback(Frame.CommandBuffer);
+                      return !Info.Callback(Frame.CommandBuffer);
                   });
 
     const VkRenderPass  RenderPass  = Target.RenderPass;
     const VkFramebuffer FrameBuffer = Target.Framebuffer;
     const VkExtent2D&   Extent      = Target.Extent;
 
-    const VkRenderPassBeginInfo BeginPass{.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                          .renderPass = RenderPass,
+    const VkRenderPassBeginInfo BeginPass{.sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+                                          .renderPass  = RenderPass,
                                           .framebuffer = FrameBuffer,
-                                          .renderArea = {{0, 0}, {Extent.width, Extent.height}},
+                                          .renderArea  = {{0,
+                                                           0},
+                                                          {Extent.width,
+                                                           Extent.height}},
                                           .clearValueCount = static_cast<std::uint32_t>(std::size(Target.ClearValues)),
-                                          .pClearValues = std::data(Target.ClearValues)};
+                                          .pClearValues    = std::data(Target.ClearValues)};
 
     vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginPass, VK_SUBPASS_CONTENTS_INLINE);
 
-    const VkViewport Viewport{0.F, 0.F, static_cast<float>(Extent.width), static_cast<float>(Extent.height), 0.F, 1.F};
-    const VkRect2D   Scissor{{0, 0}, Extent};
+    const VkViewport Viewport{0.F,
+                              0.F,
+                              static_cast<float>(Extent.width),
+                              static_cast<float>(Extent.height),
+                              0.F,
+                              1.F};
+    const VkRect2D Scissor{{0,
+                            0},
+                           Extent};
 
     vkCmdSetViewport(Frame.CommandBuffer, 0U, 1U, &Viewport);
     vkCmdSetScissor(Frame.CommandBuffer, 0U, 1U, &Scissor);
 
-    std::erase_if(m_DrawCallbacks,
-                  [&](const DrawCallbackInfo& CB)
+    std::erase_if(m_RecordFrameCallbacks,
+                  [&](const DrawCallbackInfo& Info)
                   {
-                      return !CB.Callback(Frame.CommandBuffer);
-                  });
-
-    std::erase_if(m_PostRenderCallbacks,
-                  [&](const DrawCallbackInfo& CB)
-                  {
-                      return !CB.Callback(Frame.CommandBuffer);
+                      return !Info.Callback(Frame.CommandBuffer);
                   });
 
     vkCmdEndRenderPass(Frame.CommandBuffer);
@@ -70,24 +75,18 @@ void luvk::Draw::RecordCommands(const FrameData& Frame, const RenderTarget& Targ
 
 void luvk::Draw::SubmitFrame(FrameData& Frame, const std::uint32_t ImageIndex) const
 {
-    if (m_SyncModule.expired())
-    {
-        return;
-    }
-
-    const auto LockSyncModule = m_SyncModule.lock();
     constexpr VkPipelineStageFlags WaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    const VkSemaphore Semaphore = LockSyncModule->GetRenderFinished(ImageIndex);
+    const VkSemaphore Semaphore = m_SyncModule->GetRenderFinished(ImageIndex);
 
-    const VkSubmitInfo Submit{.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                              .waitSemaphoreCount = 1U,
-                              .pWaitSemaphores = &Frame.ImageAvailable,
-                              .pWaitDstStageMask = &WaitStages,
-                              .commandBufferCount = 1U,
-                              .pCommandBuffers = &Frame.CommandBuffer,
+    const VkSubmitInfo Submit{.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                              .waitSemaphoreCount   = 1U,
+                              .pWaitSemaphores      = &Frame.ImageAvailable,
+                              .pWaitDstStageMask    = &WaitStages,
+                              .commandBufferCount   = 1U,
+                              .pCommandBuffers      = &Frame.CommandBuffer,
                               .signalSemaphoreCount = 1U,
-                              .pSignalSemaphores = &Semaphore};
+                              .pSignalSemaphores    = &Semaphore};
 
     const VkQueue GraphicsQueue = m_DeviceModule->GetQueue(VK_QUEUE_GRAPHICS_BIT);
 
@@ -97,5 +96,5 @@ void luvk::Draw::SubmitFrame(FrameData& Frame, const std::uint32_t ImageIndex) c
     }
 
     Frame.Submitted = true;
-    LockSyncModule->AdvanceFrame();
+    m_SyncModule->AdvanceFrame();
 }

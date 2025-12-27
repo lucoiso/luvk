@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Resources/Extensions.hpp"
 #include <cstdint>
@@ -120,7 +122,8 @@ void luvk::IExtensions::FillExtensionsContainer()
                           {
                               const std::vector<VkExtensionProperties> AvailableExtensions = FetchAvailableLayerExtensions(Iterator.layerName);
 
-                              Layer NewLayer{.Name = Iterator.layerName, .Extensions = {}};
+                              Layer NewLayer{.Name       = Iterator.layerName,
+                                             .Extensions = {}};
                               NewLayer.Extensions.reserve(g_ReservationSize);
 
                               std::ranges::for_each(AvailableExtensions,

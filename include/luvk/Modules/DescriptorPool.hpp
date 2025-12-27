@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -31,8 +33,9 @@ namespace luvk
                                   std::span<const VkDescriptorPoolSize> PoolSizes,
                                   VkDescriptorPoolCreateFlags           Flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT);
 
-        [[nodiscard]] bool AllocateSets(std::span<const VkDescriptorSetLayout> Layouts,
-                                        std::span<VkDescriptorSet>             OutSets) const;
+        [[nodiscard]] bool AllocateSets(std::span<const VkDescriptorSetLayout> Layouts, std::span<VkDescriptorSet> OutSets) const;
+
+        [[nodiscard]] bool AllocateSets(VkDescriptorSetLayout Layout, std::uint32_t Count, std::span<VkDescriptorSet> OutSets) const;
 
         void ResetPool() const;
 
@@ -44,4 +47,4 @@ namespace luvk
     protected:
         void ClearResources() override;
     };
-} // namespace luvk
+}

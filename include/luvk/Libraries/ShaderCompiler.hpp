@@ -1,6 +1,8 @@
-// Author: Lucas Vilas-Boas
-// Year: 2025
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2025
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #pragma once
 
@@ -25,6 +27,6 @@ namespace luvk
 
     [[nodiscard]] LUVK_API CompilationResult          CompileShaderSafe(std::string_view Source, std::string_view Profile = "spirv_1_0");
     [[nodiscard]] LUVK_API std::vector<std::uint32_t> CompileShader(std::string_view Source, std::string_view Profile = "spirv_1_0");
-} // namespace luvk
+}
 
 #endif // LUVK_SLANG_INCLUDED
