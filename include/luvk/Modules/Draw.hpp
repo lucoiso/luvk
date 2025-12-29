@@ -1,5 +1,5 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
@@ -7,49 +7,66 @@
 #pragma once
 
 #include <functional>
-#include <span>
 #include <vector>
 #include <volk.h>
-#include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Types/FrameData.hpp"
-#include "luvk/Types/RenderTarget.hpp"
+#include "luvk/Interfaces/IModule.hpp"
 
 namespace luvk
 {
-    class Device;
-    class Synchronization;
+    /**
+     * Callback signature for rendering.
+     * @param CommandBuffer The buffer inside a vkCmdBeginRendering block.
+     * @param FrameIndex Index of the current frame in flight.
+     */
+    using DrawCallback = std::function<void(VkCommandBuffer, std::uint32_t)>;
 
-    struct LUVK_API DrawCallbackInfo
+    /**
+     * Module responsible for managing the main rendering loop and execution of draw callbacks.
+     */
+    class LUVK_API Draw : public IModule
     {
-        std::function<bool(VkCommandBuffer)> Callback;
-    };
+        /** List of callbacks executed before the main draw commands (e.g., transitions). */
+        std::vector<DrawCallback> m_BeginFrameCallbacks{};
 
-    class LUVK_API Draw : public IRenderModule
-    {
-    protected:
-        std::vector<DrawCallbackInfo> m_BeginFrameCallbacks{};
-        std::vector<DrawCallbackInfo> m_RecordFrameCallbacks{};
+        /** List of callbacks executed inside the vkCmdBeginRendering block. */
+        std::vector<DrawCallback> m_DrawCallbacks{};
 
-        std::shared_ptr<Device>          m_DeviceModule{};
-        std::shared_ptr<Synchronization> m_SyncModule{};
+        /** Pointer to the central service locator. */
+        IServiceLocator* m_ServiceLocator{nullptr};
 
     public:
-        Draw() = delete;
-        explicit Draw(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Synchronization>& SyncModule);
-
+        /** Default destructor. */
         ~Draw() override = default;
 
-        void RegisterOnBeginFrame(DrawCallbackInfo&& Cmd)
-        {
-            m_BeginFrameCallbacks.emplace_back(std::move(Cmd));
-        }
+        /** Called upon module initialization. */
+        void OnInitialize(IServiceLocator* ServiceLocator) override;
 
-        void RegisterOnRecordFrame(DrawCallbackInfo&& Cmd)
-        {
-            m_RecordFrameCallbacks.emplace_back(std::move(Cmd));
-        }
+        /**
+         * Register a function to be called at the beginning of frame recording.
+         * @param Callback The function to be added.
+         */
+        void AddBeginFrameCallback(DrawCallback&& Callback);
 
-        void RecordCommands(const FrameData& Frame, const RenderTarget& Target);
-        void SubmitFrame(FrameData& Frame, std::uint32_t ImageIndex) const;
+        /**
+         * Clears all registered begin frame callbacks.
+         */
+        void ClearBeginFrameCallbacks();
+
+        /**
+         * Register a function to be called during frame recording.
+         * @param Callback The function to be added.
+         */
+        void AddDrawCallback(DrawCallback&& Callback);
+
+        /**
+         * Clears all registered draw callbacks.
+         */
+        void ClearDrawCallbacks();
+
+        /**
+         * Execute the render loop for the current frame.
+         * Handles Dynamic Rendering setup (Begin/End Rendering).
+         */
+        void RenderFrame() const;
     };
 }

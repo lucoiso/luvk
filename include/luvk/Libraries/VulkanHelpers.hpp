@@ -11,21 +11,14 @@
 
 namespace luvk
 {
-    [[nodiscard]] constexpr const char* SeverityToString(const VkDebugUtilsMessageSeverityFlagBitsEXT Severity)
+    /**
+     * Converts a VkResult value to its string representation.
+     * @param Result The Vulkan result code.
+     * @return C-style string name of the result.
+     */
+    [[nodiscard]] LUVK_API constexpr const char* ResultToString(const VkResult Result)
     {
-        switch (Severity)
-        {
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT: return "Verbose";
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT: return "Info";
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT: return "Warning";
-            case VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT: return "Error";
-            default: return "Unknown";
-        }
-    }
-
-    [[nodiscard]] constexpr const char* ResultToString(const VkResult ResultValue)
-    {
-        switch (ResultValue)
+        switch (Result)
         {
             case VK_SUCCESS: return "VK_SUCCESS";
             case VK_NOT_READY: return "VK_NOT_READY";
@@ -62,16 +55,26 @@ namespace luvk
         }
     }
 
-    template <typename Result>
-    static bool ExecuteVulkanFunc(Result ResultValue, const char* Name, const char* File, const std::uint32_t Line)
+    /**
+     * Executes a Vulkan function, checks the result, and prints an error if it fails.
+     * @tparam T The return type of the Vulkan function (must be convertible to VkResult).
+     * @param Result The result of the Vulkan function call.
+     * @param Name The name of the function called (from #expr).
+     * @param File The file where the call was made.
+     * @param Line The line number of the call.
+     * @return True if Result is VK_SUCCESS, false otherwise.
+     */
+    template <typename T>
+    bool ExecuteVulkanFunc(T Result, const char* Name, const char* File, const std::uint32_t Line)
     {
-        if (ResultValue != VK_SUCCESS)
+        if (Result != VK_SUCCESS)
         {
-            std::fprintf(stderr, "%s returned %s (%d) - %s:%d\n", Name, ResultToString(ResultValue), ResultValue, File, Line);
+            std::fprintf(stderr, "%s returned %s (%d) - %s:%d\n", Name, ResultToString(Result), Result, File, Line);
             return false;
         }
         return true;
     }
 }
 
+/** Macro to execute a Vulkan function and check its result. */
 #define LUVK_EXECUTE(expr) luvk::ExecuteVulkanFunc((expr), #expr, __FILE__, __LINE__)

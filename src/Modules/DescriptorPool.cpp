@@ -5,76 +5,116 @@
  */
 
 #include "luvk/Modules/DescriptorPool.hpp"
-#include <iterator>
-#include <stdexcept>
-#include <vector>
-#include "luvk/Libraries/VulkanHelpers.hpp"
+#include <array>
+#include "luvk/Interfaces/IServiceLocator.hpp"
 #include "luvk/Modules/Device.hpp"
 
-luvk::DescriptorPool::DescriptorPool(const std::shared_ptr<Device>& DeviceModule)
-    : m_DeviceModule(DeviceModule) {}
+using namespace luvk;
 
-void luvk::DescriptorPool::CreateDescriptorPool(const std::uint32_t                         MaxSets,
-                                                const std::span<const VkDescriptorPoolSize> PoolSizes,
-                                                const VkDescriptorPoolCreateFlags           Flags)
+void DescriptorPool::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    const VkDescriptorPoolCreateInfo Info{.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                          .flags         = Flags,
-                                          .maxSets       = MaxSets,
-                                          .poolSizeCount = static_cast<std::uint32_t>(std::size(PoolSizes)),
-                                          .pPoolSizes    = std::data(PoolSizes)};
-
-    if (!LUVK_EXECUTE(vkCreateDescriptorPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, & m_Pool)))
-    {
-        throw std::runtime_error("Failed to create descriptor pool.");
-    }
+    m_ServiceLocator = ServiceLocator;
+    IModule::OnInitialize(ServiceLocator);
 }
 
-bool luvk::DescriptorPool::AllocateSets(const std::span<const VkDescriptorSetLayout> Layouts, const std::span<VkDescriptorSet> OutSets) const
+void DescriptorPool::OnShutdown()
 {
-    if (std::empty(Layouts) || std::size(Layouts) != std::size(OutSets))
+    const auto*    DeviceMod = m_ServiceLocator->GetModule<Device>();
+    const VkDevice Device    = DeviceMod->GetLogicalDevice();
+
+    for (const auto Pool : m_UsedPools)
     {
-        return false;
+        vkDestroyDescriptorPool(Device, Pool, nullptr);
     }
 
-    const VkDescriptorSetAllocateInfo AllocateInfo{.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                                                   .pNext              = nullptr,
-                                                   .descriptorPool     = m_Pool,
-                                                   .descriptorSetCount = static_cast<std::uint32_t>(std::size(Layouts)),
-                                                   .pSetLayouts        = std::data(Layouts)};
-
-    if (!LUVK_EXECUTE(vkAllocateDescriptorSets(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, std::data(OutSets))))
+    for (const auto Pool : m_FreePools)
     {
-        throw std::runtime_error("Failed to allocate descriptor sets.");
+        vkDestroyDescriptorPool(Device, Pool, nullptr);
     }
 
-    return true;
+    m_UsedPools.clear();
+    m_FreePools.clear();
+    m_CurrentPool = VK_NULL_HANDLE;
+
+    IModule::OnShutdown();
 }
 
-bool luvk::DescriptorPool::AllocateSets(const VkDescriptorSetLayout Layout, const std::uint32_t Count, const std::span<VkDescriptorSet> OutSets) const
+VkDescriptorPool DescriptorPool::CreatePool() const
 {
-    if (Count == 0 || std::size(OutSets) < Count)
-    {
-        return false;
-    }
+    static constexpr std::array<VkDescriptorPoolSize, 11> Sizes{{{VK_DESCRIPTOR_TYPE_SAMPLER, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
+                                                                 {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}}};
 
-    std::vector<VkDescriptorSetLayout> Layouts(Count, Layout);
-    return AllocateSets(Layouts, OutSets);
+    constexpr VkDescriptorPoolCreateInfo Info{.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                              .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                                              .maxSets       = 1000,
+                                              .poolSizeCount = static_cast<std::uint32_t>(std::size(Sizes)),
+                                              .pPoolSizes    = std::data(Sizes)};
+
+    VkDescriptorPool Pool;
+    const auto*      DeviceMod = m_ServiceLocator->GetModule<Device>();
+    vkCreateDescriptorPool(DeviceMod->GetLogicalDevice(), &Info, nullptr, &Pool);
+    return Pool;
 }
 
-void luvk::DescriptorPool::ResetPool() const
+VkDescriptorPool DescriptorPool::GetPool()
 {
-    if (m_Pool != VK_NULL_HANDLE)
+    if (!m_FreePools.empty())
     {
-        vkResetDescriptorPool(m_DeviceModule->GetLogicalDevice(), m_Pool, 0);
+        const VkDescriptorPool Pool = m_FreePools.back();
+        m_FreePools.pop_back();
+        return Pool;
     }
+    return CreatePool();
 }
 
-void luvk::DescriptorPool::ClearResources()
+bool DescriptorPool::AllocateSet(VkDescriptorSetLayout Layout, VkDescriptorSet& Set)
 {
-    if (m_Pool != VK_NULL_HANDLE)
+    std::lock_guard Lock(m_Mutex);
+
+    if (m_CurrentPool == VK_NULL_HANDLE)
     {
-        vkDestroyDescriptorPool(m_DeviceModule->GetLogicalDevice(), m_Pool, nullptr);
-        m_Pool = VK_NULL_HANDLE;
+        m_CurrentPool = GetPool();
+        m_UsedPools.push_back(m_CurrentPool);
     }
+
+    VkDescriptorSetAllocateInfo Info{.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                     .descriptorPool     = m_CurrentPool,
+                                     .descriptorSetCount = 1,
+                                     .pSetLayouts        = &Layout};
+
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    VkResult    Result    = vkAllocateDescriptorSets(DeviceMod->GetLogicalDevice(), &Info, &Set);
+
+    if (Result == VK_ERROR_OUT_OF_POOL_MEMORY || Result == VK_ERROR_FRAGMENTED_POOL)
+    {
+        m_CurrentPool = GetPool();
+        m_UsedPools.push_back(m_CurrentPool);
+        Info.descriptorPool = m_CurrentPool;
+        Result              = vkAllocateDescriptorSets(DeviceMod->GetLogicalDevice(), &Info, &Set);
+    }
+
+    return Result == VK_SUCCESS;
+}
+
+void DescriptorPool::Reset()
+{
+    std::lock_guard Lock(m_Mutex);
+    const auto*     DeviceMod = m_ServiceLocator->GetModule<Device>();
+
+    for (auto Pool : m_UsedPools)
+    {
+        vkResetDescriptorPool(DeviceMod->GetLogicalDevice(), Pool, 0);
+        m_FreePools.push_back(Pool);
+    }
+    m_UsedPools.clear();
+    m_CurrentPool = VK_NULL_HANDLE;
 }

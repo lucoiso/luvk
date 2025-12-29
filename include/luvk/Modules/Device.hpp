@@ -7,151 +7,161 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <optional>
-#include <span>
 #include <unordered_map>
+#include <vector>
 #include <volk.h>
+#include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Interfaces/IFeatureChainModule.hpp"
-#include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Resources/Extensions.hpp"
+#include "luvk/Interfaces/IModule.hpp"
+#include "luvk/Managers/Extensions.hpp"
+#include "luvk/Managers/TransferContext.hpp"
 
 namespace luvk
 {
-    class Renderer;
-
-    class LUVK_API Device : public IRenderModule
+    /**
+     * Manages Logical and Physical Device.
+     * Enforces Vulkan 1.4 features (Sync2, DynamicRendering, etc.).
+     */
+    class LUVK_API Device : public IModule
                           , public IFeatureChainModule
+                          , public IExtensionsModule
     {
     protected:
-        VkDevice                                                m_LogicalDevice{VK_NULL_HANDLE};
-        VkPhysicalDevice                                        m_PhysicalDevice{VK_NULL_HANDLE};
-        VkSurfaceKHR                                            m_Surface{VK_NULL_HANDLE};
-        std::weak_ptr<Renderer>                                 m_RendererModule{};
-        DeviceExtensions                                        m_Extensions{};
-        VkPhysicalDeviceFeatures2                               m_DeviceFeatures{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
-        VkPhysicalDeviceVulkan11Features                        m_Vulkan11Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
-        VkPhysicalDeviceVulkan12Features                        m_Vulkan12Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-        VkPhysicalDeviceVulkan13Features                        m_Vulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-        VkPhysicalDeviceVulkan14Features                        m_Vulkan14Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
-        VkPhysicalDeviceProperties                              m_DeviceProperties{};
-        std::vector<VkPhysicalDevice>                           m_AvailableDevices{};
-        std::vector<VkSurfaceFormatKHR>                         m_SurfaceFormat{};
-        std::vector<VkQueueFamilyProperties>                    m_DeviceQueueFamilyProperties{};
+        /** The created Vulkan logical device handle. */
+        VkDevice m_LogicalDevice{VK_NULL_HANDLE};
+
+        /** The selected Vulkan physical device handle. */
+        VkPhysicalDevice m_PhysicalDevice{VK_NULL_HANDLE};
+
+        /** Manager for device-level extensions. */
+        DeviceExtensions m_Extensions{};
+
+        /** Base structure for chaining device features. */
+        VkPhysicalDeviceFeatures2 m_DeviceFeatures{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2};
+
+        /** Vulkan 1.1 features structure. */
+        VkPhysicalDeviceVulkan11Features m_Vulkan11Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
+
+        /** Vulkan 1.2 features structure. */
+        VkPhysicalDeviceVulkan12Features m_Vulkan12Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
+
+        /** Vulkan 1.3 features structure. */
+        VkPhysicalDeviceVulkan13Features m_Vulkan13Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
+
+        /** Vulkan 1.4 features structure (currently a proxy for 1.3 + extensions). */
+        VkPhysicalDeviceVulkan14Features m_Vulkan14Features{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
+
+        /** Mesh Shader features structure. */
+        VkPhysicalDeviceMeshShaderFeaturesEXT m_MeshShaderFeatures{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT};
+
+        /** Properties of the selected physical device. */
+        VkPhysicalDeviceProperties m_DeviceProperties{};
+
+        /** List of all physical devices found in the system. */
+        std::vector<VkPhysicalDevice> m_AvailableDevices{};
+
+        /** Properties of the available queue families on the physical device. */
+        std::vector<VkQueueFamilyProperties> m_QueueFamilyProperties{};
+
+        /** Map of Queue Family Index -> List of Queues retrieved. */
         std::unordered_map<std::uint32_t, std::vector<VkQueue>> m_Queues{};
 
-        mutable std::unordered_map<VkQueueFlags, std::uint32_t> m_QueueFamilyCache{};
-        mutable std::unordered_map<VkQueueFlags, VkQueue>       m_QueueCache{};
+        /** Dedicated context for submitting immediate transfer commands. */
+        std::unique_ptr<TransferContext> m_TransferContext{};
+
+        /** Pointer to the central service locator. */
+        IServiceLocator* m_ServiceLocator{nullptr};
 
     public:
-        Device() = delete;
-        explicit Device(const std::shared_ptr<Renderer>& RendererModule);
+        /** Default destructor. */
+        ~Device() override = default;
 
-        ~Device() override
+        /** Called upon module initialization. */
+        void OnInitialize(IServiceLocator* ServiceLocator) override;
+
+        /** Called upon module shutdown (destroys logical device and transfer context). */
+        void OnShutdown() override;
+
+        /**
+         * Queries and stores all available physical devices on the system.
+         * @param Instance The Vulkan instance to query from.
+         */
+        void FetchAvailableDevices(VkInstance Instance);
+
+        /** Get the required device extensions (currently Mesh Shader). */
+        [[nodiscard]] ExtensionMap GetDeviceExtensions() const noexcept override
         {
-            Device::ClearResources();
+            return {{"", {VK_EXT_MESH_SHADER_EXTENSION_NAME}}};
         }
 
-        void SetPhysicalDevice(VkPhysicalDevice Device);
-        void SetPhysicalDevice(std::uint8_t Index);
-        void SetPhysicalDevice(VkPhysicalDeviceType Type);
-        void SetSurface(VkSurfaceKHR Surface);
-        void CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, const void* pNext);
+        /**
+         * Select the discrete GPU if available, falling back to Integrated.
+         * Populates features and extensions based on the selection.
+         * @param Surface The window surface to check for presentation support.
+         */
+        void SelectBestPhysicalDevice(VkSurfaceKHR Surface);
 
+        /**
+         * Manual selection by index
+         * @param Index The index in the m_AvailableDevices vector.
+         */
+        void SetPhysicalDevice(std::uint32_t Index);
+
+        /**
+         * Creates logical device forcing Vulkan 1.4 features.
+         * @param QueueIndices Map of Queue Family Index -> Queue Count to create.
+         */
+        void CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices);
+
+        /** Get the created logical device handle. */
         [[nodiscard]] constexpr VkDevice GetLogicalDevice() const noexcept
         {
             return m_LogicalDevice;
         }
 
+        /** Get the selected physical device handle. */
         [[nodiscard]] constexpr VkPhysicalDevice GetPhysicalDevice() const noexcept
         {
             return m_PhysicalDevice;
         }
 
-        [[nodiscard]] constexpr VkSurfaceKHR GetSurface() const noexcept
-        {
-            return m_Surface;
-        }
-
-        [[nodiscard]] constexpr std::span<const VkSurfaceFormatKHR> GetSurfaceFormat() const noexcept
-        {
-            return m_SurfaceFormat;
-        }
-
-        [[nodiscard]] constexpr const VkPhysicalDeviceProperties& GetDeviceProperties() const noexcept
-        {
-            return m_DeviceProperties;
-        }
-
-        [[nodiscard]] constexpr std::uint32_t GetVulkanVersion() const noexcept
-        {
-            return m_DeviceProperties.apiVersion;
-        }
-
-        [[nodiscard]] constexpr const VkPhysicalDeviceFeatures2& GetDeviceFeatures() const noexcept
-        {
-            return m_DeviceFeatures;
-        }
-
-        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan11Features& GetVulkan11Features() const noexcept
-        {
-            return m_Vulkan11Features;
-        }
-
-        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan12Features& GetVulkan12Features() const noexcept
-        {
-            return m_Vulkan12Features;
-        }
-
-        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan13Features& GetVulkan13Features() const noexcept
-        {
-            return m_Vulkan13Features;
-        }
-
-        [[nodiscard]] constexpr const VkPhysicalDeviceVulkan14Features& GetVulkan14Features() const noexcept
-        {
-            return m_Vulkan14Features;
-        }
-
-        [[nodiscard]] constexpr std::span<const VkQueueFamilyProperties> GetDeviceQueueFamilyProperties() const noexcept
-        {
-            return m_DeviceQueueFamilyProperties;
-        }
-
-        [[nodiscard]] constexpr const std::unordered_map<std::uint32_t, std::vector<VkQueue>>& GetQueues() const noexcept
-        {
-            return m_Queues;
-        }
-
+        /** Get the device extensions manager. */
         [[nodiscard]] constexpr DeviceExtensions& GetExtensions() noexcept
         {
             return m_Extensions;
         }
 
-        [[nodiscard]] constexpr std::span<const VkPhysicalDevice> GetAvailableDevices() noexcept
-        {
-            return m_AvailableDevices;
-        }
-
-        [[nodiscard]] const void* GetDeviceFeatureChain() const noexcept override
-        {
-            return &m_DeviceFeatures;
-        }
-
+        /**
+         * Finds the index of a queue family that supports the given flags.
+         * @param Flags The required VkQueueFlags.
+         * @return Optional containing the index or nullopt if not found.
+         */
         [[nodiscard]] std::optional<std::uint32_t> FindQueueFamilyIndex(VkQueueFlags Flags) const;
-        [[nodiscard]] VkQueue                      GetQueue(std::uint32_t FamilyIndex, std::uint32_t QueueIndex) const;
-        [[nodiscard]] VkQueue                      GetQueue(VkQueueFlags Flags) const;
 
+        /**
+         * Retrieves a specific queue from a family supporting the given flags.
+         * @param Flags The required VkQueueFlags to find the family.
+         * @param Index The index of the queue within that family.
+         * @return The VkQueue handle.
+         */
+        [[nodiscard]] VkQueue GetQueue(VkQueueFlags Flags, std::uint32_t Index = 0) const;
+
+        /** Waits for the logical device to become idle. */
         void WaitIdle() const;
-        void WaitQueue(VkQueue Queue) const;
+
+        /** Waits for a specific queue to become idle. */
         void WaitQueue(VkQueueFlags Flags) const;
 
-    protected:
-        void InitializeResources() override;
-        void ClearResources() override;
-
-        [[nodiscard]] const void* ConfigureExtensions(const void* pNext);
+        /**
+         * Submits a command for immediate execution on a transfer queue.
+         * @param Recorder Function to record commands into the transient command buffer.
+         */
+        void SubmitImmediate(std::function<void(VkCommandBuffer)>&& Recorder) const;
 
     private:
-        void FetchAvailableDevices(VkInstance Instance);
+        /** Populates the device properties, queue family properties, and feature structures. */
+        void SetupPhysicalDeviceVariables();
     };
 }

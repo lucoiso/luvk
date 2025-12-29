@@ -5,96 +5,152 @@
  */
 
 #include "luvk/Modules/Draw.hpp"
-#include <stdexcept>
+#include "luvk/Interfaces/IServiceLocator.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
+#include "luvk/Modules/Renderer.hpp"
+#include "luvk/Modules/SwapChain.hpp"
 #include "luvk/Modules/Synchronization.hpp"
 
-luvk::Draw::Draw(const std::shared_ptr<Device>& DeviceModule, const std::shared_ptr<Synchronization>& SyncModule)
-    : m_DeviceModule(DeviceModule),
-      m_SyncModule(SyncModule) {}
+using namespace luvk;
 
-void luvk::Draw::RecordCommands(const FrameData& Frame, const RenderTarget& Target)
+void Draw::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    constexpr VkCommandBufferBeginInfo Begin{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-                                             .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
-    if (!LUVK_EXECUTE(vkBeginCommandBuffer(Frame.CommandBuffer, &Begin)))
-    {
-        throw std::runtime_error("Failed to begin command buffer");
-    }
-
-    std::erase_if(m_BeginFrameCallbacks,
-                  [&](const DrawCallbackInfo& Info)
-                  {
-                      return !Info.Callback(Frame.CommandBuffer);
-                  });
-
-    const VkRenderPass  RenderPass  = Target.RenderPass;
-    const VkFramebuffer FrameBuffer = Target.Framebuffer;
-    const VkExtent2D&   Extent      = Target.Extent;
-
-    const VkRenderPassBeginInfo BeginPass{.sType       = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-                                          .renderPass  = RenderPass,
-                                          .framebuffer = FrameBuffer,
-                                          .renderArea  = {{0,
-                                                           0},
-                                                          {Extent.width,
-                                                           Extent.height}},
-                                          .clearValueCount = static_cast<std::uint32_t>(std::size(Target.ClearValues)),
-                                          .pClearValues    = std::data(Target.ClearValues)};
-
-    vkCmdBeginRenderPass(Frame.CommandBuffer, &BeginPass, VK_SUBPASS_CONTENTS_INLINE);
-
-    const VkViewport Viewport{0.F,
-                              0.F,
-                              static_cast<float>(Extent.width),
-                              static_cast<float>(Extent.height),
-                              0.F,
-                              1.F};
-    const VkRect2D Scissor{{0,
-                            0},
-                           Extent};
-
-    vkCmdSetViewport(Frame.CommandBuffer, 0U, 1U, &Viewport);
-    vkCmdSetScissor(Frame.CommandBuffer, 0U, 1U, &Scissor);
-
-    std::erase_if(m_RecordFrameCallbacks,
-                  [&](const DrawCallbackInfo& Info)
-                  {
-                      return !Info.Callback(Frame.CommandBuffer);
-                  });
-
-    vkCmdEndRenderPass(Frame.CommandBuffer);
-
-    if (!LUVK_EXECUTE(vkEndCommandBuffer(Frame.CommandBuffer)))
-    {
-        throw std::runtime_error("Failed to end command buffer");
-    }
+    m_ServiceLocator = ServiceLocator;
+    IModule::OnInitialize(ServiceLocator);
 }
 
-void luvk::Draw::SubmitFrame(FrameData& Frame, const std::uint32_t ImageIndex) const
+void Draw::AddBeginFrameCallback(DrawCallback&& Callback)
 {
-    constexpr VkPipelineStageFlags WaitStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    m_BeginFrameCallbacks.push_back(std::move(Callback));
+}
 
-    const VkSemaphore Semaphore = m_SyncModule->GetRenderFinished(ImageIndex);
+void Draw::ClearBeginFrameCallbacks()
+{
+    m_BeginFrameCallbacks.clear();
+}
 
-    const VkSubmitInfo Submit{.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                              .waitSemaphoreCount   = 1U,
-                              .pWaitSemaphores      = &Frame.ImageAvailable,
-                              .pWaitDstStageMask    = &WaitStages,
-                              .commandBufferCount   = 1U,
-                              .pCommandBuffers      = &Frame.CommandBuffer,
-                              .signalSemaphoreCount = 1U,
-                              .pSignalSemaphores    = &Semaphore};
+void Draw::AddDrawCallback(DrawCallback&& Callback)
+{
+    m_DrawCallbacks.push_back(std::move(Callback));
+}
 
-    const VkQueue GraphicsQueue = m_DeviceModule->GetQueue(VK_QUEUE_GRAPHICS_BIT);
+void Draw::ClearDrawCallbacks()
+{
+    m_DrawCallbacks.clear();
+}
 
-    if (!LUVK_EXECUTE(vkQueueSubmit(GraphicsQueue, 1U, &Submit, Frame.InFlight)))
+void Draw::RenderFrame() const
+{
+    auto* SyncMod      = m_ServiceLocator->GetModule<Synchronization>();
+    auto* SwapChainMod = m_ServiceLocator->GetModule<SwapChain>();
+    auto* DeviceMod    = m_ServiceLocator->GetModule<Device>();
+
+    SyncMod->WaitForCurrentFrame();
+
+    FrameData& Frame      = SyncMod->GetCurrentFrame();
+    auto       ImageIndex = SwapChainMod->AcquireNextImage(Frame.ImageAvailable);
+
+    if (!ImageIndex.has_value())
     {
-        throw std::runtime_error("Failed to submit graphics queue");
+        return;
     }
 
-    Frame.Submitted = true;
-    m_SyncModule->AdvanceFrame();
+    vkResetCommandBuffer(Frame.CommandBuffer, 0);
+
+    constexpr VkCommandBufferBeginInfo BeginInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+    vkBeginCommandBuffer(Frame.CommandBuffer, &BeginInfo);
+
+    for (const auto& Callback : m_BeginFrameCallbacks)
+    {
+        Callback(Frame.CommandBuffer, SyncMod->GetCurrentFrameIndex());
+    }
+
+    VkImage SwapImage = SwapChainMod->GetImages()[ImageIndex.value()];
+
+    const VkImageMemoryBarrier2 TransitionToRender{.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                   .srcStageMask     = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                   .srcAccessMask    = VK_ACCESS_2_NONE,
+                                                   .dstStageMask     = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                   .dstAccessMask    = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                   .oldLayout        = VK_IMAGE_LAYOUT_UNDEFINED,
+                                                   .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                                   .image            = SwapImage,
+                                                   .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+
+    const VkDependencyInfo DepInfoRender{.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO, .imageMemoryBarrierCount = 1, .pImageMemoryBarriers = &TransitionToRender};
+    vkCmdPipelineBarrier2(Frame.CommandBuffer, &DepInfoRender);
+
+    const VkRenderingAttachmentInfo ColorAttachment{.sType       = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+                                                    .imageView   = SwapChainMod->GetViews()[ImageIndex.value()],
+                                                    .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                                    .loadOp      = VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                                    .storeOp     = VK_ATTACHMENT_STORE_OP_STORE,
+                                                    .clearValue  = {.color = {0.0f, 0.0f, 0.0f, 1.0f}}};
+
+    const VkExtent2D      Extent = SwapChainMod->GetExtent();
+    const VkRenderingInfo RenderingInfo{.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO,
+                                        .renderArea           = {.offset = {0, 0}, .extent = Extent},
+                                        .layerCount           = 1,
+                                        .colorAttachmentCount = 1,
+                                        .pColorAttachments    = &ColorAttachment};
+
+    vkCmdBeginRendering(Frame.CommandBuffer, &RenderingInfo);
+
+    const VkViewport Viewport{0.0f, 0.0f, static_cast<float>(Extent.width), static_cast<float>(Extent.height), 0.0f, 1.0f};
+    const VkRect2D   Scissor{{0, 0}, Extent};
+    vkCmdSetViewport(Frame.CommandBuffer, 0, 1, &Viewport);
+    vkCmdSetScissor(Frame.CommandBuffer, 0, 1, &Scissor);
+
+    for (const auto& Callback : m_DrawCallbacks)
+    {
+        Callback(Frame.CommandBuffer, SyncMod->GetCurrentFrameIndex());
+    }
+
+    vkCmdEndRendering(Frame.CommandBuffer);
+
+    const VkImageMemoryBarrier2 TransitionToPresent{.sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+                                                    .srcStageMask     = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT,
+                                                    .srcAccessMask    = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
+                                                    .dstStageMask     = VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT,
+                                                    .dstAccessMask    = VK_ACCESS_2_NONE,
+                                                    .oldLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                                    .newLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                                                    .image            = SwapImage,
+                                                    .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+
+    const VkDependencyInfo DepInfoPresent{.sType                   = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+                                          .imageMemoryBarrierCount = 1,
+                                          .pImageMemoryBarriers    = &TransitionToPresent};
+    vkCmdPipelineBarrier2(Frame.CommandBuffer, &DepInfoPresent);
+
+    vkEndCommandBuffer(Frame.CommandBuffer);
+
+    const VkCommandBufferSubmitInfo CmdInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO, .commandBuffer = Frame.CommandBuffer};
+
+    const VkSemaphoreSubmitInfo WaitInfo{.sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                                         .semaphore = Frame.ImageAvailable,
+                                         .stageMask = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT};
+
+    const VkSemaphoreSubmitInfo SignalInfo{.sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
+                                           .semaphore = Frame.RenderFinished,
+                                           .stageMask = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT};
+
+    const VkSubmitInfo2 Submit{.sType                    = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+                               .waitSemaphoreInfoCount   = 1,
+                               .pWaitSemaphoreInfos      = &WaitInfo,
+                               .commandBufferInfoCount   = 1,
+                               .pCommandBufferInfos      = &CmdInfo,
+                               .signalSemaphoreInfoCount = 1,
+                               .pSignalSemaphoreInfos    = &SignalInfo};
+
+    if (!LUVK_EXECUTE(vkQueueSubmit2(DeviceMod->GetQueue(VK_QUEUE_GRAPHICS_BIT), 1, &Submit, Frame.InFlight)))
+    {
+        throw std::runtime_error("Failed to submit queue");
+    }
+
+    std::array WaitSemaphores = {Frame.RenderFinished};
+    SwapChainMod->Present(ImageIndex.value(), WaitSemaphores);
+
+    SyncMod->AdvanceFrame();
 }

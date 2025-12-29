@@ -1,12 +1,11 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
 
 #pragma once
 
-#include <memory>
 #include <span>
 #include <volk.h>
 
@@ -14,55 +13,92 @@ namespace luvk
 {
     class Device;
     class DescriptorPool;
-    class Memory;
 
+    /**
+     * Wrapper for a Vulkan Descriptor Set and its Layout.
+     */
     class LUVK_API DescriptorSet
     {
-    protected:
-        bool                            m_OwnsLayout{false};
-        bool                            m_Owned{true};
-        VkDescriptorSetLayout           m_Layout{VK_NULL_HANDLE};
-        VkDescriptorSet                 m_Set{VK_NULL_HANDLE};
-        std::shared_ptr<Device>         m_DeviceModule{};
-        std::shared_ptr<DescriptorPool> m_PoolModule{};
-        std::shared_ptr<Memory>         m_MemoryModule{};
+        /** The Vulkan descriptor set layout handle. */
+        VkDescriptorSetLayout m_Layout{VK_NULL_HANDLE};
+
+        /** The allocated Vulkan descriptor set handle. */
+        VkDescriptorSet m_Set{VK_NULL_HANDLE};
+
+        /** Pointer to the Device module for getting the logical device. */
+        Device* m_DeviceModule{nullptr};
+
+        /** Pointer to the DescriptorPool module for allocation. */
+        DescriptorPool* m_PoolModule{nullptr};
+
+        /** Flag indicating if the descriptor set has been allocated from the pool. */
+        bool m_IsAllocated{false};
 
     public:
+        /** Descriptor sets cannot be default constructed. */
         DescriptorSet() = delete;
 
-        explicit DescriptorSet(const std::shared_ptr<Device>&         DeviceModule,
-                               const std::shared_ptr<DescriptorPool>& PoolModule,
-                               const std::shared_ptr<Memory>&         MemoryModule);
+        /**
+         * Constructor.
+         * @param DeviceModule Pointer to the Device module.
+         * @param PoolModule Pointer to the DescriptorPool module.
+         */
+        explicit DescriptorSet(Device* DeviceModule, DescriptorPool* PoolModule);
 
-        explicit DescriptorSet(const std::shared_ptr<Device>&         DeviceModule,
-                               const std::shared_ptr<DescriptorPool>& PoolModule,
-                               const std::shared_ptr<Memory>&         MemoryModule,
-                               VkDescriptorSet                        ExistingSet,
-                               VkDescriptorSetLayout                  ExistingLayout = VK_NULL_HANDLE);
-
+        /** Destructor (destroys the layout). The set is freed by the pool reset. */
         ~DescriptorSet();
 
-        struct LayoutInfo
-        {
-            std::span<const VkDescriptorSetLayoutBinding> Bindings{};
-        };
+        /**
+         * Creates the VkDescriptorSetLayout from a span of bindings.
+         * @param Bindings A span of VkDescriptorSetLayoutBinding structures.
+         */
+        void CreateLayout(std::span<const VkDescriptorSetLayoutBinding> Bindings);
 
-        void CreateLayout(const LayoutInfo& Info);
-        void UseLayout(VkDescriptorSetLayout Layout);
+        /**
+         * Allocates the VkDescriptorSet from the DescriptorPool module.
+         */
         void Allocate();
 
-        void UpdateBuffer(VkBuffer Buffer, VkDeviceSize Size, std::uint32_t Binding, VkDescriptorType Type) const;
+        /**
+         * Updates a uniform buffer binding in the descriptor set.
+         * @param Binding The binding number.
+         * @param Buffer The VkBuffer handle.
+         * @param Range The range of the buffer accessible in the shader.
+         * @param Offset The offset in the buffer.
+         */
+        void UpdateUniformBuffer(std::uint32_t Binding, VkBuffer Buffer, VkDeviceSize Range, VkDeviceSize Offset = 0U) const;
 
-        void UpdateImage(VkImageView View, VkSampler Sampler, std::uint32_t Binding, VkDescriptorType Type) const;
+        /**
+         * Updates a storage buffer binding in the descriptor set.
+         * @param Binding The binding number.
+         * @param Buffer The VkBuffer handle.
+         * @param Range The range of the buffer accessible in the shader.
+         * @param Offset The offset in the buffer.
+         */
+        void UpdateStorageBuffer(std::uint32_t Binding, VkBuffer Buffer, VkDeviceSize Range, VkDeviceSize Offset = 0U) const;
 
-        [[nodiscard]] constexpr VkDescriptorSetLayout GetLayout() const noexcept
-        {
-            return m_Layout;
-        }
+        /**
+         * Updates a combined image sampler binding in the descriptor set.
+         * @param Binding The binding number.
+         * @param ImageView The VkImageView handle.
+         * @param Sampler The VkSampler handle.
+         * @param Layout The image layout the image is currently in.
+         */
+        void UpdateImage(std::uint32_t Binding,
+                         VkImageView   ImageView,
+                         VkSampler     Sampler,
+                         VkImageLayout Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) const;
 
+        /** Get the allocated VkDescriptorSet handle. */
         [[nodiscard]] constexpr VkDescriptorSet GetHandle() const noexcept
         {
             return m_Set;
+        }
+
+        /** Get the VkDescriptorSetLayout handle. */
+        [[nodiscard]] constexpr VkDescriptorSetLayout GetLayout() const noexcept
+        {
+            return m_Layout;
         }
     };
 }

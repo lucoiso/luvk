@@ -5,332 +5,158 @@
  */
 
 #include "luvk/Modules/SwapChain.hpp"
-#include <iterator>
+#include <limits>
 #include <stdexcept>
-#include "luvk/Constants/Rendering.hpp"
+#include "luvk/Interfaces/IServiceLocator.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/Memory.hpp"
-#include "luvk/Modules/Synchronization.hpp"
-#include "luvk/Resources/Image.hpp"
 
-luvk::SwapChain::SwapChain(const std::shared_ptr<Device>&          DeviceModule,
-                           const std::shared_ptr<Memory>&          MemoryModule,
-                           const std::shared_ptr<Synchronization>& SyncModule)
-    : m_DeviceModule(DeviceModule),
-      m_MemoryModule(MemoryModule),
-      m_SyncModule(SyncModule) {}
+using namespace luvk;
 
-void luvk::SwapChain::CreateSwapChain(CreationArguments&& Arguments, void* const& pNext)
+void SwapChain::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    m_PreviousSwapChain = m_SwapChain;
-    m_Arguments         = Arguments;
-
-    VkSurfaceCapabilitiesKHR Caps{};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(m_DeviceModule->GetPhysicalDevice(), Arguments.Surface, &Caps);
-
-    const VkSwapchainCreateInfoKHR SwapChainCreateInfo{.sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                                                       .pNext                 = pNext,
-                                                       .flags                 = Arguments.Flags,
-                                                       .surface               = Arguments.Surface,
-                                                       .minImageCount         = Constants::ImageCount,
-                                                       .imageFormat           = Arguments.Format,
-                                                       .imageColorSpace       = Arguments.ColorSpace,
-                                                       .imageExtent           = Arguments.Extent,
-                                                       .imageArrayLayers      = 1U,
-                                                       .imageUsage            = Arguments.UsageFlags,
-                                                       .imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE,
-                                                       .queueFamilyIndexCount = static_cast<std::uint32_t>(std::size(Arguments.QueueIndices)),
-                                                       .pQueueFamilyIndices   = std::data(Arguments.QueueIndices),
-                                                       .preTransform          = Arguments.TransformFlags,
-                                                       .compositeAlpha        = Arguments.CompositeAlpha,
-                                                       .presentMode           = Arguments.PresentMode,
-                                                       .clipped               = Arguments.Clip,
-                                                       .oldSwapchain          = m_PreviousSwapChain};
-
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
-    if (!LUVK_EXECUTE(vkCreateSwapchainKHR(LogicalDevice, &SwapChainCreateInfo, nullptr, & m_SwapChain)))
-    {
-        throw std::runtime_error("Failed to create the swap chain.");
-    }
-
-    DestroySwapChainImages(LogicalDevice);
-    DestroyDepthResources();
-    DestroyFramebuffers(LogicalDevice);
-    DestroyRenderPass(LogicalDevice);
-
-    if (m_PreviousSwapChain != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR(LogicalDevice, m_PreviousSwapChain, nullptr);
-        m_PreviousSwapChain = VK_NULL_HANDLE;
-    }
-
-    CreateSwapChainImages(LogicalDevice);
-    CreateDepthResources();
-    CreateRenderPass(LogicalDevice);
-    CreateFramebuffers(LogicalDevice);
+    m_ServiceLocator = ServiceLocator;
+    IModule::OnInitialize(ServiceLocator);
 }
 
-void luvk::SwapChain::ClearResources()
+void SwapChain::OnShutdown()
 {
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    if (!DeviceMod)
+    {
+        return;
+    }
 
-    DestroySwapChainImages(LogicalDevice);
-    DestroyDepthResources();
-    DestroyFramebuffers(LogicalDevice);
-    DestroyRenderPass(LogicalDevice);
+    for (const auto View : m_Views)
+    {
+        vkDestroyImageView(DeviceMod->GetLogicalDevice(), View, nullptr);
+    }
+
+    m_Views.clear();
 
     if (m_SwapChain != VK_NULL_HANDLE)
     {
-        vkDestroySwapchainKHR(LogicalDevice, m_SwapChain, nullptr);
+        vkDestroySwapchainKHR(DeviceMod->GetLogicalDevice(), m_SwapChain, nullptr);
         m_SwapChain = VK_NULL_HANDLE;
     }
+
+    IModule::OnShutdown();
 }
 
-void luvk::SwapChain::Recreate(const VkExtent2D& NewExtent, void* const& pNext)
+void SwapChain::CreateSwapChain(const SwapChainCreationArguments& Arguments)
 {
-    m_Arguments.Extent = NewExtent;
-    CreateSwapChain(CreationArguments(m_Arguments), pNext);
-}
+    m_Arguments           = Arguments;
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
 
-std::optional<std::uint32_t> luvk::SwapChain::Acquire(FrameData& Frame) const
-{
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    VkSurfaceCapabilitiesKHR Caps;
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(DeviceMod->GetPhysicalDevice(), Arguments.Surface, &Caps);
 
-    if (Frame.Submitted)
+    std::uint32_t MinImageCount = Caps.minImageCount + 1;
+    if (Caps.maxImageCount > 0 && MinImageCount > Caps.maxImageCount)
     {
-        m_SyncModule.lock()->WaitFrame(Frame, VK_TRUE, UINT64_MAX);
-        vkResetFences(LogicalDevice, 1, &Frame.InFlight);
-        Frame.Submitted = false;
+        MinImageCount = Caps.maxImageCount;
     }
 
-    std::uint32_t  ImageIndex    = 0U;
-    const VkResult AcquireResult = vkAcquireNextImageKHR(LogicalDevice, m_SwapChain, UINT64_MAX, Frame.ImageAvailable, VK_NULL_HANDLE, &ImageIndex);
-
-    if (AcquireResult == VK_ERROR_OUT_OF_DATE_KHR)
+    VkExtent2D Extent = Arguments.Extent;
+    if (Caps.currentExtent.width != std::numeric_limits<std::uint32_t>::max())
     {
-        return std::nullopt;
+        Extent = Caps.currentExtent;
+    }
+    m_Arguments.Extent = Extent;
+
+    const VkSwapchainCreateInfoKHR Info{.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+                                        .surface          = Arguments.Surface,
+                                        .minImageCount    = MinImageCount,
+                                        .imageFormat      = Arguments.Format,
+                                        .imageColorSpace  = Arguments.ColorSpace,
+                                        .imageExtent      = Extent,
+                                        .imageArrayLayers = 1,
+                                        .imageUsage       = Arguments.Usage,
+                                        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                                        .preTransform     = Arguments.Transform,
+                                        .compositeAlpha   = Arguments.Alpha,
+                                        .presentMode      = Arguments.PresentMode,
+                                        .clipped          = Arguments.Clip ? VK_TRUE : VK_FALSE,
+                                        .oldSwapchain     = m_SwapChain};
+
+    VkSwapchainKHR NewSwapChain;
+    if (!LUVK_EXECUTE(vkCreateSwapchainKHR(DeviceMod->GetLogicalDevice(), &Info, nullptr, &NewSwapChain)))
+    {
+        throw std::runtime_error("Failed to create SwapChain");
     }
 
-    if (AcquireResult != VK_SUCCESS && AcquireResult != VK_SUBOPTIMAL_KHR)
+    if (m_SwapChain != VK_NULL_HANDLE)
     {
-        throw std::runtime_error("Failed to acquire swap chain image.");
+        for (const auto View : m_Views)
+        {
+            vkDestroyImageView(DeviceMod->GetLogicalDevice(), View, nullptr);
+        }
+
+        vkDestroySwapchainKHR(DeviceMod->GetLogicalDevice(), m_SwapChain, nullptr);
     }
 
-    if (!LUVK_EXECUTE(vkResetCommandBuffer(Frame.CommandBuffer, 0U)))
-    {
-        throw std::runtime_error("Failed to reset command buffer.");
-    }
+    m_SwapChain = NewSwapChain;
 
-    return ImageIndex;
-}
+    std::uint32_t Count = 0;
+    vkGetSwapchainImagesKHR(DeviceMod->GetLogicalDevice(), m_SwapChain, &Count, nullptr);
+    m_Images.resize(Count);
+    vkGetSwapchainImagesKHR(DeviceMod->GetLogicalDevice(), m_SwapChain, &Count, std::data(m_Images));
 
-void luvk::SwapChain::Present(const std::uint32_t ImageIndex) const
-{
-    const VkSemaphore Semaphore = m_SyncModule.lock()->GetRenderFinished(ImageIndex);
-
-    const VkPresentInfoKHR Present{.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-                                   .waitSemaphoreCount = 1U,
-                                   .pWaitSemaphores    = &Semaphore,
-                                   .swapchainCount     = 1U,
-                                   .pSwapchains        = &m_SwapChain,
-                                   .pImageIndices      = &ImageIndex};
-
-    const VkQueue GraphicsQueue = m_DeviceModule->GetQueue(VK_QUEUE_GRAPHICS_BIT);
-
-    if (const VkResult PresentResult = vkQueuePresentKHR(GraphicsQueue, &Present);
-        PresentResult != VK_SUCCESS && PresentResult != VK_SUBOPTIMAL_KHR && PresentResult != VK_ERROR_OUT_OF_DATE_KHR)
-    {
-        throw std::runtime_error("Present failed");
-    }
-}
-
-void luvk::SwapChain::CreateSwapChainImages(const VkDevice LogicalDevice)
-{
-    static std::uint32_t ImageCount = Constants::ImageCount;
-    if (!LUVK_EXECUTE(vkGetSwapchainImagesKHR(LogicalDevice, m_SwapChain, &ImageCount, std::data( m_Images))))
-    {
-        throw std::runtime_error("Failed to get the swap chain images.");
-    }
-
-    for (std::size_t Index = 0; Index < std::size(m_Images); ++Index)
+    m_Views.resize(Count);
+    for (std::uint32_t It = 0; It < Count; ++It)
     {
         const VkImageViewCreateInfo ViewInfo{.sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                                             .image      = m_Images.at(Index),
+                                             .image      = m_Images[It],
                                              .viewType   = VK_IMAGE_VIEW_TYPE_2D,
-                                             .format     = m_Arguments.Format,
+                                             .format     = Arguments.Format,
                                              .components = {VK_COMPONENT_SWIZZLE_IDENTITY,
                                                             VK_COMPONENT_SWIZZLE_IDENTITY,
                                                             VK_COMPONENT_SWIZZLE_IDENTITY,
                                                             VK_COMPONENT_SWIZZLE_IDENTITY},
-                                             .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT,
-                                                                  0,
-                                                                  1,
-                                                                  0,
-                                                                  1}};
-
-        if (!LUVK_EXECUTE(vkCreateImageView(LogicalDevice, &ViewInfo, nullptr, &m_ImageViews.at(Index))))
-        {
-            throw std::runtime_error("Failed to create swap chain image view.");
-        }
+                                             .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+        vkCreateImageView(DeviceMod->GetLogicalDevice(), &ViewInfo, nullptr, &m_Views[It]);
     }
 }
 
-void luvk::SwapChain::DestroySwapChainImages(const VkDevice LogicalDevice)
+void SwapChain::Recreate(const VkExtent2D& NewExtent)
 {
-    for (VkImageView& ImageViewIt : m_ImageViews)
-    {
-        if (ImageViewIt != VK_NULL_HANDLE)
-        {
-            vkDestroyImageView(LogicalDevice, ImageViewIt, nullptr);
-            ImageViewIt = VK_NULL_HANDLE;
-        }
-    }
+    m_Arguments.Extent = NewExtent;
+    CreateSwapChain(m_Arguments);
 }
 
-void luvk::SwapChain::CreateRenderPass(const VkDevice LogicalDevice)
+std::optional<std::uint32_t> SwapChain::AcquireNextImage(const VkSemaphore Semaphore, const VkFence Fence) const
 {
-    const std::array Attachments{VkAttachmentDescription{.format         = m_Arguments.Format,
-                                                         .samples        = VK_SAMPLE_COUNT_1_BIT,
-                                                         .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                         .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-                                                         .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                         .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                         .finalLayout    = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR},
-                                 VkAttachmentDescription{.format         = m_DepthFormat,
-                                                         .samples        = VK_SAMPLE_COUNT_1_BIT,
-                                                         .loadOp         = VK_ATTACHMENT_LOAD_OP_CLEAR,
-                                                         .storeOp        = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                         .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-                                                         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-                                                         .initialLayout  = VK_IMAGE_LAYOUT_UNDEFINED,
-                                                         .finalLayout    = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
+    const auto*    DeviceMod = m_ServiceLocator->GetModule<Device>();
+    std::uint32_t  Index;
+    const VkResult Result = vkAcquireNextImageKHR(DeviceMod->GetLogicalDevice(), m_SwapChain, UINT64_MAX, Semaphore, Fence, &Index);
 
-    constexpr std::array AttachmentReferences{VkAttachmentReference{0,
-                                                                    VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
-                                              VkAttachmentReference{1,
-                                                                    VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL}};
-
-    VkSubpassDescription Subpass{.pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                 .colorAttachmentCount    = 1U,
-                                 .pColorAttachments       = &AttachmentReferences.at(0U),
-                                 .pDepthStencilAttachment = &AttachmentReferences.at(1U)};
-
-    VkSubpassDependency SubpassDependency{.srcSubpass    = VK_SUBPASS_EXTERNAL,
-                                          .dstSubpass    = 0,
-                                          .srcStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                                          .dstStageMask  = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT,
-                                          .srcAccessMask = 0,
-                                          .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT};
-
-    const VkRenderPassCreateInfo Info{.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-                                      .attachmentCount = static_cast<std::uint32_t>(std::size(Attachments)),
-                                      .pAttachments    = std::data(Attachments),
-                                      .subpassCount    = 1,
-                                      .pSubpasses      = &Subpass,
-                                      .dependencyCount = 1,
-                                      .pDependencies   = &SubpassDependency};
-
-    if (!LUVK_EXECUTE(vkCreateRenderPass(LogicalDevice, &Info, nullptr, &m_RenderPass)))
+    if (Result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        throw std::runtime_error("Failed to create the render pass.");
+        return std::nullopt;
     }
+    if (Result != VK_SUCCESS && Result != VK_SUBOPTIMAL_KHR)
+    {
+        throw std::runtime_error("Failed to acquire image");
+    }
+
+    return Index;
 }
 
-void luvk::SwapChain::DestroyRenderPass(const VkDevice LogicalDevice)
+void SwapChain::Present(std::uint32_t ImageIndex, std::span<const VkSemaphore> WaitSemaphores) const
 {
-    if (m_RenderPass != VK_NULL_HANDLE)
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+
+    const VkPresentInfoKHR Info{.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                                .waitSemaphoreCount = static_cast<std::uint32_t>(std::size(WaitSemaphores)),
+                                .pWaitSemaphores    = std::data(WaitSemaphores),
+                                .swapchainCount     = 1,
+                                .pSwapchains        = &m_SwapChain,
+                                .pImageIndices      = &ImageIndex};
+
+    const VkResult Result = vkQueuePresentKHR(DeviceMod->GetQueue(VK_QUEUE_GRAPHICS_BIT), &Info);
+
+    if (Result != VK_SUCCESS && Result != VK_SUBOPTIMAL_KHR && Result != VK_ERROR_OUT_OF_DATE_KHR)
     {
-        vkDestroyRenderPass(LogicalDevice, m_RenderPass, nullptr);
-        m_RenderPass = VK_NULL_HANDLE;
+        throw std::runtime_error("Failed to present");
     }
-}
-
-void luvk::SwapChain::CreateFramebuffers(const VkDevice LogicalDevice)
-{
-    for (std::size_t FramebufferIndex = 0; FramebufferIndex < std::size(m_ImageViews); ++FramebufferIndex)
-    {
-        std::array Views{m_ImageViews.at(FramebufferIndex),
-                         m_DepthImages.at(FramebufferIndex)->GetView()};
-
-        VkFramebufferCreateInfo Info{.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                                     .renderPass      = m_RenderPass,
-                                     .attachmentCount = static_cast<std::uint32_t>(std::size(Views)),
-                                     .pAttachments    = std::data(Views),
-                                     .width           = m_Arguments.Extent.width,
-                                     .height          = m_Arguments.Extent.height,
-                                     .layers          = 1};
-
-        if (!LUVK_EXECUTE(vkCreateFramebuffer(LogicalDevice, &Info, nullptr, &m_Framebuffers.at(FramebufferIndex))))
-        {
-            throw std::runtime_error("Failed to create the frame buffers.");
-        }
-    }
-}
-
-void luvk::SwapChain::DestroyFramebuffers(const VkDevice LogicalDevice)
-{
-    for (VkFramebuffer& FramebufferIt : m_Framebuffers)
-    {
-        if (FramebufferIt != VK_NULL_HANDLE)
-        {
-            vkDestroyFramebuffer(LogicalDevice, FramebufferIt, nullptr);
-            FramebufferIt = VK_NULL_HANDLE;
-        }
-    }
-}
-
-void luvk::SwapChain::CreateDepthResources()
-{
-    m_DepthFormat = SelectDepthFormat(m_DeviceModule->GetPhysicalDevice());
-
-    const bool HasStencil = m_DepthFormat == VK_FORMAT_D24_UNORM_S8_UINT || m_DepthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT || m_DepthFormat ==
-            VK_FORMAT_D16_UNORM_S8_UINT;
-
-    for (std::size_t Index = 0; Index < std::size(m_Images); ++Index)
-    {
-        const auto DepthImage = std::make_shared<Image>(m_DeviceModule, m_MemoryModule);
-
-        const VkImageAspectFlags Aspect = HasStencil
-                                              ? static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT)
-                                              : static_cast<VkImageAspectFlags>(VK_IMAGE_ASPECT_DEPTH_BIT);
-
-        DepthImage->CreateImage({.Extent = {m_Arguments.Extent.width,
-                                            m_Arguments.Extent.height,
-                                            1},
-                                 .Format      = m_DepthFormat,
-                                 .Usage       = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
-                                 .Aspect      = Aspect,
-                                 .MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY});
-
-        m_DepthImages.at(Index) = DepthImage;
-    }
-}
-
-void luvk::SwapChain::DestroyDepthResources()
-{
-    for (std::shared_ptr<Image>& DepthIt : m_DepthImages)
-    {
-        DepthIt.reset();
-    }
-}
-
-VkFormat luvk::SwapChain::SelectDepthFormat(const VkPhysicalDevice PhysicalDevice) const
-{
-    for (constexpr std::array Candidates{VK_FORMAT_D24_UNORM_S8_UINT,
-                                         VK_FORMAT_D16_UNORM};
-         const VkFormat Format : Candidates)
-    {
-        VkFormatProperties Props{};
-        vkGetPhysicalDeviceFormatProperties(PhysicalDevice, Format, &Props);
-
-        if (Props.optimalTilingFeatures & VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT)
-        {
-            return Format;
-        }
-    }
-
-    return VK_FORMAT_D16_UNORM;
 }

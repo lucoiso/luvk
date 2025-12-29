@@ -5,76 +5,76 @@
  */
 
 #include "luvk/Modules/CommandPool.hpp"
-#include <iterator>
 #include <stdexcept>
+#include "luvk/Interfaces/IServiceLocator.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 
-luvk::CommandPool::CommandPool(const std::shared_ptr<Device>& DeviceModule)
-    : m_DeviceModule(DeviceModule) {}
+using namespace luvk;
 
-void luvk::CommandPool::CreateCommandPool(const std::uint32_t QueueFamilyIndex, const VkCommandPoolCreateFlags Flags)
+void CommandPool::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    const VkCommandPoolCreateInfo Info{.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                                       .pNext            = nullptr,
-                                       .flags            = Flags,
-                                       .queueFamilyIndex = QueueFamilyIndex};
+    m_ServiceLocator      = ServiceLocator;
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
 
-    if (!LUVK_EXECUTE(vkCreateCommandPool(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, & m_CommandPool)))
+    const auto GraphicsFamily = DeviceMod->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
+    if (!GraphicsFamily.has_value())
     {
-        throw std::runtime_error("Failed to create command pool.");
+        throw std::runtime_error("No graphics queue family found");
     }
+
+    const VkCommandPoolCreateInfo Info{.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                       .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+                                       .queueFamilyIndex = GraphicsFamily.value()};
+
+    if (!LUVK_EXECUTE(vkCreateCommandPool(DeviceMod->GetLogicalDevice(), &Info, nullptr, &m_Pool)))
+    {
+        throw std::runtime_error("Failed to create command pool");
+    }
+
+    IModule::OnInitialize(ServiceLocator);
 }
 
-std::vector<VkCommandBuffer> luvk::CommandPool::AllocateBuffers(const std::uint32_t Count, const VkCommandBufferLevel Level)
+void CommandPool::OnShutdown()
 {
-    std::vector<VkCommandBuffer> Buffers(Count, VK_NULL_HANDLE);
-
-    const VkCommandBufferAllocateInfo AllocateInfo{.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                                   .commandPool        = m_CommandPool,
-                                                   .level              = Level,
-                                                   .commandBufferCount = Count};
-
-    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(m_DeviceModule->GetLogicalDevice(), &AllocateInfo, std::data(Buffers))))
+    if (m_Pool != VK_NULL_HANDLE)
     {
-        throw std::runtime_error("Failed to allocate command buffers.");
+        const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+        vkDestroyCommandPool(DeviceMod->GetLogicalDevice(), m_Pool, nullptr);
+        m_Pool = VK_NULL_HANDLE;
     }
 
-    m_Buffers.insert_range(std::end(m_Buffers), Buffers);
+    IModule::OnShutdown();
+}
+
+std::vector<VkCommandBuffer> CommandPool::Allocate(const std::uint32_t Count, const VkCommandBufferLevel Level)
+{
+    const auto*                  DeviceMod = m_ServiceLocator->GetModule<Device>();
+    std::vector<VkCommandBuffer> Buffers(Count);
+
+    const VkCommandBufferAllocateInfo Info{.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                           .commandPool        = m_Pool,
+                                           .level              = Level,
+                                           .commandBufferCount = Count};
+
+    if (!LUVK_EXECUTE(vkAllocateCommandBuffers(DeviceMod->GetLogicalDevice(), &Info, std::data(Buffers))))
+    {
+        throw std::runtime_error("Failed to allocate command buffers");
+    }
+
+    m_Buffers.insert(m_Buffers.end(), Buffers.begin(), Buffers.end());
 
     return Buffers;
 }
 
-std::array<VkCommandBuffer, luvk::Constants::ImageCount> luvk::CommandPool::AllocateRenderCommandBuffers(VkCommandBufferLevel Level)
+void CommandPool::Free(const std::span<const VkCommandBuffer> Buffers) const
 {
-    const std::vector<VkCommandBuffer> AllocatedBuffers = AllocateBuffers(Constants::ImageCount, Level);
-
-    std::array<VkCommandBuffer, Constants::ImageCount> Output{};
-    for (std::int32_t Index = 0; Index < Constants::ImageCount; ++Index)
-    {
-        Output[Index] = AllocatedBuffers[Index];
-    }
-
-    return Output;
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    vkFreeCommandBuffers(DeviceMod->GetLogicalDevice(), m_Pool, static_cast<std::uint32_t>(std::size(Buffers)), std::data(Buffers));
 }
 
-void luvk::CommandPool::ClearResources()
+void CommandPool::Reset(const bool ReleaseResources) const
 {
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
-    if (!std::empty(m_Buffers))
-    {
-        vkFreeCommandBuffers(LogicalDevice, m_CommandPool, static_cast<std::uint32_t>(std::size(m_Buffers)), std::data(m_Buffers));
-
-        for (VkCommandBuffer& BufferIt : m_Buffers)
-        {
-            BufferIt = VK_NULL_HANDLE;
-        }
-    }
-
-    if (m_CommandPool != VK_NULL_HANDLE)
-    {
-        vkDestroyCommandPool(LogicalDevice, m_CommandPool, nullptr);
-        m_CommandPool = VK_NULL_HANDLE;
-    }
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    vkResetCommandPool(DeviceMod->GetLogicalDevice(), m_Pool, ReleaseResources ? VK_COMMAND_POOL_RESET_RELEASE_RESOURCES_BIT : 0);
 }

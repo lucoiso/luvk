@@ -1,5 +1,5 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
@@ -15,18 +15,44 @@
 
 namespace luvk
 {
+    /**
+     * Initializes the Slang global session.
+     */
     LUVK_API void InitializeShaderCompiler();
+
+    /**
+     * Shuts down the Slang session.
+     */
     LUVK_API void ShutdownShaderCompiler();
 
+    /**
+     * Structure holding the result of shader compilation.
+     */
     struct LUVK_API CompilationResult
     {
-        bool                       Result{false};
+        /** True if compilation succeeded. */
+        bool Result{false};
+
+        /** The resulting SPIR-V code (32-bit words). */
         std::vector<std::uint32_t> Data{};
-        std::string                Error{};
+
+        /** Error message if compilation failed. */
+        std::string Error{};
     };
 
-    [[nodiscard]] LUVK_API CompilationResult          CompileShaderSafe(std::string_view Source, std::string_view Profile = "spirv_1_0");
-    [[nodiscard]] LUVK_API std::vector<std::uint32_t> CompileShader(std::string_view Source, std::string_view Profile = "spirv_1_0");
+    /**
+     * Compiles shader source to SPIR-V using Slang.
+     * @param Source The shader source code.
+     * @return A CompilationResult structure.
+     */
+    [[nodiscard]] LUVK_API CompilationResult CompileShaderSafe(std::string_view Source);
+
+    /**
+     * Compiles shader source to SPIR-V using Slang.
+     * @param Source The shader source code.
+     * @return The resulting SPIR-V code as a vector of 32-bit words.
+     */
+    [[nodiscard]] LUVK_API std::vector<std::uint32_t> CompileShader(std::string_view Source);
 }
 
 #endif // LUVK_SLANG_INCLUDED

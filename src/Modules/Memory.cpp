@@ -1,65 +1,56 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
 
 #include "luvk/Modules/Memory.hpp"
 #include <stdexcept>
+#include "luvk/Interfaces/IServiceLocator.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
-#include "luvk/Modules/Renderer.hpp"
+#include "luvk/Modules/Instance.hpp"
 
-#ifndef VMA_IMPLEMENTATION
-#    define VMA_LEAK_LOG_FORMAT(format, ...)                                            \
-        do                                                                              \
-        {                                                                               \
-            std::size_t Size = std::snprintf(nullptr, 0, format, __VA_ARGS__);          \
-            std::string Message(Size + 1, '\0');                                        \
-            std::snprintf(std::data(Message), std::size(Message), format, __VA_ARGS__); \
-            Message.pop_back();                                                         \
-            std::fprintf(stderr, "%s\n", Message.c_str());                              \
-        } while (false)
-#    define VMA_IMPLEMENTATION
-#endif
+#define VMA_IMPLEMENTATION
 #include <vk_mem_alloc.h>
 
-luvk::Memory::Memory(const std::shared_ptr<Renderer>& RendererModule, const std::shared_ptr<Device>& DeviceModule)
-    : m_DeviceModule(DeviceModule),
-      m_RendererModule(RendererModule) {}
+using namespace luvk;
 
-void luvk::Memory::InitializeAllocator(const VmaAllocatorCreateFlags Flags)
+void Memory::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    VkPhysicalDeviceMemoryProperties MemProps{};
+    m_ServiceLocator        = ServiceLocator;
+    const auto* DeviceMod   = m_ServiceLocator->GetModule<Device>();
+    const auto* InstanceMod = m_ServiceLocator->GetModule<Instance>();
 
-    vkGetPhysicalDeviceMemoryProperties(m_DeviceModule->GetPhysicalDevice(), &MemProps);
+    if (!DeviceMod || !InstanceMod)
+    {
+        throw std::runtime_error("Dependencies missing for Memory module");
+    }
 
-    const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr,
-                                             .vkGetDeviceProcAddr   = vkGetDeviceProcAddr};
+    const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
 
-    const VmaAllocatorCreateInfo AllocatorInfo{.flags                          = Flags | VMA_ALLOCATOR_CREATE_EXT_MEMORY_PRIORITY_BIT,
-                                               .physicalDevice                 = m_DeviceModule->GetPhysicalDevice(),
-                                               .device                         = m_DeviceModule->GetLogicalDevice(),
-                                               .preferredLargeHeapBlockSize    = 0U,
-                                               .pAllocationCallbacks           = nullptr,
-                                               .pDeviceMemoryCallbacks         = nullptr,
-                                               .pHeapSizeLimit                 = nullptr,
-                                               .pVulkanFunctions               = &VulkanFunctions,
-                                               .instance                       = m_RendererModule.lock()->GetInstance(),
-                                               .vulkanApiVersion               = VK_MAKE_API_VERSION(0, 1, 0, 0),
-                                               .pTypeExternalMemoryHandleTypes = nullptr};
+    const VmaAllocatorCreateInfo AllocatorInfo{.flags            = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+                                               .physicalDevice   = DeviceMod->GetPhysicalDevice(),
+                                               .device           = DeviceMod->GetLogicalDevice(),
+                                               .pVulkanFunctions = &VulkanFunctions,
+                                               .instance         = InstanceMod->GetHandle(),
+                                               .vulkanApiVersion = VK_API_VERSION_1_4};
 
     if (!LUVK_EXECUTE(vmaCreateAllocator(&AllocatorInfo, &m_Allocator)))
     {
-        throw std::runtime_error("Failed to initialize the allocator.");
+        throw std::runtime_error("Failed to create VMA allocator");
     }
+
+    IModule::OnInitialize(ServiceLocator);
 }
 
-void luvk::Memory::ClearResources()
+void Memory::OnShutdown()
 {
     if (m_Allocator != VK_NULL_HANDLE)
     {
         vmaDestroyAllocator(m_Allocator);
         m_Allocator = VK_NULL_HANDLE;
     }
+
+    IModule::OnShutdown();
 }

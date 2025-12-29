@@ -6,130 +6,94 @@
 
 #include "luvk/Modules/Synchronization.hpp"
 #include <stdexcept>
-#include "luvk/Constants/Rendering.hpp"
+#include "luvk/Interfaces/IServiceLocator.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/CommandPool.hpp"
 #include "luvk/Modules/Device.hpp"
 #include "luvk/Modules/SwapChain.hpp"
 
-luvk::Synchronization::Synchronization(const std::shared_ptr<Device>& DeviceModule)
-    : m_DeviceModule(DeviceModule) {}
+using namespace luvk;
 
-void luvk::Synchronization::Initialize(std::span<const VkCommandBuffer, Constants::ImageCount> CommandBuffers)
+void Synchronization::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
+    m_ServiceLocator         = ServiceLocator;
+    const auto* DeviceMod    = m_ServiceLocator->GetModule<Device>();
+    auto*       CmdPool      = m_ServiceLocator->GetModule<CommandPool>();
+    const auto* SwapChainMod = m_ServiceLocator->GetModule<SwapChain>();
+
+    if (!DeviceMod || !CmdPool || !SwapChainMod)
+    {
+        throw std::runtime_error("Dependencies missing for Synchronization");
+    }
+
+    const std::uint32_t ImageCount = SwapChainMod->GetImageCount();
+    m_FrameCount                   = ImageCount >= 3 ? 3 : 2;
+
+    const auto Buffers = CmdPool->Allocate(m_FrameCount);
 
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    constexpr VkFenceCreateInfo     FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO};
+    constexpr VkFenceCreateInfo     FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
-    for (std::size_t Index = 0; Index < Constants::ImageCount; ++Index)
+    for (std::uint32_t It = 0; It < m_FrameCount; ++It)
     {
-        FrameData& Frame    = m_Frames.at(Index);
-        Frame.CommandBuffer = CommandBuffers[Index];
+        m_Frames[It].CommandBuffer = Buffers[It];
 
-        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &Frame.ImageAvailable)))
+        if (!LUVK_EXECUTE(vkCreateSemaphore(DeviceMod->GetLogicalDevice(), &SemInfo, nullptr, &m_Frames[It].ImageAvailable)))
         {
-            throw std::runtime_error("Failed to create frame image semaphore.");
+            throw std::runtime_error("Failed to create image semaphore");
         }
 
-        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &m_RenderFinished[Index])))
+        if (!LUVK_EXECUTE(vkCreateSemaphore(DeviceMod->GetLogicalDevice(), &SemInfo, nullptr, &m_Frames[It].RenderFinished)))
         {
-            throw std::runtime_error("Failed to create frame render semaphore.");
+            throw std::runtime_error("Failed to create render semaphore");
         }
 
-        if (!LUVK_EXECUTE(vkCreateFence(LogicalDevice, &FenceInfo, nullptr, &Frame.InFlight)))
+        if (!LUVK_EXECUTE(vkCreateFence(DeviceMod->GetLogicalDevice(), &FenceInfo, nullptr, &m_Frames[It].InFlight)))
         {
-            throw std::runtime_error("Failed to create frame fence.");
+            throw std::runtime_error("Failed to create fence");
         }
     }
 
-    m_CurrentFrame = 0;
+    IModule::OnInitialize(ServiceLocator);
 }
 
-void luvk::Synchronization::ResetFrames()
+void Synchronization::OnShutdown()
 {
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
-    constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-
-    for (std::size_t Index = 0; Index < Constants::ImageCount; ++Index)
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    if (!DeviceMod)
     {
-        FrameData& FrameIt = m_Frames.at(Index);
-        FrameIt.SecondaryBuffers.clear();
-
-        if (FrameIt.ImageAvailable != VK_NULL_HANDLE)
-        {
-            vkDestroySemaphore(LogicalDevice, FrameIt.ImageAvailable, nullptr);
-            FrameIt.ImageAvailable = VK_NULL_HANDLE;
-        }
-
-        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &FrameIt.ImageAvailable)))
-        {
-            throw std::runtime_error("Failed to create semaphore");
-        }
-
-        if (FrameIt.InFlight != VK_NULL_HANDLE)
-        {
-            vkResetFences(LogicalDevice, 1, &FrameIt.InFlight);
-        }
-
-        FrameIt.Submitted = false;
+        return;
     }
 
-    for (VkSemaphore& SemaphoreIt : m_RenderFinished)
+    for (std::uint32_t It = 0; It < m_FrameCount; ++It)
     {
-        vkDestroySemaphore(LogicalDevice, SemaphoreIt, nullptr);
-        if (!LUVK_EXECUTE(vkCreateSemaphore(LogicalDevice, &SemInfo, nullptr, &SemaphoreIt)))
+        if (m_Frames[It].ImageAvailable)
         {
-            throw std::runtime_error("Failed to create semaphore.");
+            vkDestroySemaphore(DeviceMod->GetLogicalDevice(), m_Frames[It].ImageAvailable, nullptr);
+        }
+
+        if (m_Frames[It].RenderFinished)
+        {
+            vkDestroySemaphore(DeviceMod->GetLogicalDevice(), m_Frames[It].RenderFinished, nullptr);
+        }
+
+        if (m_Frames[It].InFlight)
+        {
+            vkDestroyFence(DeviceMod->GetLogicalDevice(), m_Frames[It].InFlight, nullptr);
         }
     }
+
+    IModule::OnShutdown();
 }
 
-void luvk::Synchronization::WaitFrame(const FrameData& Frame, const VkBool32 WaitAll, const std::uint64_t Timeout) const
+void Synchronization::AdvanceFrame()
 {
-    if (Frame.Submitted && Frame.InFlight != VK_NULL_HANDLE)
-    {
-        vkWaitForFences(m_DeviceModule->GetLogicalDevice(), 1, &Frame.InFlight, WaitAll, Timeout);
-    }
+    m_CurrentFrame = (m_CurrentFrame + 1) % m_FrameCount;
 }
 
-void luvk::Synchronization::WaitFrame(const std::size_t Index, const VkBool32 WaitAll, const std::uint64_t Timeout) const
+void Synchronization::WaitForCurrentFrame() const
 {
-    WaitFrame(m_Frames.at(Index), WaitAll, Timeout);
-}
-
-void luvk::Synchronization::WaitCurrentFrame(const VkBool32 WaitAll, const std::uint64_t Timeout) const
-{
-    WaitFrame(m_CurrentFrame, WaitAll, Timeout);
-}
-
-void luvk::Synchronization::ClearResources()
-{
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
-    for (FrameData& FrameIt : m_Frames)
-    {
-        FrameIt.CommandBuffer = VK_NULL_HANDLE;
-
-        if (FrameIt.ImageAvailable != VK_NULL_HANDLE)
-        {
-            vkDestroySemaphore(LogicalDevice, FrameIt.ImageAvailable, nullptr);
-            FrameIt.ImageAvailable = VK_NULL_HANDLE;
-        }
-
-        if (FrameIt.InFlight != VK_NULL_HANDLE)
-        {
-            vkDestroyFence(LogicalDevice, FrameIt.InFlight, nullptr);
-            FrameIt.InFlight = VK_NULL_HANDLE;
-        }
-
-        FrameIt.Submitted = false;
-    }
-
-    for (VkSemaphore& SemaphoreIt : m_RenderFinished)
-    {
-        vkDestroySemaphore(LogicalDevice, SemaphoreIt, nullptr);
-        SemaphoreIt = VK_NULL_HANDLE;
-    }
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    vkWaitForFences(DeviceMod->GetLogicalDevice(), 1, &m_Frames[m_CurrentFrame].InFlight, VK_TRUE, UINT64_MAX);
+    vkResetFences(DeviceMod->GetLogicalDevice(), 1, &m_Frames[m_CurrentFrame].InFlight);
 }

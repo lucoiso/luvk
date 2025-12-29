@@ -5,311 +5,201 @@
  */
 
 #include "luvk/Modules/Device.hpp"
-#include <algorithm>
-#include <iterator>
 #include <stdexcept>
-#include "luvk/Interfaces/IExtensionsModule.hpp"
 #include "luvk/Libraries/VulkanHelpers.hpp"
-#include "luvk/Modules/Renderer.hpp"
 
-luvk::Device::Device(const std::shared_ptr<Renderer>& RendererModule)
-    : m_RendererModule(RendererModule) {}
+using namespace luvk;
 
-void luvk::Device::SetPhysicalDevice(const VkPhysicalDevice Device)
+void Device::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    m_PhysicalDevice = Device;
-
-    m_Extensions.SetDevice(Device);
-    m_Extensions.FillExtensionsContainer();
-
-    m_DeviceFeatures.pNext = nullptr;
-    m_Vulkan11Features     = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES};
-    m_Vulkan12Features     = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES};
-    m_Vulkan13Features     = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES};
-    m_Vulkan14Features     = {VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_4_FEATURES};
-
-    m_DeviceFeatures.pNext   = &m_Vulkan11Features;
-    m_Vulkan11Features.pNext = &m_Vulkan12Features;
-    m_Vulkan12Features.pNext = &m_Vulkan13Features;
-    m_Vulkan13Features.pNext = &m_Vulkan14Features;
-
-    if (m_RendererModule.lock()->GetInstanceCreationArguments().VulkanApiVersion > VK_API_VERSION_1_0 || m_Extensions.
-        HasAvailableExtension(VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME))
-    {
-        vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &m_DeviceFeatures);
-    }
-    else
-    {
-        vkGetPhysicalDeviceFeatures(m_PhysicalDevice, &m_DeviceFeatures.features);
-    }
-
-    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_DeviceProperties);
-
-    std::uint32_t NumProperties = 0U;
-    vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &NumProperties, nullptr);
-
-    m_DeviceQueueFamilyProperties.resize(NumProperties);
-    vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &NumProperties, std::data(m_DeviceQueueFamilyProperties));
-
-    m_QueueFamilyCache.clear();
-    m_QueueCache.clear();
+    m_ServiceLocator = ServiceLocator;
+    IModule::OnInitialize(ServiceLocator);
 }
 
-void luvk::Device::SetPhysicalDevice(const std::uint8_t Index)
+void Device::OnShutdown()
 {
-    SetPhysicalDevice(m_AvailableDevices.at(Index));
-}
+    m_TransferContext.reset();
 
-void luvk::Device::SetPhysicalDevice(const VkPhysicalDeviceType Type)
-{
-    for (const auto& AvailableDeviceIt : m_AvailableDevices)
-    {
-        VkPhysicalDeviceProperties LocalProperty{};
-        vkGetPhysicalDeviceProperties(AvailableDeviceIt, &LocalProperty);
-
-        if (LocalProperty.deviceType == Type)
-        {
-            SetPhysicalDevice(AvailableDeviceIt);
-            break;
-        }
-    }
-}
-
-void luvk::Device::SetSurface(const VkSurfaceKHR Surface)
-{
-    m_Surface = Surface;
-
-    std::uint32_t NumFormats = 0U;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &NumFormats, nullptr);
-
-    m_SurfaceFormat.resize(NumFormats);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(m_PhysicalDevice, m_Surface, &NumFormats, std::data(m_SurfaceFormat));
-}
-
-void luvk::Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices, const void* pNext)
-{
-    const void* FeatureChain = ConfigureExtensions(pNext);
-
-    std::vector<VkDeviceQueueCreateInfo> QueueCreateInfos;
-    QueueCreateInfos.reserve(std::size(QueueIndices));
-
-    static constexpr std::array<float, 64U> Priorities = []
-    {
-        std::array<float, 64U> Out{};
-        Out.fill(1.F);
-        return Out;
-    }();
-
-    for (const auto& [Index, Num] : QueueIndices)
-    {
-        QueueCreateInfos.push_back(VkDeviceQueueCreateInfo{.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-                                                           .queueFamilyIndex = Index,
-                                                           .queueCount       = Num,
-                                                           .pQueuePriorities = std::data(Priorities)});
-    }
-
-    const auto Extensions = m_Extensions.GetEnabledExtensionsNames();
-    const auto Layers     = m_Extensions.GetEnabledLayersNames();
-
-    const VkDeviceCreateInfo DeviceCreateInfo{.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                                              .pNext                   = FeatureChain,
-                                              .queueCreateInfoCount    = static_cast<std::uint32_t>(std::size(QueueCreateInfos)),
-                                              .pQueueCreateInfos       = std::data(QueueCreateInfos),
-                                              .enabledLayerCount       = static_cast<std::uint32_t>(std::size(Layers)),
-                                              .ppEnabledLayerNames     = std::data(Layers),
-                                              .enabledExtensionCount   = static_cast<std::uint32_t>(std::size(Extensions)),
-                                              .ppEnabledExtensionNames = std::data(Extensions)};
-
-    if (!LUVK_EXECUTE(vkCreateDevice(m_PhysicalDevice, &DeviceCreateInfo, nullptr, &m_LogicalDevice)))
-    {
-        throw std::runtime_error("Failed to create the logical device.");
-    }
-
-    volkLoadDevice(m_LogicalDevice);
-
-    for (const auto& QueueCreateInfoIt : QueueCreateInfos)
-    {
-        std::vector<VkQueue> QueueList(QueueCreateInfoIt.queueCount);
-
-        for (std::uint32_t Index = 0U; Index < QueueCreateInfoIt.queueCount; ++Index)
-        {
-            vkGetDeviceQueue(m_LogicalDevice, QueueCreateInfoIt.queueFamilyIndex, Index, &QueueList.at(Index));
-        }
-
-        m_Queues.emplace(QueueCreateInfoIt.queueFamilyIndex, std::move(QueueList));
-    }
-}
-
-void luvk::Device::InitializeResources()
-{
-    FetchAvailableDevices(m_RendererModule.lock()->GetInstance());
-}
-
-void luvk::Device::ClearResources()
-{
     if (m_LogicalDevice != VK_NULL_HANDLE)
     {
         vkDestroyDevice(m_LogicalDevice, nullptr);
         m_LogicalDevice = VK_NULL_HANDLE;
     }
 
-    if (m_Surface != VK_NULL_HANDLE)
-    {
-        vkDestroySurfaceKHR(m_RendererModule.lock()->GetInstance(), m_Surface, nullptr);
-        m_Surface = VK_NULL_HANDLE;
-    }
-
-    m_QueueCache.clear();
-    m_QueueFamilyCache.clear();
+    IModule::OnShutdown();
 }
 
-const void* luvk::Device::ConfigureExtensions(const void* pNext)
+void Device::FetchAvailableDevices(const VkInstance Instance)
 {
-    const void*          FeatureChain = pNext;
-    const RenderModules& Modules      = m_RendererModule.lock()->GetModules();
-
-    auto ProcessModule = [&](const std::shared_ptr<IRenderModule>& Module)
-    {
-        if (Module == nullptr)
-        {
-            return;
-        }
-
-        if (const auto* const ExtModule = dynamic_cast<const IExtensionsModule*>(Module.get());
-            ExtModule != nullptr)
-        {
-            for (const auto& [LayerIt, ExtensionContainerIt] : ExtModule->GetDeviceExtensions())
-            {
-                m_Extensions.SetLayerState(LayerIt, true);
-
-                for (const std::string_view ExtensionIt : ExtensionContainerIt)
-                {
-                    m_Extensions.SetExtensionState(LayerIt, ExtensionIt, true);
-                }
-            }
-        }
-
-        if (const auto FeatChainModule = dynamic_cast<const IFeatureChainModule*>(Module.get());
-            FeatChainModule != nullptr)
-        {
-            if (const void* const Chain = FeatChainModule->GetDeviceFeatureChain();
-                Chain != nullptr)
-            {
-                auto Base = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(Chain));
-
-                while (Base->pNext != nullptr)
-                {
-                    Base = Base->pNext;
-                }
-
-                Base->pNext  = const_cast<VkBaseOutStructure*>(static_cast<const VkBaseOutStructure*>(FeatureChain));
-                FeatureChain = Chain;
-            }
-        }
-    };
-
-    ProcessModule(Modules.DeviceModule);
-    ProcessModule(Modules.SynchronizationModule);
-
-    for (const std::shared_ptr<IRenderModule>& ModuleIt : Modules.ExtraModules)
-    {
-        ProcessModule(ModuleIt);
-    }
-
-    if (m_Surface != VK_NULL_HANDLE)
-    {
-        m_Extensions.SetExtensionState("", VK_KHR_SWAPCHAIN_EXTENSION_NAME, true);
-    }
-
-    return FeatureChain;
+    std::uint32_t Count = 0;
+    vkEnumeratePhysicalDevices(Instance, &Count, nullptr);
+    m_AvailableDevices.resize(Count);
+    vkEnumeratePhysicalDevices(Instance, &Count, std::data(m_AvailableDevices));
 }
 
-void luvk::Device::FetchAvailableDevices(const VkInstance Instance)
+void Device::SelectBestPhysicalDevice(const VkSurfaceKHR Surface)
 {
-    std::uint32_t NumDevices = 0U;
-    vkEnumeratePhysicalDevices(Instance, &NumDevices, nullptr);
-
-    m_AvailableDevices.resize(NumDevices);
-    vkEnumeratePhysicalDevices(Instance, &NumDevices, std::data(m_AvailableDevices));
-}
-
-std::optional<std::uint32_t> luvk::Device::FindQueueFamilyIndex(const VkQueueFlags Flags) const
-{
-    if (const auto It = m_QueueFamilyCache.find(Flags);
-        It != std::end(m_QueueFamilyCache))
+    if (m_AvailableDevices.empty())
     {
-        return It->second;
+        throw std::runtime_error("No physical devices found");
     }
 
-    for (std::uint32_t Index = 0U; Index < std::size(m_DeviceQueueFamilyProperties); ++Index)
+    VkPhysicalDevice SelectedDevice = VK_NULL_HANDLE;
+    std::int32_t     BestScore      = -1;
+
+    for (const auto& PhysDevice : m_AvailableDevices)
     {
-        if ((m_DeviceQueueFamilyProperties.at(Index).queueFlags & Flags) == Flags)
+        VkPhysicalDeviceProperties Props;
+        vkGetPhysicalDeviceProperties(PhysDevice, &Props);
+
+        std::int32_t Score = 0;
+        if (Props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU)
         {
-            m_QueueFamilyCache.emplace(Flags, Index);
-            return Index;
+            Score += 1000;
+        }
+        else if (Props.deviceType == VK_PHYSICAL_DEVICE_TYPE_INTEGRATED_GPU)
+        {
+            Score += 100;
+        }
+
+        Score += static_cast<std::int32_t>(Props.limits.maxImageDimension2D);
+
+        if (Score > BestScore)
+        {
+            BestScore      = Score;
+            SelectedDevice = PhysDevice;
         }
     }
 
+    if (SelectedDevice == VK_NULL_HANDLE)
+    {
+        SelectedDevice = m_AvailableDevices[0];
+    }
+
+    m_PhysicalDevice = SelectedDevice;
+    SetupPhysicalDeviceVariables();
+}
+
+void Device::SetPhysicalDevice(const std::uint32_t Index)
+{
+    if (Index < std::size(m_AvailableDevices))
+    {
+        m_PhysicalDevice = m_AvailableDevices[Index];
+        SetupPhysicalDeviceVariables();
+    }
+}
+
+void Device::SetupPhysicalDeviceVariables()
+{
+    m_Extensions.SetDevice(m_PhysicalDevice);
+    m_Extensions.FillExtensionsContainer();
+
+    m_DeviceFeatures.pNext   = &m_Vulkan11Features;
+    m_Vulkan11Features.pNext = &m_Vulkan12Features;
+    m_Vulkan12Features.pNext = &m_Vulkan13Features;
+    m_Vulkan13Features.pNext = &m_Vulkan14Features;
+
+    m_MeshShaderFeatures.meshShader = VK_TRUE;
+    m_MeshShaderFeatures.taskShader = VK_TRUE;
+
+    vkGetPhysicalDeviceFeatures2(m_PhysicalDevice, &m_DeviceFeatures);
+    vkGetPhysicalDeviceProperties(m_PhysicalDevice, &m_DeviceProperties);
+
+    m_Vulkan14Features.pNext = &m_MeshShaderFeatures;;
+
+    std::uint32_t QueueCount = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &QueueCount, nullptr);
+    m_QueueFamilyProperties.resize(QueueCount);
+    vkGetPhysicalDeviceQueueFamilyProperties(m_PhysicalDevice, &QueueCount, std::data(m_QueueFamilyProperties));
+}
+
+void Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices)
+{
+    std::vector<VkDeviceQueueCreateInfo> QueueInfos;
+    constexpr float                      Priority = 1.0f;
+
+    for (const auto& [Family, Count] : QueueIndices)
+    {
+        QueueInfos.push_back({.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+                              .queueFamilyIndex = Family,
+                              .queueCount       = Count,
+                              .pQueuePriorities = &Priority});
+    }
+
+    const auto ExtNames = m_Extensions.GetEnabledExtensionsNames();
+
+    const VkDeviceCreateInfo CreateInfo{.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                                        .pNext                   = &m_DeviceFeatures,
+                                        .queueCreateInfoCount    = static_cast<std::uint32_t>(std::size(QueueInfos)),
+                                        .pQueueCreateInfos       = std::data(QueueInfos),
+                                        .enabledExtensionCount   = static_cast<std::uint32_t>(std::size(ExtNames)),
+                                        .ppEnabledExtensionNames = std::data(ExtNames)};
+
+    if (!LUVK_EXECUTE(vkCreateDevice(m_PhysicalDevice, &CreateInfo, nullptr, &m_LogicalDevice)))
+    {
+        throw std::runtime_error("Failed to create logical device");
+    }
+
+    volkLoadDevice(m_LogicalDevice);
+
+    for (const auto& [Family, Count] : QueueIndices)
+    {
+        for (std::uint32_t It = 0; It < Count; ++It)
+        {
+            VkQueue Queue;
+            vkGetDeviceQueue(m_LogicalDevice, Family, It, &Queue);
+            m_Queues[Family].push_back(Queue);
+        }
+    }
+
+    if (const auto Index = FindQueueFamilyIndex(VK_QUEUE_TRANSFER_BIT | VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT))
+    {
+        m_TransferContext = std::make_unique<TransferContext>();
+        m_TransferContext->Initialize(m_LogicalDevice, GetQueue(VK_QUEUE_GRAPHICS_BIT), Index.value());
+    }
+}
+
+std::optional<std::uint32_t> Device::FindQueueFamilyIndex(const VkQueueFlags Flags) const
+{
+    for (std::uint32_t It = 0; It < std::size(m_QueueFamilyProperties); ++It)
+    {
+        if ((m_QueueFamilyProperties[It].queueFlags & Flags) == Flags)
+        {
+            return It;
+        }
+    }
     return std::nullopt;
 }
 
-VkQueue luvk::Device::GetQueue(const std::uint32_t FamilyIndex, const std::uint32_t QueueIndex) const
+VkQueue Device::GetQueue(const VkQueueFlags Flags, const std::uint32_t Index) const
 {
-    if (const auto It = m_Queues.find(FamilyIndex);
-        It != std::end(m_Queues))
+    if (const auto Family = FindQueueFamilyIndex(Flags))
     {
-        if (QueueIndex < std::size(It->second))
+        if (m_Queues.contains(Family.value()) && Index < m_Queues.at(Family.value()).size())
         {
-            return It->second.at(QueueIndex);
+            return m_Queues.at(Family.value())[Index];
         }
     }
-
     return VK_NULL_HANDLE;
 }
 
-VkQueue luvk::Device::GetQueue(const VkQueueFlags Flags) const
+void Device::WaitIdle() const
 {
-    if (const auto It = m_QueueCache.find(Flags);
-        It != std::end(m_QueueCache))
-    {
-        return It->second;
-    }
-
-    if (const auto FamilyIndex = FindQueueFamilyIndex(Flags);
-        FamilyIndex.has_value())
-    {
-        const VkQueue Queue = GetQueue(FamilyIndex.value(), 0U);
-        if (Queue != VK_NULL_HANDLE)
-        {
-            m_QueueCache.emplace(Flags, Queue);
-        }
-        return Queue;
-    }
-
-    return VK_NULL_HANDLE;
-}
-
-void luvk::Device::WaitIdle() const
-{
-    if (m_LogicalDevice != VK_NULL_HANDLE)
+    if (m_LogicalDevice)
     {
         vkDeviceWaitIdle(m_LogicalDevice);
     }
 }
 
-void luvk::Device::WaitQueue(const VkQueue Queue) const
+void Device::WaitQueue(const VkQueueFlags Flags) const
 {
-    if (Queue != VK_NULL_HANDLE)
-    {
-        vkQueueWaitIdle(Queue);
-    }
+    vkQueueWaitIdle(GetQueue(Flags));
 }
 
-void luvk::Device::WaitQueue(const VkQueueFlags Flags) const
+void Device::SubmitImmediate(std::function<void(VkCommandBuffer)>&& Recorder) const
 {
-    if (const VkQueue TargetQueue = GetQueue(Flags);
-        TargetQueue != VK_NULL_HANDLE)
+    if (m_TransferContext)
     {
-        WaitQueue(TargetQueue);;
+        m_TransferContext->SubmitImmediate(std::move(Recorder));
     }
 }

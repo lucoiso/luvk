@@ -1,5 +1,5 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
@@ -10,5 +10,9 @@
 
 namespace luvk::Constants
 {
-    constexpr static std::uint32_t ImageCount = 3U;
+    /**
+     * Maximum supported frames in flight for static array sizing.
+     * Actual usage (Double vs Triple buffering) is determined at runtime.
+     */
+    constexpr std::uint32_t MaxFramesInFlight = 3U;
 }

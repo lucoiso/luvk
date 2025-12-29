@@ -1,53 +1,66 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
 
 #pragma once
 
-#include <array>
 #include <span>
 #include <vector>
 #include <volk.h>
-#include "luvk/Constants/Rendering.hpp"
-#include "luvk/Interfaces/IRenderModule.hpp"
+#include "luvk/Interfaces/IModule.hpp"
 
 namespace luvk
 {
-    class Device;
-
-    class LUVK_API CommandPool : public IRenderModule
+    /**
+     * Module managing a main Vulkan Command Pool for per-frame command buffers.
+     */
+    class LUVK_API CommandPool : public IModule
     {
-    protected:
-        VkCommandPool                m_CommandPool{VK_NULL_HANDLE};
+        /** The Vulkan command pool handle. */
+        VkCommandPool m_Pool{VK_NULL_HANDLE};
+
+        /** A list of allocated command buffers (not strictly managed here, but can be a cache). */
         std::vector<VkCommandBuffer> m_Buffers{};
-        std::shared_ptr<Device>      m_DeviceModule{};
+
+        /** Pointer to the central service locator. */
+        IServiceLocator* m_ServiceLocator{nullptr};
 
     public:
-        CommandPool() = delete;
-        explicit CommandPool(const std::shared_ptr<Device>& DeviceModule);
+        /** Default destructor. */
+        ~CommandPool() override = default;
 
-        ~CommandPool() override
+        /** Called upon module initialization (creates the command pool). */
+        void OnInitialize(IServiceLocator* ServiceLocator) override;
+
+        /** Called upon module shutdown (destroys the command pool). */
+        void OnShutdown() override;
+
+        /**
+         * Allocates new command buffers from the pool.
+         * @param Count The number of command buffers to allocate.
+         * @param Level The command buffer level (Primary or Secondary).
+         * @return A vector of the newly allocated VkCommandBuffers.
+         */
+        std::vector<VkCommandBuffer> Allocate(std::uint32_t Count, VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+
+        /**
+         * Frees allocated command buffers back to the pool.
+         * @param Buffers Span of command buffers to free.
+         */
+        void Free(std::span<const VkCommandBuffer> Buffers) const;
+
+        /**
+         * Resets the command pool, making all command buffers available for reuse.
+         * @param ReleaseResources If true, the pool may free all of its memory.
+         */
+        void Reset(bool ReleaseResources = false) const;
+
+        /** Get the underlying VkCommandPool handle. */
+        [[nodiscard]] constexpr VkCommandPool GetHandle() const noexcept
         {
-            CommandPool::ClearResources();
+            return m_Pool;
         }
-
-        void                                               CreateCommandPool(std::uint32_t QueueFamilyIndex, VkCommandPoolCreateFlags Flags);
-        std::vector<VkCommandBuffer>                       AllocateBuffers(std::uint32_t Count, VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-        std::array<VkCommandBuffer, Constants::ImageCount> AllocateRenderCommandBuffers(VkCommandBufferLevel Level = VK_COMMAND_BUFFER_LEVEL_PRIMARY);
-
-        [[nodiscard]] constexpr std::span<const VkCommandBuffer> GetBuffers() const noexcept
-        {
-            return m_Buffers;
-        }
-
-        [[nodiscard]] constexpr VkCommandPool GetCommandPool() const noexcept
-        {
-            return m_CommandPool;
-        }
-
-    protected:
-        void ClearResources() override;
     };
 }

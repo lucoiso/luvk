@@ -1,5 +1,5 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
@@ -11,51 +11,53 @@
 #include <mutex>
 #include <queue>
 #include <thread>
-#include "luvk/Interfaces/IRenderModule.hpp"
+#include <vector>
+#include "luvk/Interfaces/IModule.hpp"
 
 namespace luvk
 {
-    class LUVK_API ThreadPool : public IRenderModule
+    /**
+     * Module implementing a simple thread pool for asynchronous task execution.
+     */
+    class LUVK_API ThreadPool : public IModule
     {
-    protected:
-        std::vector<std::thread>          m_Threads{};
+        /** Collection of worker threads. */
+        std::vector<std::thread> m_Threads{};
+
+        /** Queue of tasks to be executed by worker threads. */
         std::queue<std::function<void()>> m_Tasks{};
-        std::mutex                        m_Mutex{};
-        std::condition_variable           m_Condition{};
-        std::size_t                       m_Active{0};
-        bool                              m_Stop{false};
+
+        /** Mutex to protect access to the task queue. */
+        std::mutex m_Mutex{};
+
+        /** Condition variable to notify worker threads of new tasks. */
+        std::condition_variable m_Condition{};
+
+        /** Flag to signal the worker threads to stop. */
+        bool m_Stop{false};
 
     public:
-        constexpr ThreadPool() = default;
+        /** Default destructor. */
+        ~ThreadPool() override = default;
 
-        ~ThreadPool() override
-        {
-            ThreadPool::ClearResources();
-        }
+        /** Called upon module initialization (starts worker threads). */
+        void OnInitialize(IServiceLocator* ServiceLocator) override;
 
-        void Start(std::uint32_t ThreadCount);
-        void Submit(std::function<void()> Task);
+        /** Called upon module shutdown (stops and joins worker threads). */
+        void OnShutdown() override;
+
+        /**
+         * Adds a task to the queue for asynchronous execution.
+         * @param Task The function to execute.
+         */
+        void Enqueue(std::function<void()> Task);
+        /**
+         * Blocks the calling thread until all tasks in the queue are completed.
+         */
         void WaitIdle();
 
-        [[nodiscard]] bool IsRunning() const noexcept
-        {
-            return m_Stop;
-        }
-
-        [[nodiscard]] std::uint32_t GetActiveThreadCount() const noexcept
-        {
-            return m_Active;
-        }
-
-        [[nodiscard]] std::uint32_t GetThreadCount() const noexcept
-        {
-            return std::size(m_Threads);
-        }
-
-    protected:
-        void ClearResources() override;
-
     private:
+        /** The main function executed by each worker thread. */
         void Worker();
     };
 }

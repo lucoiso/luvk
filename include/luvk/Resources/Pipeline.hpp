@@ -6,7 +6,6 @@
 
 #pragma once
 
-#include <memory>
 #include <span>
 #include <vector>
 #include <volk.h>
@@ -14,11 +13,14 @@
 namespace luvk
 {
     class Device;
-    class PipelineCache;
 
+    /**
+     * Wrapper for a Vulkan Pipeline and Pipeline Layout.
+     */
     class LUVK_API Pipeline
     {
     public:
+        /** Defines the type of pipeline (Graphics, Compute, or Mesh). */
         enum class Type : std::uint8_t
         {
             Graphics,
@@ -27,105 +29,193 @@ namespace luvk
         };
 
     protected:
-        Type                             m_Type{Type::Graphics};
-        VkPipelineLayout                 m_PipelineLayout{VK_NULL_HANDLE};
-        VkPipeline                       m_Pipeline{VK_NULL_HANDLE};
+        /** The type of this pipeline. */
+        Type m_Type{Type::Graphics};
+
+        /** The Vulkan pipeline layout handle. */
+        VkPipelineLayout m_PipelineLayout{VK_NULL_HANDLE};
+
+        /** The Vulkan pipeline handle. */
+        VkPipeline m_Pipeline{VK_NULL_HANDLE};
+
+        /** Cached push constant ranges for the layout. */
         std::vector<VkPushConstantRange> m_PushConstants{};
-        std::shared_ptr<Device>          m_DeviceModule{};
+
+        /** Cached shader stages that use push constants. */
+        VkShaderStageFlags m_PushConstantStages{0};
+
+        /** Pointer to the Device module for logical device handle. */
+        Device* m_DeviceModule{nullptr};
 
     public:
+        /** Pipelines cannot be default constructed. */
         Pipeline() = delete;
-        explicit Pipeline(const std::shared_ptr<Device>& DeviceModule);
 
+        /**
+         * Constructor.
+         * @param DeviceModule Pointer to the Device module.
+         */
+        explicit Pipeline(Device* DeviceModule);
+
+        /** Destructor (destroys the pipeline and pipeline layout). */
         ~Pipeline();
 
-        struct CreationArguments
+        /**
+         * Arguments for creating a graphics pipeline with Dynamic Rendering.
+         */
+        struct GraphicsCreationArguments
         {
-            VkExtent2D Extent{0U,
-                              0U};
-            std::span<const VkFormat>                          ColorFormats{};
-            VkRenderPass                                       RenderPass{VK_NULL_HANDLE};
-            std::uint32_t                                      Subpass{0};
-            std::span<const std::uint32_t>                     VertexShader;
-            std::span<const std::uint32_t>                     FragmentShader;
-            std::span<const VkDescriptorSetLayout>             SetLayouts{};
-            std::span<const VkVertexInputBindingDescription>   Bindings{};
-            std::span<const VkVertexInputAttributeDescription> Attributes{};
-            std::span<const VkPushConstantRange>               PushConstants{};
-            VkPrimitiveTopology                                Topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
-            VkCullModeFlags                                    CullMode{VK_CULL_MODE_BACK_BIT};
-            VkFrontFace                                        FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
-            bool                                               EnableDepthOp{true};
-            VkPipelineCreateFlags                              Flags{0};
-            PipelineCache*                                     Cache{};
-        };
+            /** SPIR-V code for the vertex shader stage. */
+            std::span<const std::uint32_t> VertexShader;
 
-        struct ComputeCreationArguments
-        {
-            std::span<const std::uint32_t>         ComputeShader;
+            /** SPIR-V code for the fragment shader stage. */
+            std::span<const std::uint32_t> FragmentShader;
+
+            /** Color attachment formats (for Dynamic Rendering). */
+            std::span<const VkFormat> ColorFormats{};
+
+            /** Depth attachment format (for Dynamic Rendering). */
+            VkFormat DepthFormat{VK_FORMAT_UNDEFINED};
+
+            /** Primitive type (e.g., triangle list). */
+            VkPrimitiveTopology Topology{VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST};
+
+            /** Face culling mode. */
+            VkCullModeFlags CullMode{VK_CULL_MODE_BACK_BIT};
+
+            /** Front face orientation. */
+            VkFrontFace FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
+
+            /** Enable depth testing. */
+            bool EnableDepthTest{true};
+
+            /** Enable depth writing. */
+            bool EnableDepthWrite{true};
+
+            /** Descriptor set layouts for the pipeline layout. */
             std::span<const VkDescriptorSetLayout> SetLayouts{};
-            std::span<const VkPushConstantRange>   PushConstants{};
-            VkPipelineCreateFlags                  Flags{0};
-            PipelineCache*                         Cache{};
+
+            /** Push constant ranges for the pipeline layout. */
+            std::span<const VkPushConstantRange> PushConstants{};
+
+            /** Vertex buffer binding descriptions. */
+            std::span<const VkVertexInputBindingDescription> VertexBindings{};
+
+            /** Vertex attribute descriptions. */
+            std::span<const VkVertexInputAttributeDescription> VertexAttributes{};
+
+            /** Optional debug name for the pipeline. */
+            std::string_view Name{};
         };
 
+        /**
+         * Arguments for creating a mesh pipeline (Mesh/Task/Fragment).
+         */
         struct MeshCreationArguments
         {
-            VkExtent2D Extent{0U,
-                              0U};
-            std::span<const VkFormat>              ColorFormats{};
-            VkRenderPass                           RenderPass{VK_NULL_HANDLE};
-            std::uint32_t                          Subpass{0};
-            std::span<const std::uint32_t>         TaskShader{};
-            std::span<const std::uint32_t>         MeshShader;
-            std::span<const std::uint32_t>         FragmentShader{};
+            /** SPIR-V code for the optional task shader stage. */
+            std::span<const std::uint32_t> TaskShader{};
+
+            /** SPIR-V code for the mesh shader stage. */
+            std::span<const std::uint32_t> MeshShader;
+
+            /** SPIR-V code for the optional fragment shader stage. */
+            std::span<const std::uint32_t> FragmentShader{};
+
+            /** Color attachment formats (for Dynamic Rendering). */
+            std::span<const VkFormat> ColorFormats{};
+
+            /** Depth attachment format (for Dynamic Rendering). */
+            VkFormat DepthFormat{VK_FORMAT_UNDEFINED};
+
+            /** Face culling mode. */
+            VkCullModeFlags CullMode{VK_CULL_MODE_BACK_BIT};
+
+            /** Front face orientation. */
+            VkFrontFace FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
+
+            /** Enable depth testing. */
+            bool EnableDepthTest{true};
+
+            /** Enable depth writing. */
+            bool EnableDepthWrite{true};
+
+            /** Descriptor set layouts for the pipeline layout. */
             std::span<const VkDescriptorSetLayout> SetLayouts{};
-            std::span<const VkPushConstantRange>   PushConstants{};
-            VkCullModeFlags                        CullMode{VK_CULL_MODE_BACK_BIT};
-            VkFrontFace                            FrontFace{VK_FRONT_FACE_COUNTER_CLOCKWISE};
-            bool                                   EnableDepthOp{true};
-            VkPipelineCreateFlags                  Flags{0};
-            PipelineCache*                         Cache{};
+
+            /** Push constant ranges for the pipeline layout. */
+            std::span<const VkPushConstantRange> PushConstants{};
+
+            /** Optional debug name for the pipeline. */
+            std::string_view Name{};
         };
 
-        void CreateGraphicsPipeline(const CreationArguments& Arguments);
-        void RecreateGraphicsPipeline(const CreationArguments& Arguments);
+        /**
+         * Arguments for creating a compute pipeline.
+         */
+        struct ComputeCreationArguments
+        {
+            /** SPIR-V code for the compute shader stage. */
+            std::span<const std::uint32_t> ComputeShader;
 
-        void CreateComputePipeline(const ComputeCreationArguments& Arguments);
-        void RecreateComputePipeline(const ComputeCreationArguments& Arguments);
+            /** Descriptor set layouts for the pipeline layout. */
+            std::span<const VkDescriptorSetLayout> SetLayouts{};
 
+            /** Push constant ranges for the pipeline layout. */
+            std::span<const VkPushConstantRange> PushConstants{};
+
+            /** Optional debug name for the pipeline. */
+            std::string_view Name{};
+        };
+
+        /**
+         * Creates a Graphics Pipeline.
+         * @param Arguments Configuration for the pipeline creation.
+         */
+        void CreateGraphicsPipeline(const GraphicsCreationArguments& Arguments);
+        /**
+         * Creates a Mesh Pipeline.
+         * @param Arguments Configuration for the pipeline creation.
+         */
         void CreateMeshPipeline(const MeshCreationArguments& Arguments);
-        void RecreateMeshPipeline(const MeshCreationArguments& Arguments);
+        /**
+         * Creates a Compute Pipeline.
+         * @param Arguments Configuration for the pipeline creation.
+         */
+        void CreateComputePipeline(const ComputeCreationArguments& Arguments);
 
-        [[nodiscard]] constexpr VkPipeline GetPipeline() const noexcept
+        /** Get the underlying VkPipeline handle. */
+        [[nodiscard]] constexpr VkPipeline GetHandle() const noexcept
         {
             return m_Pipeline;
         }
 
-        [[nodiscard]] constexpr VkPipelineLayout GetPipelineLayout() const noexcept
+        /** Get the underlying VkPipelineLayout handle. */
+        [[nodiscard]] constexpr VkPipelineLayout GetLayout() const noexcept
         {
             return m_PipelineLayout;
         }
 
-        [[nodiscard]] constexpr std::span<const VkPushConstantRange> GetPushConstants() const noexcept
-        {
-            return m_PushConstants;
-        }
-
+        /** Get the type of the pipeline. */
         [[nodiscard]] constexpr Type GetType() const noexcept
         {
             return m_Type;
         }
 
-        [[nodiscard]] constexpr VkPipelineBindPoint GetBindPoint() const noexcept
+        /** Get the shader stages that use push constants for this pipeline. */
+        [[nodiscard]] constexpr VkShaderStageFlags GetPushConstantStages() const noexcept
         {
-            return m_Type == Type::Compute ? VK_PIPELINE_BIND_POINT_COMPUTE : VK_PIPELINE_BIND_POINT_GRAPHICS;
+            return m_PushConstantStages;
         }
 
-    protected:
-        void Clear();
-
-    private:
-        void SetupPipelineLayout(std::span<const VkDescriptorSetLayout> SetLayouts, std::span<const VkPushConstantRange> PushConstants);
+        /** Get the Vulkan bind point (Graphics or Compute) for this pipeline. */
+        [[nodiscard]] constexpr VkPipelineBindPoint GetBindPoint() const noexcept
+        {
+            if (m_Type == Type::Graphics || m_Type == Type::Mesh)
+            {
+                return VK_PIPELINE_BIND_POINT_GRAPHICS;
+            }
+            return VK_PIPELINE_BIND_POINT_COMPUTE;
+        }
     };
 }

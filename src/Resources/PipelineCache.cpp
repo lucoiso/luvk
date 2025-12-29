@@ -5,67 +5,90 @@
  */
 
 #include "luvk/Resources/PipelineCache.hpp"
+#include <fstream>
 #include <stdexcept>
+#include <vector>
 #include "luvk/Libraries/VulkanHelpers.hpp"
 #include "luvk/Modules/Device.hpp"
 
 using namespace luvk;
 
-PipelineCache::PipelineCache(const std::shared_ptr<Device>& DeviceModule)
+PipelineCache::PipelineCache(Device* DeviceModule)
     : m_DeviceModule(DeviceModule) {}
 
 PipelineCache::~PipelineCache()
 {
-    const VkDevice Device = m_DeviceModule->GetLogicalDevice();
-
-    if (m_PreRaster != VK_NULL_HANDLE)
+    if (m_Cache != VK_NULL_HANDLE)
     {
-        vkDestroyPipelineCache(Device, m_PreRaster, nullptr);
-        m_PreRaster = VK_NULL_HANDLE;
-    }
-
-    if (m_Fragment != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineCache(Device, m_Fragment, nullptr);
-        m_Fragment = VK_NULL_HANDLE;
-    }
-
-    if (m_Output != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineCache(Device, m_Output, nullptr);
-        m_Output = VK_NULL_HANDLE;
-    }
-
-    if (m_Composite != VK_NULL_HANDLE)
-    {
-        vkDestroyPipelineCache(Device, m_Composite, nullptr);
-        m_Composite = VK_NULL_HANDLE;
+        vkDestroyPipelineCache(m_DeviceModule->GetLogicalDevice(), m_Cache, nullptr);
     }
 }
 
-void PipelineCache::Create()
+void PipelineCache::Initialize()
 {
-    const VkDevice LogicalDevice = m_DeviceModule->GetLogicalDevice();
-
-    constexpr VkPipelineCacheCreateInfo info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
-
-    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_PreRaster)))
+    constexpr VkPipelineCacheCreateInfo Info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+    if (!LUVK_EXECUTE(vkCreatePipelineCache(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_Cache)))
     {
-        throw std::runtime_error("Failed to create pre raster pipeline cache");
+        throw std::runtime_error("Failed to initialize empty pipeline cache");
+    }
+}
+
+void PipelineCache::Save(const std::string_view Path) const
+{
+    if (m_Cache == VK_NULL_HANDLE)
+    {
+        return;
     }
 
-    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Fragment)))
+    const VkDevice Device = m_DeviceModule->GetLogicalDevice();
+    std::size_t    Size   = 0;
+
+    if (vkGetPipelineCacheData(Device, m_Cache, &Size, nullptr) != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed to create fragment pipeline cache");
+        return;
     }
 
-    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Output)))
+    std::vector<char> Data(Size);
+    if (vkGetPipelineCacheData(Device, m_Cache, &Size, std::data(Data)) != VK_SUCCESS)
     {
-        throw std::runtime_error("Failed to create output pipeline cache");
+        return;
     }
 
-    if (!LUVK_EXECUTE(vkCreatePipelineCache(LogicalDevice, &info, nullptr, &m_Composite)))
+    std::ofstream File(std::data(Path), std::ios::binary);
+    if (File.is_open())
     {
-        throw std::runtime_error("Failed to create composite pipeline cache");
+        File.write(std::data(Data), static_cast<std::streamsize>(Size));
+    }
+}
+
+void PipelineCache::Load(const std::string_view Path)
+{
+    std::vector<char> Data;
+    std::ifstream     File(std::data(Path), std::ios::binary | std::ios::ate);
+
+    if (File.is_open())
+    {
+        const auto FileSize = File.tellg();
+        if (FileSize > 0)
+        {
+            Data.resize(FileSize);
+            File.seekg(0, std::ios::beg);
+            File.read(std::data(Data), FileSize);
+        }
+    }
+
+    const VkPipelineCacheCreateInfo Info{.sType           = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+                                         .initialDataSize = std::size(Data),
+                                         .pInitialData    = std::empty(Data) ? nullptr : std::data(Data)};
+
+    if (m_Cache != VK_NULL_HANDLE)
+    {
+        vkDestroyPipelineCache(m_DeviceModule->GetLogicalDevice(), m_Cache, nullptr);
+    }
+
+    if (!LUVK_EXECUTE(vkCreatePipelineCache(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_Cache)))
+    {
+        constexpr VkPipelineCacheCreateInfo EmptyInfo{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO};
+        vkCreatePipelineCache(m_DeviceModule->GetLogicalDevice(), &EmptyInfo, nullptr, &m_Cache);
     }
 }

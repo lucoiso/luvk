@@ -1,5 +1,5 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
@@ -7,69 +7,78 @@
 #pragma once
 
 #include <array>
-#include <memory>
-#include <span>
 #include <volk.h>
 #include "luvk/Constants/Rendering.hpp"
-#include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Types/FrameData.hpp"
+#include "luvk/Interfaces/IModule.hpp"
 
 namespace luvk
 {
-    class Device;
-    class SwapChain;
-    class CommandPool;
-
-    class LUVK_API Synchronization : public IRenderModule
+    /**
+     * Data structure holding all synchronization primitives for a single frame-in-flight.
+     */
+    struct LUVK_API FrameData
     {
-    protected:
-        std::array<FrameData, Constants::ImageCount>   m_Frames{};
-        std::array<VkSemaphore, Constants::ImageCount> m_RenderFinished{};
-        std::size_t                                    m_CurrentFrame{0};
-        std::shared_ptr<Device>                        m_DeviceModule{};
+        /** Command buffer recorded for this frame. */
+        VkCommandBuffer CommandBuffer{VK_NULL_HANDLE};
+
+        /** Semaphore signaled when the swap chain image is ready. */
+        VkSemaphore ImageAvailable{VK_NULL_HANDLE};
+
+        /** Semaphore signaled when rendering is complete for this frame. */
+        VkSemaphore RenderFinished{VK_NULL_HANDLE};
+
+        /** Fence signaled when the GPU finishes executing commands for this frame. */
+        VkFence InFlight{VK_NULL_HANDLE};
+    };
+
+    /**
+     * Module managing per-frame synchronization objects (semaphores and fences).
+     */
+    class LUVK_API Synchronization : public IModule
+    {
+        /** Array of FrameData, sized by MaxFramesInFlight. */
+        std::array<FrameData, Constants::MaxFramesInFlight> m_Frames{};
+
+        /** Index of the frame currently being recorded. */
+        std::uint32_t m_CurrentFrame{0U};
+
+        /** Actual number of frames in flight (e.g., 2 for double buffering). */
+        std::uint32_t m_FrameCount{2U};
+
+        /** Pointer to the central service locator. */
+        IServiceLocator* m_ServiceLocator{nullptr};
 
     public:
-        Synchronization() = delete;
-        Synchronization(const std::shared_ptr<Device>& DeviceModule);
+        /** Default destructor. */
+        ~Synchronization() override = default;
 
-        ~Synchronization() override
+        /** Called upon module initialization (creates synchronization objects). */
+        void OnInitialize(IServiceLocator* ServiceLocator) override;
+
+        /** Called upon module shutdown (destroys synchronization objects). */
+        void OnShutdown() override;
+
+        /**
+         * Get the FrameData object for the current frame index.
+         * @return Reference to the current FrameData.
+         */
+        [[nodiscard]] FrameData& GetCurrentFrame() noexcept
         {
-            Synchronization::ClearResources();
+            return m_Frames[m_CurrentFrame];
         }
 
-        void Initialize(std::span<const VkCommandBuffer, Constants::ImageCount> CommandBuffers);
-        void ResetFrames();
-
-        [[nodiscard]] constexpr FrameData& GetFrame(const std::size_t Index) noexcept
-        {
-            return m_Frames.at(Index);
-        }
-
-        [[nodiscard]] constexpr FrameData& GetCurrentFrameData() noexcept
-        {
-            return m_Frames.at(m_CurrentFrame);
-        }
-
-        [[nodiscard]] constexpr VkSemaphore GetRenderFinished(const std::size_t Index) const noexcept
-        {
-            return m_RenderFinished.at(Index);
-        }
-
-        [[nodiscard]] constexpr std::size_t GetCurrentFrame() const noexcept
+        /** Get the index of the current frame in the array. */
+        [[nodiscard]] std::uint32_t GetCurrentFrameIndex() const noexcept
         {
             return m_CurrentFrame;
         }
 
-        constexpr void AdvanceFrame() noexcept
-        {
-            m_CurrentFrame = (m_CurrentFrame + 1) % std::size(m_Frames);
-        }
+        /** Moves the current frame index to the next frame in flight. */
+        void AdvanceFrame();
 
-        void WaitFrame(const FrameData& Frame, VkBool32 WaitAll, std::uint64_t Timeout) const;
-        void WaitFrame(std::size_t Index, VkBool32 WaitAll, std::uint64_t Timeout) const;
-        void WaitCurrentFrame(VkBool32 WaitAll, std::uint64_t Timeout) const;
-
-    protected:
-        void ClearResources() override;
+        /**
+         * Waits for the current frame's fence to be signaled.
+         */
+        void WaitForCurrentFrame() const;
     };
 }

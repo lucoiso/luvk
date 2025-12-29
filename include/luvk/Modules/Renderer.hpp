@@ -1,5 +1,5 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
@@ -7,107 +7,84 @@
 #pragma once
 
 #include <memory>
-#include "luvk/Interfaces/IEventModule.hpp"
-#include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Modules/Synchronization.hpp"
-#include "luvk/Resources/Extensions.hpp"
+#include <typeindex>
+#include <unordered_map>
+#include <vector>
+#include "luvk/Interfaces/IModule.hpp"
+#include "luvk/Interfaces/IServiceLocator.hpp"
 
 namespace luvk
 {
-    class Debug;
-    class Device;
-    class Memory;
-    class SwapChain;
-    class CommandPool;
-    class Synchronization;
-    class ThreadPool;
-    class DescriptorPool;
-    class Draw;
-
-    enum class RendererEvents : std::uint8_t
+    /**
+     * The main renderer class, acting as the central Service Locator and manager for all modules.
+     */
+    class LUVK_API Renderer : public IServiceLocator
     {
-        OnModulesRegistered,
-        OnInitialized,
-        OnCleared,
-        OnRefreshed,
-        OnPaused,
-        OnResumed,
-    };
+        /** Map of module type index to the unique pointer of the module instance. */
+        std::unordered_map<std::type_index, std::unique_ptr<IModule>> m_Modules{};
 
-    struct RenderModules
-    {
-        std::shared_ptr<Debug>           DebugModule{nullptr};
-        std::shared_ptr<Device>          DeviceModule{nullptr};
-        std::shared_ptr<Memory>          MemoryModule{nullptr};
-        std::shared_ptr<SwapChain>       SwapChainModule{nullptr};
-        std::shared_ptr<CommandPool>     CommandPoolModule{nullptr};
-        std::shared_ptr<Synchronization> SynchronizationModule{nullptr};
-        std::shared_ptr<ThreadPool>      ThreadPoolModule{nullptr};
-        std::shared_ptr<DescriptorPool>  DescriptorPoolModule{nullptr};
-        std::shared_ptr<Draw>            DrawModule{nullptr};
+        /** Ordered list of modules to ensure correct initialization and shutdown sequence. */
+        std::vector<IModule*> m_InitializationOrder{};
 
-        std::vector<std::shared_ptr<IRenderModule>> ExtraModules{};
-    };
+        /** Flag indicating if the renderer is paused (i.e., DrawFrame should do nothing). */
+        bool m_Paused{false};
 
-    struct InstanceCreationArguments
-    {
-        std::string_view ApplicationName    = "luvk";
-        std::string_view EngineName         = "luvk";
-        std::uint32_t    ApplicationVersion = VK_MAKE_VERSION(1U, 0U, 0U);
-        std::uint32_t    EngineVersion      = VK_MAKE_VERSION(1U, 0U, 0U);
-        std::uint32_t    VulkanApiVersion   = VK_API_VERSION_1_0;
-    };
-
-    class LUVK_API Renderer : public IRenderModule
-                            , public IEventModule
-    {
-    protected:
-        bool                      m_Paused{false};
-        VkInstance                m_Instance{VK_NULL_HANDLE};
-        InstanceExtensions        m_Extensions{};
-        InstanceCreationArguments m_InstanceCreationArguments{};
-        RenderModules             m_Modules{};
+        /** The parent locator of this renderer if applicable */
+        IServiceLocator* m_ParentLocator{nullptr};
 
     public:
-        constexpr Renderer() = default;
+        /**
+         * Constructor of this renderer
+         * @tparam Parent The parent locator of this renderer.
+         */
+        explicit Renderer(IServiceLocator* Parent = nullptr);
 
-        ~Renderer() override
+        /** Destructor (calls Shutdown). */
+        ~Renderer() override;
+
+        /**
+         * Register and store a module but do not call OnInitialize yet.
+         * @tparam T The type of the module (must derive from IModule).
+         * @return Pointer to the newly registered module.
+         */
+        template <typename T>
+        T* RegisterModule()
         {
-            Renderer::ClearResources();
+            static_assert(std::is_base_of_v<IModule, T>, "T must derive from IModule");
+            const std::type_index Index(typeid(T));
+
+            if (!m_Modules.contains(Index))
+            {
+                m_Modules[Index] = std::make_unique<T>();
+                m_InitializationOrder.push_back(m_Modules[Index].get());
+            }
+
+            return static_cast<T*>(m_Modules[Index].get());
         }
 
-        void ClearResources() override;
+        /** Initialize all registered modules in order */
+        void InitializeModules();
 
-        [[nodiscard]] constexpr VkInstance GetInstance() const noexcept
+        /** Shuts down all registered modules in reverse order and clears the module list. */
+        void Shutdown();
+
+        /** Executes the main draw loop for one frame. */
+        void DrawFrame() const;
+
+        /** Sets the paused state of the renderer. */
+        void SetPaused(bool Paused);
+
+        /** Check if the renderer is currently paused. */
+        [[nodiscard]] constexpr bool IsPaused() const
         {
-            return m_Instance;
+            return m_Paused;
         }
 
-        [[nodiscard]] constexpr InstanceExtensions& GetExtensions() noexcept
-        {
-            return m_Extensions;
-        }
+        /** Get the list of registered modules in their initialization order. */
+        [[nodiscard]] const std::vector<IModule*>& GetRegisteredModules() const;
 
-        [[nodiscard]] constexpr const RenderModules& GetModules() const noexcept
-        {
-            return m_Modules;
-        }
-
-        [[nodiscard]] std::uint32_t GetCurrentFrame() const noexcept
-        {
-            return static_cast<std::uint32_t>(m_Modules.SynchronizationModule->GetCurrentFrame());
-        }
-
-        [[nodiscard]] constexpr const InstanceCreationArguments& GetInstanceCreationArguments() const noexcept
-        {
-            return m_InstanceCreationArguments;
-        }
-
-        void RegisterModules(RenderModules&& Modules);
-
-        [[nodiscard]] bool InitializeRenderer(const InstanceCreationArguments& Arguments, const void* pNext);
-        void               DrawFrame() const;
-        void               SetPaused(bool Paused);
-        void               Refresh(const VkExtent2D& Extent) const;
+    protected:
+        /** Internal method to retrieve module by type hash (used by GetModule<T>). */
+        [[nodiscard]] void* GetModuleInternal(std::size_t TypeHash) const override;
     };
 }

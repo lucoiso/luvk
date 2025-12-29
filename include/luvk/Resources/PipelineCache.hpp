@@ -1,53 +1,63 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
 
 #pragma once
 
-#include <memory>
+#include <string_view>
 #include <volk.h>
 
 namespace luvk
 {
     class Device;
 
+    /**
+     * Manages VkPipelineCache for faster pipeline creation.
+     */
     class LUVK_API PipelineCache
     {
-    protected:
-        VkPipelineCache         m_PreRaster{VK_NULL_HANDLE};
-        VkPipelineCache         m_Fragment{VK_NULL_HANDLE};
-        VkPipelineCache         m_Output{VK_NULL_HANDLE};
-        VkPipelineCache         m_Composite{VK_NULL_HANDLE};
-        std::shared_ptr<Device> m_DeviceModule{};
+        /** The Vulkan pipeline cache handle. */
+        VkPipelineCache m_Cache{VK_NULL_HANDLE};
+
+        /** Pointer to the Device module for logical device handle. */
+        Device* m_DeviceModule{nullptr};
 
     public:
+        /** Pipeline caches cannot be default constructed. */
         PipelineCache() = delete;
-        explicit PipelineCache(const std::shared_ptr<Device>& DeviceModule);
 
+        /**
+         * Constructor.
+         * @param DeviceModule Pointer to the Device module.
+         */
+        explicit PipelineCache(Device* DeviceModule);
+
+        /** Destructor (destroys the pipeline cache). */
         ~PipelineCache();
 
-        void Create();
+        /**
+         * Initializes the pipeline cache (creates or loads if not loaded).
+         */
+        void Initialize();
 
-        [[nodiscard]] constexpr VkPipelineCache GetPreRasterCache() const noexcept
-        {
-            return m_PreRaster;
-        }
+        /**
+         * Saves the pipeline cache data to a file.
+         * @param Path The file path to save to.
+         */
+        void Save(std::string_view Path) const;
 
-        [[nodiscard]] constexpr VkPipelineCache GetFragmentCache() const noexcept
-        {
-            return m_Fragment;
-        }
+        /**
+         * Loads pipeline cache data from a file to initialize the cache.
+         * @param Path The file path to load from.
+         */
+        void Load(std::string_view Path);
 
-        [[nodiscard]] constexpr VkPipelineCache GetOutputCache() const noexcept
+        /** Get the underlying VkPipelineCache handle. */
+        [[nodiscard]] constexpr VkPipelineCache GetHandle() const noexcept
         {
-            return m_Output;
-        }
-
-        [[nodiscard]] constexpr VkPipelineCache GetCompositeCache() const noexcept
-        {
-            return m_Composite;
+            return m_Cache;
         }
     };
 }

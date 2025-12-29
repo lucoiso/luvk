@@ -4,7 +4,7 @@
  * Repo: https://github.com/lucoiso/luvk
  */
 
-#include "luvk/Resources/Event.hpp"
+#include "luvk/Managers/Event.hpp"
 #include <algorithm>
 
 using namespace luvk;
@@ -86,10 +86,9 @@ EventHandle EventGraph::AddNode(std::shared_ptr<EventNode>&& Node, const std::si
     }
 
     const std::size_t Id = ++m_NextNodeId;
-    m_Nodes.at(Key).push_back(NodeData{Id,
-                                       std::move(Node)});
+    m_Nodes[Key].push_back(NodeData{Id, std::move(Node)});
 
-    return EventHandle(shared_from_this(), Key, Id);
+    return {shared_from_this(), Key, Id};
 }
 
 void EventGraph::RemoveNode(const std::size_t Key, const std::size_t Id)

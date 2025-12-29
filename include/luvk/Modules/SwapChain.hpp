@@ -6,158 +6,154 @@
 
 #pragma once
 
-#include <array>
 #include <optional>
 #include <span>
+#include <vector>
 #include <volk.h>
 #include "luvk/Constants/Rendering.hpp"
 #include "luvk/Interfaces/IExtensionsModule.hpp"
-#include "luvk/Interfaces/IRenderModule.hpp"
-#include "luvk/Types/FrameData.hpp"
-#include "luvk/Types/RenderTarget.hpp"
+#include "luvk/Interfaces/IModule.hpp"
 
 namespace luvk
 {
-    class Device;
-    class Memory;
     class Image;
-    class Synchronization;
+    struct FrameData;
 
-    struct SwapChainCreationArguments
+    /**
+     * Arguments for creating or recreating the Vulkan Swap Chain.
+     */
+    struct LUVK_API SwapChainCreationArguments
     {
-        bool                          Clip{true};
-        VkSwapchainCreateFlagsKHR     Flags{};
-        VkPresentModeKHR              PresentMode{VK_PRESENT_MODE_FIFO_KHR};
-        VkSurfaceTransformFlagBitsKHR TransformFlags{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
-        VkFormat                      Format{VK_FORMAT_R8G8B8A8_UNORM};
-        VkColorSpaceKHR               ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-        VkImageUsageFlags             UsageFlags{VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
-        VkCompositeAlphaFlagBitsKHR   CompositeAlpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
-        VkExtent2D                    Extent{.width  = 0U,
-                                             .height = 0U};
-        VkSurfaceKHR               Surface{VK_NULL_HANDLE};
-        std::vector<std::uint32_t> QueueIndices{};
+        /** Creation flags for the swap chain. */
+        VkSwapchainCreateFlagsKHR Flags{0};
+
+        /** Presentation mode (e.g., VK_PRESENT_MODE_FIFO_KHR for VSync). */
+        VkPresentModeKHR PresentMode{VK_PRESENT_MODE_FIFO_KHR};
+
+        /** Pre-transform applied to the images (e.g., rotation). */
+        VkSurfaceTransformFlagBitsKHR Transform{VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR};
+
+        /** Pixel format for the swap chain images. */
+        VkFormat Format{VK_FORMAT_B8G8R8A8_UNORM};
+
+        /** Color space for the swap chain images. */
+        VkColorSpaceKHR ColorSpace{VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
+
+        /** Usage flags for the swap chain images. */
+        VkImageUsageFlags Usage{VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT};
+
+        /** Composite alpha mode for blending with other windows. */
+        VkCompositeAlphaFlagBitsKHR Alpha{VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR};
+
+        /** Resolution of the swap chain images. */
+        VkExtent2D Extent{0U, 0U};
+
+        /** Whether to enable clipping outside the extent. */
+        bool Clip{true};
+
+        /** The Vulkan surface (window) to present to. */
+        VkSurfaceKHR Surface{VK_NULL_HANDLE};
     };
 
-    class LUVK_API SwapChain : public IRenderModule
-                             , public IExtensionsModule
+    /**
+     * Manages presentation images.
+     * Pure Dynamic Rendering implementation (No RenderPass/Framebuffer).
+     */
+    class SwapChain : public IModule
+                    , public IExtensionsModule
     {
-    protected:
-        using CreationArguments = SwapChainCreationArguments;
-
+        /** The Vulkan swap chain handle. */
         VkSwapchainKHR m_SwapChain{VK_NULL_HANDLE};
-        VkSwapchainKHR m_PreviousSwapChain{VK_NULL_HANDLE};
 
-        VkFormat     m_DepthFormat{VK_FORMAT_UNDEFINED};
-        VkRenderPass m_RenderPass{VK_NULL_HANDLE};
+        /** List of images owned by the swap chain. */
+        std::vector<VkImage> m_Images{};
 
-        std::array<VkImage, Constants::ImageCount>                m_Images{};
-        std::array<VkImageView, Constants::ImageCount>            m_ImageViews{};
-        std::array<VkFramebuffer, Constants::ImageCount>          m_Framebuffers{};
-        std::array<std::shared_ptr<Image>, Constants::ImageCount> m_DepthImages{};
+        /** List of image views created for the swap chain images. */
+        std::vector<VkImageView> m_Views{};
 
-        std::shared_ptr<Device>        m_DeviceModule{};
-        std::shared_ptr<Memory>        m_MemoryModule{};
-        std::weak_ptr<Synchronization> m_SyncModule{};
+        /** The arguments used to create the current swap chain. */
+        SwapChainCreationArguments m_Arguments{};
 
-        CreationArguments m_Arguments{};
+        /** Pointer to the central service locator. */
+        IServiceLocator* m_ServiceLocator{nullptr};
 
     public:
-        SwapChain() = delete;
-        explicit SwapChain(const std::shared_ptr<Device>&          DeviceModule,
-                           const std::shared_ptr<Memory>&          MemoryModule,
-                           const std::shared_ptr<Synchronization>& SyncModule);
+        /** Default destructor. */
+        ~SwapChain() override = default;
 
-        ~SwapChain() override
-        {
-            SwapChain::ClearResources();
-        }
+        /** Called upon module initialization. */
+        void OnInitialize(IServiceLocator* ServiceLocator) override;
 
+        /** Called upon module shutdown (destroys the swap chain and image views). */
+        void OnShutdown() override;
+
+        /** Get the required device extensions (Swap Chain extension). */
         [[nodiscard]] ExtensionMap GetDeviceExtensions() const noexcept override
         {
-            return {{"",
-                     {VK_KHR_SWAPCHAIN_EXTENSION_NAME}}};
+            return {{"", {VK_KHR_SWAPCHAIN_EXTENSION_NAME}}};
         }
 
+        /**
+         * Creates a new Vulkan swap chain and its image views.
+         * @param Arguments Configuration for the swap chain creation.
+         */
+        void CreateSwapChain(const SwapChainCreationArguments& Arguments);
+
+        /**
+         * Recreates the swap chain, typically after a window resize or surface change.
+         * @param NewExtent The new resolution of the swap chain.
+         */
+        void Recreate(const VkExtent2D& NewExtent);
+
+        /**
+         * Acquires the index of the next available swap chain image.
+         * @param Semaphore Semaphore to signal when the image is available.
+         * @param Fence Optional fence to signal when the image is available.
+         * @return Optional index of the acquired image, or nullopt if acquisition failed.
+         */
+        [[nodiscard]] std::optional<std::uint32_t> AcquireNextImage(VkSemaphore Semaphore, VkFence Fence = VK_NULL_HANDLE) const;
+
+        /**
+         * Presents the given image to the surface.
+         * @param ImageIndex The index of the image to present.
+         * @param WaitSemaphores Span of semaphores to wait on before presenting.
+         */
+        void Present(std::uint32_t ImageIndex, std::span<const VkSemaphore> WaitSemaphores) const;
+
+        /** Get the underlying VkSwapchainKHR handle. */
         [[nodiscard]] constexpr VkSwapchainKHR GetHandle() const noexcept
         {
             return m_SwapChain;
         }
 
-        [[nodiscard]] constexpr std::span<const VkImage> GetImages() const noexcept
+        /** Get the image format of the swap chain. */
+        [[nodiscard]] constexpr VkFormat GetFormat() const noexcept
         {
-            return m_Images;
+            return m_Arguments.Format;
         }
 
-        [[nodiscard]] constexpr std::span<const VkImageView> GetImageViews() const noexcept
-        {
-            return m_ImageViews;
-        }
-
-        [[nodiscard]] constexpr VkFramebuffer GetFramebuffer(const std::size_t Index) const noexcept
-        {
-            return m_Framebuffers.at(Index);
-        }
-
-        [[nodiscard]] std::shared_ptr<Image> GetDepthImage(const std::size_t Index) const noexcept
-        {
-            return m_DepthImages.at(Index);
-        }
-
-        [[nodiscard]] constexpr std::span<const std::shared_ptr<Image>> GetDepthImages() const noexcept
-        {
-            return m_DepthImages;
-        }
-
-        [[nodiscard]] constexpr VkFormat GetDepthFormat() const noexcept
-        {
-            return m_DepthFormat;
-        }
-
-        [[nodiscard]] constexpr VkRenderPass GetRenderPass() const noexcept
-        {
-            return m_RenderPass;
-        }
-
+        /** Get the extent (resolution) of the swap chain images. */
         [[nodiscard]] constexpr VkExtent2D GetExtent() const noexcept
         {
             return m_Arguments.Extent;
         }
 
-        [[nodiscard]] constexpr const CreationArguments& GetCreationArguments() const noexcept
+        /** Get a span of the swap chain image handles. */
+        [[nodiscard]] constexpr std::span<const VkImage> GetImages() const noexcept
         {
-            return m_Arguments;
+            return m_Images;
         }
 
-        [[nodiscard]] constexpr RenderTarget GetRenderTarget(const std::uint32_t ImageIndex) const noexcept
+        /** Get a span of the swap chain image view handles. */
+        [[nodiscard]] constexpr std::span<const VkImageView> GetViews() const noexcept
         {
-            return RenderTarget{.RenderPass  = m_RenderPass,
-                                .Framebuffer = m_Framebuffers.at(ImageIndex),
-                                .Extent      = m_Arguments.Extent};
+            return m_Views;
         }
 
-        virtual void CreateSwapChain(CreationArguments&& Arguments, void* const& pNext);
-        void         Recreate(const VkExtent2D& NewExtent, void* const& pNext);
-
-        [[nodiscard]] std::optional<std::uint32_t> Acquire(FrameData& Frame) const;
-        void                                       Present(std::uint32_t ImageIndex) const;
-
-    protected:
-        void ClearResources() override;
-
-    private:
-        void CreateSwapChainImages(VkDevice LogicalDevice);
-        void DestroySwapChainImages(VkDevice LogicalDevice);
-
-        void CreateRenderPass(VkDevice LogicalDevice);
-        void DestroyRenderPass(VkDevice LogicalDevice);
-
-        void CreateFramebuffers(VkDevice LogicalDevice);
-        void DestroyFramebuffers(VkDevice LogicalDevice);
-
-        void CreateDepthResources();
-        void DestroyDepthResources();
-
-        [[nodiscard]] VkFormat SelectDepthFormat(VkPhysicalDevice PhysicalDevice) const;
+        /** Get the total number of images in the swap chain. */
+        [[nodiscard]] constexpr std::uint32_t GetImageCount() const noexcept
+        {
+            return static_cast<std::uint32_t>(std::size(m_Images));
+        }
     };
 }

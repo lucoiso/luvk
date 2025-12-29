@@ -9,105 +9,92 @@
 #include "luvk/Libraries/ShaderCompiler.hpp"
 #include <atomic>
 #include <cstring>
-#include <iomanip>
-#include <iostream>
 #include <slang-com-ptr.h>
 #include <slang.h>
 #include <stdexcept>
 
-Slang::ComPtr<slang::IGlobalSession> GSlangGlobalSession;static constinit std::atomic_uint GSlangInitCount{0};void luvk::InitializeShaderCompiler()
+using namespace luvk;
+
+Slang::ComPtr<slang::IGlobalSession> GGlobalSession;
+static constinit std::atomic_uint    GInitCount{0};
+
+void luvk::InitializeShaderCompiler()
 {
-    if (GSlangInitCount.fetch_add(1) == 0)
+    if (GInitCount.fetch_add(1) == 0)
     {
-        if (slang::createGlobalSession(GSlangGlobalSession.writeRef()) != SLANG_OK)
+        if (slang::createGlobalSession(GGlobalSession.writeRef()) != SLANG_OK)
         {
-            GSlangInitCount.fetch_sub(1);
-            throw std::runtime_error("Failed to initialize Slang Global Session.");
+            GInitCount.fetch_sub(1);
+            throw std::runtime_error("Failed to initialize Slang Global Session");
         }
     }
-}void luvk::ShutdownShaderCompiler()
+}
+
+void luvk::ShutdownShaderCompiler()
 {
-    if (GSlangInitCount.fetch_sub(1) == 1)
+    if (GInitCount.fetch_sub(1) == 1)
     {
-        GSlangGlobalSession = nullptr;
+        GGlobalSession = nullptr;
     }
-}luvk::CompilationResult luvk::CompileShaderSafe(const std::string_view Source, const std::string_view Profile)
+}
+
+CompilationResult luvk::CompileShaderSafe(std::string_view Source)
 {
     CompilationResult Output{};
-    if (!GSlangGlobalSession)
+    if (!GGlobalSession)
     {
-        throw std::runtime_error("Shader compiler not initialized. Call InitializeShaderCompiler() first.");
+        throw std::runtime_error("Shader compiler not initialized");
     }
 
-    Slang::ComPtr<slang::ISession> SlangSession;
+    Slang::ComPtr<slang::ISession> Session;
+    static const slang::TargetDesc Target{.format  = SLANG_SPIRV,
+                                          .profile = GGlobalSession->findProfile("spirv_1_6"),
+                                          .flags   = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY};
 
-    const slang::TargetDesc Target{.format  = SLANG_SPIRV,
-                                   .profile = GSlangGlobalSession->findProfile(std::data(Profile)),
-                                   .flags   = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY};
-
-    slang::CompilerOptionEntry Option{slang::CompilerOptionName::Optimization,
-                                      {slang::CompilerOptionValueKind::Int,
-                                       SLANG_OPTIMIZATION_LEVEL_MAXIMAL}};
+    slang::CompilerOptionEntry Option{.name  = slang::CompilerOptionName::Optimization,
+                                      .value = {.kind = slang::CompilerOptionValueKind::Int, .intValue0 = SLANG_OPTIMIZATION_LEVEL_MAXIMAL}};
 
     const slang::SessionDesc Desc{.targets                  = &Target,
-                                  .targetCount              = 1U,
+                                  .targetCount              = 1,
                                   .defaultMatrixLayoutMode  = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
                                   .compilerOptionEntries    = &Option,
-                                  .compilerOptionEntryCount = 1U};
+                                  .compilerOptionEntryCount = 1};
 
-    if (GSlangGlobalSession->createSession(Desc, SlangSession.writeRef()) != SLANG_OK)
+    if (GGlobalSession->createSession(Desc, Session.writeRef()) != SLANG_OK)
     {
-        throw std::runtime_error("Failed to create slang session.");
+        throw std::runtime_error("Failed to create slang session");
     }
 
-    Slang::ComPtr<ISlangBlob> LoadDiagnostics;
-    const Slang::ComPtr       SlangModule{SlangSession->loadModuleFromSourceString("shader_source", nullptr, std::data(Source), LoadDiagnostics.writeRef())};
+    Slang::ComPtr<ISlangBlob> Diagnostics;
+    const Slang::ComPtr       Module{Session->loadModuleFromSourceString("shader_source", nullptr, std::data(Source), Diagnostics.writeRef())};
 
-    if (LoadDiagnostics)
+    if (Diagnostics)
     {
-        if (const auto DiagText = static_cast<const char*>(LoadDiagnostics->getBufferPointer());
-            std::strlen(DiagText) > 0)
-        {
-            Output.Error = DiagText;
-        }
+        Output.Error = static_cast<const char*>(Diagnostics->getBufferPointer());
     }
 
-    if (!SlangModule)
-    {
-        return Output;
-    }
+    if (!Module) { return Output; }
 
     Slang::ComPtr<ISlangBlob> Spirv;
-    Slang::ComPtr<ISlangBlob> Diagnostics;
-
-    if (SlangModule->getTargetCode(0, Spirv.writeRef(), Diagnostics.writeRef()) != SLANG_OK)
+    if (Module->getTargetCode(0, Spirv.writeRef(), Diagnostics.writeRef()) != SLANG_OK)
     {
-        if (Diagnostics)
-        {
-            if (const auto DiagText = static_cast<const char*>(Diagnostics->getBufferPointer());
-                std::strlen(DiagText) > 0)
-            {
-                Output.Error = DiagText;
-            }
-        }
-
+        if (Diagnostics) Output.Error = static_cast<const char*>(Diagnostics->getBufferPointer());
         return Output;
     }
 
     if (Spirv)
     {
         Output.Data.resize(Spirv->getBufferSize() / sizeof(std::uint32_t));
-        std::memcpy(Output.Data.data(), Spirv->getBufferPointer(), Spirv->getBufferSize());
-
+        std::memcpy(std::data(Output.Data), Spirv->getBufferPointer(), Spirv->getBufferSize());
         Output.Result = true;
-
-        return Output;
     }
 
     return Output;
-}std::vector<std::uint32_t> luvk::CompileShader(const std::string_view Source, const std::string_view Profile)
-{
-    return CompileShaderSafe(Source, Profile).Data;
 }
 
-#endif // LUVK_SLANG_INCLUDED
+std::vector<std::uint32_t> luvk::CompileShader(std::string_view Source)
+{
+    return CompileShaderSafe(Source).Data;
+}
+
+#endif

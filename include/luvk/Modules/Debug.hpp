@@ -1,5 +1,5 @@
 /*
- * Author: Lucas Vilas-Boas
+* Author: Lucas Vilas-Boas
  * Year: 2025
  * Repo: https://github.com/lucoiso/luvk
  */
@@ -8,36 +8,36 @@
 
 #include <volk.h>
 #include "luvk/Interfaces/IExtensionsModule.hpp"
-#include "luvk/Interfaces/IRenderModule.hpp"
+#include "luvk/Interfaces/IModule.hpp"
 
 namespace luvk
 {
-    class Renderer;
-
-    class LUVK_API Debug : public IRenderModule
+    /**
+     * Module for setting up Vulkan Debug Utils Messenger for validation layer feedback.
+     */
+    class LUVK_API Debug : public IModule
                          , public IExtensionsModule
     {
-    protected:
+        /** The Vulkan Debug Utils Messenger handle. */
         VkDebugUtilsMessengerEXT m_Messenger{VK_NULL_HANDLE};
-        std::weak_ptr<Renderer>  m_RendererModule{};
+
+        /** Pointer to the central service locator. */
+        IServiceLocator* m_ServiceLocator{nullptr};
 
     public:
-        Debug() = delete;
-        explicit Debug(const std::shared_ptr<Renderer>& RendererModule);
+        /** Default destructor. */
+        ~Debug() override = default;
 
-        ~Debug() override
-        {
-            Debug::ClearResources();
-        }
+        /** Called upon module initialization (sets up the messenger). */
+        void OnInitialize(IServiceLocator* ServiceLocator) override;
 
+        /** Called upon module shutdown (destroys the messenger). */
+        void OnShutdown() override;
+
+        /** Get the required instance extensions (Debug Utils and Validation Layer). */
         [[nodiscard]] ExtensionMap GetInstanceExtensions() const noexcept override
         {
-            return {{"VK_LAYER_KHRONOS_validation",
-                     {VK_EXT_DEBUG_UTILS_EXTENSION_NAME}}};
+            return {{"VK_LAYER_KHRONOS_validation", {VK_EXT_DEBUG_UTILS_EXTENSION_NAME}}};
         }
-
-    protected:
-        void InitializeResources() override;
-        void ClearResources() override;
     };
 }
