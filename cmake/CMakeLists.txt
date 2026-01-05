@@ -10,6 +10,4 @@ INCLUDE(Utils.cmake)
 INCLUDE(FetchVolk.cmake)
 INCLUDE(FetchVma.cmake)
 
-IF (LUVK_INCLUDE_SLANG_COMPILER)
-    INCLUDE(FetchSlang.cmake)
-ENDIF (LUVK_INCLUDE_SLANG_COMPILER)
+INCLUDE(FetchSlang.cmake)

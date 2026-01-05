@@ -4,8 +4,6 @@
  * Repo: https://github.com/lucoiso/luvk
  */
 
-#ifdef LUVK_SLANG_INCLUDED
-
 #include "luvk/Libraries/ShaderCompiler.hpp"
 #include <atomic>
 #include <cstring>
@@ -15,10 +13,7 @@
 
 using namespace luvk;
 
-Slang::ComPtr<slang::IGlobalSession> GGlobalSession;
-static constinit std::atomic_uint    GInitCount{0};
-
-void luvk::InitializeShaderCompiler()
+Slang::ComPtr<slang::IGlobalSession> GGlobalSession;static constinit std::atomic_uint GInitCount{0};void luvk::InitializeShaderCompiler()
 {
     if (GInitCount.fetch_add(1) == 0)
     {
@@ -47,17 +42,17 @@ CompilationResult luvk::CompileShaderSafe(std::string_view Source)
     }
 
     Slang::ComPtr<slang::ISession> Session;
-    static const slang::TargetDesc Target{.format  = SLANG_SPIRV,
+    static const slang::TargetDesc Target{.format = SLANG_SPIRV,
                                           .profile = GGlobalSession->findProfile("spirv_1_6"),
-                                          .flags   = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY};
+                                          .flags = SLANG_TARGET_FLAG_GENERATE_SPIRV_DIRECTLY};
 
-    slang::CompilerOptionEntry Option{.name  = slang::CompilerOptionName::Optimization,
+    slang::CompilerOptionEntry Option{.name = slang::CompilerOptionName::Optimization,
                                       .value = {.kind = slang::CompilerOptionValueKind::Int, .intValue0 = SLANG_OPTIMIZATION_LEVEL_MAXIMAL}};
 
-    const slang::SessionDesc Desc{.targets                  = &Target,
-                                  .targetCount              = 1,
-                                  .defaultMatrixLayoutMode  = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
-                                  .compilerOptionEntries    = &Option,
+    const slang::SessionDesc Desc{.targets = &Target,
+                                  .targetCount = 1,
+                                  .defaultMatrixLayoutMode = SLANG_MATRIX_LAYOUT_COLUMN_MAJOR,
+                                  .compilerOptionEntries = &Option,
                                   .compilerOptionEntryCount = 1};
 
     if (GGlobalSession->createSession(Desc, Session.writeRef()) != SLANG_OK)
@@ -66,14 +61,17 @@ CompilationResult luvk::CompileShaderSafe(std::string_view Source)
     }
 
     Slang::ComPtr<ISlangBlob> Diagnostics;
-    const Slang::ComPtr       Module{Session->loadModuleFromSourceString("shader_source", nullptr, std::data(Source), Diagnostics.writeRef())};
+    const Slang::ComPtr Module{Session->loadModuleFromSourceString("shader_source", nullptr, std::data(Source), Diagnostics.writeRef())};
 
     if (Diagnostics)
     {
         Output.Error = static_cast<const char*>(Diagnostics->getBufferPointer());
     }
 
-    if (!Module) { return Output; }
+    if (!Module)
+    {
+        return Output;
+    }
 
     Slang::ComPtr<ISlangBlob> Spirv;
     if (Module->getTargetCode(0, Spirv.writeRef(), Diagnostics.writeRef()) != SLANG_OK)
@@ -96,5 +94,3 @@ std::vector<std::uint32_t> luvk::CompileShader(std::string_view Source)
 {
     return CompileShaderSafe(Source).Data;
 }
-
-#endif

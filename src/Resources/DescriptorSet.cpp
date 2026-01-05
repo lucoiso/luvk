@@ -26,9 +26,9 @@ DescriptorSet::~DescriptorSet()
 
 void DescriptorSet::CreateLayout(std::span<const VkDescriptorSetLayoutBinding> Bindings)
 {
-    const VkDescriptorSetLayoutCreateInfo Info{.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+    const VkDescriptorSetLayoutCreateInfo Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
                                                .bindingCount = static_cast<std::uint32_t>(std::size(Bindings)),
-                                               .pBindings    = std::data(Bindings)};
+                                               .pBindings = std::data(Bindings)};
 
     if (!LUVK_EXECUTE(vkCreateDescriptorSetLayout(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_Layout)))
     {
@@ -49,12 +49,12 @@ void DescriptorSet::UpdateUniformBuffer(const std::uint32_t Binding, const VkBuf
 {
     const VkDescriptorBufferInfo BufferInfo{.buffer = Buffer, .offset = Offset, .range = Range};
 
-    const VkWriteDescriptorSet Write{.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                     .dstSet          = m_Set,
-                                     .dstBinding      = Binding,
+    const VkWriteDescriptorSet Write{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                     .dstSet = m_Set,
+                                     .dstBinding = Binding,
                                      .descriptorCount = 1,
-                                     .descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-                                     .pBufferInfo     = &BufferInfo};
+                                     .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+                                     .pBufferInfo = &BufferInfo};
 
     vkUpdateDescriptorSets(m_DeviceModule->GetLogicalDevice(), 1, &Write, 0, nullptr);
 }
@@ -63,12 +63,12 @@ void DescriptorSet::UpdateStorageBuffer(const std::uint32_t Binding, const VkBuf
 {
     const VkDescriptorBufferInfo BufferInfo{.buffer = Buffer, .offset = Offset, .range = Range};
 
-    const VkWriteDescriptorSet Write{.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                     .dstSet          = m_Set,
-                                     .dstBinding      = Binding,
+    const VkWriteDescriptorSet Write{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                     .dstSet = m_Set,
+                                     .dstBinding = Binding,
                                      .descriptorCount = 1,
-                                     .descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-                                     .pBufferInfo     = &BufferInfo};
+                                     .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+                                     .pBufferInfo = &BufferInfo};
 
     vkUpdateDescriptorSets(m_DeviceModule->GetLogicalDevice(), 1, &Write, 0, nullptr);
 }
@@ -77,12 +77,12 @@ void DescriptorSet::UpdateImage(const std::uint32_t Binding, const VkImageView I
 {
     const VkDescriptorImageInfo ImageInfo{.sampler = Sampler, .imageView = ImageView, .imageLayout = Layout};
 
-    const VkWriteDescriptorSet Write{.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-                                     .dstSet          = m_Set,
-                                     .dstBinding      = Binding,
+    const VkWriteDescriptorSet Write{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                     .dstSet = m_Set,
+                                     .dstBinding = Binding,
                                      .descriptorCount = 1,
-                                     .descriptorType  = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-                                     .pImageInfo      = &ImageInfo};
+                                     .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+                                     .pImageInfo = &ImageInfo};
 
     vkUpdateDescriptorSets(m_DeviceModule->GetLogicalDevice(), 1, &Write, 0, nullptr);
 }

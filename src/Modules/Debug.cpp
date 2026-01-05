@@ -13,9 +13,9 @@
 using namespace luvk;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(const VkDebugUtilsMessageSeverityFlagBitsEXT Severity,
-                                                    VkDebugUtilsMessageTypeFlagsEXT              Type,
-                                                    const VkDebugUtilsMessengerCallbackDataEXT*  CallbackData,
-                                                    void*                                        UserData)
+                                                    VkDebugUtilsMessageTypeFlagsEXT Type,
+                                                    const VkDebugUtilsMessengerCallbackDataEXT* CallbackData,
+                                                    void* UserData)
 {
     std::cerr << "[Validation Layer]: " << CallbackData->pMessage << std::endl;
     return VK_FALSE;
@@ -23,7 +23,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(const VkDebugUtilsMessageSev
 
 void Debug::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    m_ServiceLocator        = ServiceLocator;
+    m_ServiceLocator = ServiceLocator;
     const auto* InstanceMod = m_ServiceLocator->GetModule<Instance>();
 
     if (!InstanceMod || !vkCreateDebugUtilsMessengerEXT)
@@ -37,9 +37,9 @@ void Debug::OnInitialize(IServiceLocator* ServiceLocator)
     constexpr auto TypeFlags = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
             VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT;
 
-    constexpr VkDebugUtilsMessengerCreateInfoEXT CreateInfo{.sType           = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+    constexpr VkDebugUtilsMessengerCreateInfoEXT CreateInfo{.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
                                                             .messageSeverity = SeverityFlags,
-                                                            .messageType     = TypeFlags,
+                                                            .messageType = TypeFlags,
                                                             .pfnUserCallback = DebugCallback};
 
     if (!LUVK_EXECUTE(vkCreateDebugUtilsMessengerEXT(InstanceMod->GetHandle(), &CreateInfo, nullptr, &m_Messenger)))

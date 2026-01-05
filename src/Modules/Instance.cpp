@@ -30,21 +30,21 @@ bool Instance::Initialize(const InstanceCreationArguments& Arguments)
 {
     m_Arguments = Arguments;
 
-    const VkApplicationInfo AppInfo{.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-                                    .pApplicationName   = std::data(Arguments.ApplicationName),
+    const VkApplicationInfo AppInfo{.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+                                    .pApplicationName = std::data(Arguments.ApplicationName),
                                     .applicationVersion = Arguments.ApplicationVersion,
-                                    .pEngineName        = std::data(Arguments.EngineName),
-                                    .engineVersion      = Arguments.EngineVersion,
-                                    .apiVersion         = VK_API_VERSION_1_4};
+                                    .pEngineName = std::data(Arguments.EngineName),
+                                    .engineVersion = Arguments.EngineVersion,
+                                    .apiVersion = VK_API_VERSION_1_4};
 
-    const auto Layers     = m_Extensions.GetEnabledLayersNames();
+    const auto Layers = m_Extensions.GetEnabledLayersNames();
     const auto Extensions = m_Extensions.GetEnabledExtensionsNames();
 
-    const VkInstanceCreateInfo CreateInfo{.sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-                                          .pApplicationInfo        = &AppInfo,
-                                          .enabledLayerCount       = static_cast<std::uint32_t>(std::size(Layers)),
-                                          .ppEnabledLayerNames     = std::data(Layers),
-                                          .enabledExtensionCount   = static_cast<std::uint32_t>(std::size(Extensions)),
+    const VkInstanceCreateInfo CreateInfo{.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+                                          .pApplicationInfo = &AppInfo,
+                                          .enabledLayerCount = static_cast<std::uint32_t>(std::size(Layers)),
+                                          .ppEnabledLayerNames = std::data(Layers),
+                                          .enabledExtensionCount = static_cast<std::uint32_t>(std::size(Extensions)),
                                           .ppEnabledExtensionNames = std::data(Extensions)};
 
     if (!LUVK_EXECUTE(vkCreateInstance(&CreateInfo, nullptr, &m_Instance)))

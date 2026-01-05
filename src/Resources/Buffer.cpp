@@ -39,13 +39,13 @@ void Buffer::CreateBuffer(const BufferCreationArguments& Arguments)
             vmaUnmapMemory(Allocator, m_Allocation);
         }
         vmaDestroyBuffer(Allocator, m_Buffer, m_Allocation);
-        m_Buffer        = VK_NULL_HANDLE;
-        m_Allocation    = nullptr;
-        m_Map           = nullptr;
+        m_Buffer = VK_NULL_HANDLE;
+        m_Allocation = nullptr;
+        m_Map = nullptr;
         m_DeviceAddress = 0U;
     }
 
-    m_Size            = Arguments.Size;
+    m_Size = Arguments.Size;
     m_IsPersistentMap = Arguments.PersistentlyMapped;
 
     const VkBufferUsageFlags UsageFlags = Arguments.Usage | VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
@@ -117,11 +117,11 @@ void Buffer::Upload(const std::span<const std::byte> Data, const std::uint64_t O
     }
 
     const auto Staging = std::make_unique<Buffer>(m_DeviceModule, m_MemoryModule);
-    Staging->CreateBuffer({.Size               = std::size(Data),
-                           .Usage              = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-                           .MemoryUsage        = VMA_MEMORY_USAGE_CPU_ONLY,
+    Staging->CreateBuffer({.Size = std::size(Data),
+                           .Usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
+                           .MemoryUsage = VMA_MEMORY_USAGE_CPU_ONLY,
                            .PersistentlyMapped = true,
-                           .Name               = "StagingBuffer"});
+                           .Name = "StagingBuffer"});
 
     Staging->Upload(Data);
 

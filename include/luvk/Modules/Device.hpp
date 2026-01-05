@@ -99,9 +99,8 @@ namespace luvk
         /**
          * Select the discrete GPU if available, falling back to Integrated.
          * Populates features and extensions based on the selection.
-         * @param Surface The window surface to check for presentation support.
          */
-        void SelectBestPhysicalDevice(VkSurfaceKHR Surface);
+        void SelectBestPhysicalDevice();
 
         /**
          * Manual selection by index

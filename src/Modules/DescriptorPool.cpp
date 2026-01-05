@@ -19,8 +19,8 @@ void DescriptorPool::OnInitialize(IServiceLocator* ServiceLocator)
 
 void DescriptorPool::OnShutdown()
 {
-    const auto*    DeviceMod = m_ServiceLocator->GetModule<Device>();
-    const VkDevice Device    = DeviceMod->GetLogicalDevice();
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    const VkDevice Device = DeviceMod->GetLogicalDevice();
 
     for (const auto Pool : m_UsedPools)
     {
@@ -53,14 +53,14 @@ VkDescriptorPool DescriptorPool::CreatePool() const
                                                                  {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 1000},
                                                                  {VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 1000}}};
 
-    constexpr VkDescriptorPoolCreateInfo Info{.sType         = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-                                              .flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
-                                              .maxSets       = 1000,
+    constexpr VkDescriptorPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+                                              .flags = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT,
+                                              .maxSets = 1000,
                                               .poolSizeCount = static_cast<std::uint32_t>(std::size(Sizes)),
-                                              .pPoolSizes    = std::data(Sizes)};
+                                              .pPoolSizes = std::data(Sizes)};
 
     VkDescriptorPool Pool;
-    const auto*      DeviceMod = m_ServiceLocator->GetModule<Device>();
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
     vkCreateDescriptorPool(DeviceMod->GetLogicalDevice(), &Info, nullptr, &Pool);
     return Pool;
 }
@@ -86,20 +86,20 @@ bool DescriptorPool::AllocateSet(VkDescriptorSetLayout Layout, VkDescriptorSet& 
         m_UsedPools.push_back(m_CurrentPool);
     }
 
-    VkDescriptorSetAllocateInfo Info{.sType              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-                                     .descriptorPool     = m_CurrentPool,
+    VkDescriptorSetAllocateInfo Info{.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+                                     .descriptorPool = m_CurrentPool,
                                      .descriptorSetCount = 1,
-                                     .pSetLayouts        = &Layout};
+                                     .pSetLayouts = &Layout};
 
     const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
-    VkResult    Result    = vkAllocateDescriptorSets(DeviceMod->GetLogicalDevice(), &Info, &Set);
+    VkResult Result = vkAllocateDescriptorSets(DeviceMod->GetLogicalDevice(), &Info, &Set);
 
     if (Result == VK_ERROR_OUT_OF_POOL_MEMORY || Result == VK_ERROR_FRAGMENTED_POOL)
     {
         m_CurrentPool = GetPool();
         m_UsedPools.push_back(m_CurrentPool);
         Info.descriptorPool = m_CurrentPool;
-        Result              = vkAllocateDescriptorSets(DeviceMod->GetLogicalDevice(), &Info, &Set);
+        Result = vkAllocateDescriptorSets(DeviceMod->GetLogicalDevice(), &Info, &Set);
     }
 
     return Result == VK_SUCCESS;
@@ -108,7 +108,7 @@ bool DescriptorPool::AllocateSet(VkDescriptorSetLayout Layout, VkDescriptorSet& 
 void DescriptorPool::Reset()
 {
     std::lock_guard Lock(m_Mutex);
-    const auto*     DeviceMod = m_ServiceLocator->GetModule<Device>();
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
 
     for (auto Pool : m_UsedPools)
     {

@@ -14,7 +14,7 @@ using namespace luvk;
 
 void CommandPool::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    m_ServiceLocator      = ServiceLocator;
+    m_ServiceLocator = ServiceLocator;
     const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
 
     const auto GraphicsFamily = DeviceMod->FindQueueFamilyIndex(VK_QUEUE_GRAPHICS_BIT);
@@ -23,8 +23,8 @@ void CommandPool::OnInitialize(IServiceLocator* ServiceLocator)
         throw std::runtime_error("No graphics queue family found");
     }
 
-    const VkCommandPoolCreateInfo Info{.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                                       .flags            = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+    const VkCommandPoolCreateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                       .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
                                        .queueFamilyIndex = GraphicsFamily.value()};
 
     if (!LUVK_EXECUTE(vkCreateCommandPool(DeviceMod->GetLogicalDevice(), &Info, nullptr, &m_Pool)))
@@ -49,12 +49,12 @@ void CommandPool::OnShutdown()
 
 std::vector<VkCommandBuffer> CommandPool::Allocate(const std::uint32_t Count, const VkCommandBufferLevel Level)
 {
-    const auto*                  DeviceMod = m_ServiceLocator->GetModule<Device>();
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
     std::vector<VkCommandBuffer> Buffers(Count);
 
-    const VkCommandBufferAllocateInfo Info{.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                           .commandPool        = m_Pool,
-                                           .level              = Level,
+    const VkCommandBufferAllocateInfo Info{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                           .commandPool = m_Pool,
+                                           .level = Level,
                                            .commandBufferCount = Count};
 
     if (!LUVK_EXECUTE(vkAllocateCommandBuffers(DeviceMod->GetLogicalDevice(), &Info, std::data(Buffers))))

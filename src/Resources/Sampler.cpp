@@ -24,16 +24,16 @@ Sampler::~Sampler()
 
 void Sampler::CreateSampler(const SamplerCreationArguments& Arguments)
 {
-    const VkSamplerCreateInfo Info{.sType            = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-                                   .magFilter        = Arguments.Filter,
-                                   .minFilter        = Arguments.Filter,
-                                   .mipmapMode       = Arguments.MipmapMode,
-                                   .addressModeU     = Arguments.AddressMode,
-                                   .addressModeV     = Arguments.AddressMode,
-                                   .addressModeW     = Arguments.AddressMode,
+    const VkSamplerCreateInfo Info{.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+                                   .magFilter = Arguments.Filter,
+                                   .minFilter = Arguments.Filter,
+                                   .mipmapMode = Arguments.MipmapMode,
+                                   .addressModeU = Arguments.AddressMode,
+                                   .addressModeV = Arguments.AddressMode,
+                                   .addressModeW = Arguments.AddressMode,
                                    .anisotropyEnable = Arguments.MaxAnisotropy > 1.F ? VK_TRUE : VK_FALSE,
-                                   .maxAnisotropy    = Arguments.MaxAnisotropy,
-                                   .maxLod           = VK_LOD_CLAMP_NONE};
+                                   .maxAnisotropy = Arguments.MaxAnisotropy,
+                                   .maxLod = VK_LOD_CLAMP_NONE};
 
     if (!LUVK_EXECUTE(vkCreateSampler(m_DeviceModule->GetLogicalDevice(), &Info, nullptr, &m_Sampler)))
     {

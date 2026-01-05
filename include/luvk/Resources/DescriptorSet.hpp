@@ -85,8 +85,8 @@ namespace luvk
          * @param Layout The image layout the image is currently in.
          */
         void UpdateImage(std::uint32_t Binding,
-                         VkImageView   ImageView,
-                         VkSampler     Sampler,
+                         VkImageView ImageView,
+                         VkSampler Sampler,
                          VkImageLayout Layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL) const;
 
         /** Get the allocated VkDescriptorSet handle. */

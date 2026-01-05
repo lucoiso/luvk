@@ -96,7 +96,7 @@ namespace luvk
         /** Internal structure to hold the node and its unique ID. */
         struct NodeData
         {
-            std::size_t                Id;
+            std::size_t Id;
             std::shared_ptr<EventNode> Node;
         };
 

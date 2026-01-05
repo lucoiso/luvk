@@ -16,9 +16,9 @@ using namespace luvk;
 
 void Synchronization::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    m_ServiceLocator         = ServiceLocator;
-    const auto* DeviceMod    = m_ServiceLocator->GetModule<Device>();
-    auto*       CmdPool      = m_ServiceLocator->GetModule<CommandPool>();
+    m_ServiceLocator = ServiceLocator;
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    auto* CmdPool = m_ServiceLocator->GetModule<CommandPool>();
     const auto* SwapChainMod = m_ServiceLocator->GetModule<SwapChain>();
 
     if (!DeviceMod || !CmdPool || !SwapChainMod)
@@ -27,12 +27,12 @@ void Synchronization::OnInitialize(IServiceLocator* ServiceLocator)
     }
 
     const std::uint32_t ImageCount = SwapChainMod->GetImageCount();
-    m_FrameCount                   = ImageCount >= 3 ? 3 : 2;
+    m_FrameCount = ImageCount >= 3 ? 3 : 2;
 
     const auto Buffers = CmdPool->Allocate(m_FrameCount);
 
     constexpr VkSemaphoreCreateInfo SemInfo{.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-    constexpr VkFenceCreateInfo     FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
+    constexpr VkFenceCreateInfo FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
 
     for (std::uint32_t It = 0; It < m_FrameCount; ++It)
     {

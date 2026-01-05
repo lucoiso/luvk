@@ -37,7 +37,7 @@ void Device::FetchAvailableDevices(const VkInstance Instance)
     vkEnumeratePhysicalDevices(Instance, &Count, std::data(m_AvailableDevices));
 }
 
-void Device::SelectBestPhysicalDevice(const VkSurfaceKHR Surface)
+void Device::SelectBestPhysicalDevice()
 {
     if (m_AvailableDevices.empty())
     {
@@ -45,7 +45,7 @@ void Device::SelectBestPhysicalDevice(const VkSurfaceKHR Surface)
     }
 
     VkPhysicalDevice SelectedDevice = VK_NULL_HANDLE;
-    std::int32_t     BestScore      = -1;
+    std::int32_t BestScore = -1;
 
     for (const auto& PhysDevice : m_AvailableDevices)
     {
@@ -66,7 +66,7 @@ void Device::SelectBestPhysicalDevice(const VkSurfaceKHR Surface)
 
         if (Score > BestScore)
         {
-            BestScore      = Score;
+            BestScore = Score;
             SelectedDevice = PhysDevice;
         }
     }
@@ -94,7 +94,7 @@ void Device::SetupPhysicalDeviceVariables()
     m_Extensions.SetDevice(m_PhysicalDevice);
     m_Extensions.FillExtensionsContainer();
 
-    m_DeviceFeatures.pNext   = &m_Vulkan11Features;
+    m_DeviceFeatures.pNext = &m_Vulkan11Features;
     m_Vulkan11Features.pNext = &m_Vulkan12Features;
     m_Vulkan12Features.pNext = &m_Vulkan13Features;
     m_Vulkan13Features.pNext = &m_Vulkan14Features;
@@ -116,23 +116,23 @@ void Device::SetupPhysicalDeviceVariables()
 void Device::CreateLogicalDevice(std::unordered_map<std::uint32_t, std::uint32_t>&& QueueIndices)
 {
     std::vector<VkDeviceQueueCreateInfo> QueueInfos;
-    constexpr float                      Priority = 1.0f;
+    constexpr float Priority = 1.0f;
 
     for (const auto& [Family, Count] : QueueIndices)
     {
-        QueueInfos.push_back({.sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        QueueInfos.push_back({.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
                               .queueFamilyIndex = Family,
-                              .queueCount       = Count,
+                              .queueCount = Count,
                               .pQueuePriorities = &Priority});
     }
 
     const auto ExtNames = m_Extensions.GetEnabledExtensionsNames();
 
-    const VkDeviceCreateInfo CreateInfo{.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-                                        .pNext                   = &m_DeviceFeatures,
-                                        .queueCreateInfoCount    = static_cast<std::uint32_t>(std::size(QueueInfos)),
-                                        .pQueueCreateInfos       = std::data(QueueInfos),
-                                        .enabledExtensionCount   = static_cast<std::uint32_t>(std::size(ExtNames)),
+    const VkDeviceCreateInfo CreateInfo{.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+                                        .pNext = &m_DeviceFeatures,
+                                        .queueCreateInfoCount = static_cast<std::uint32_t>(std::size(QueueInfos)),
+                                        .pQueueCreateInfos = std::data(QueueInfos),
+                                        .enabledExtensionCount = static_cast<std::uint32_t>(std::size(ExtNames)),
                                         .ppEnabledExtensionNames = std::data(ExtNames)};
 
     if (!LUVK_EXECUTE(vkCreateDevice(m_PhysicalDevice, &CreateInfo, nullptr, &m_LogicalDevice)))

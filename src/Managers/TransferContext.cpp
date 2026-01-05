@@ -18,10 +18,10 @@ TransferContext::~TransferContext()
 void TransferContext::Initialize(VkDevice Device, VkQueue Queue, std::uint32_t QueueFamilyIndex)
 {
     m_Device = Device;
-    m_Queue  = Queue;
+    m_Queue = Queue;
 
-    const VkCommandPoolCreateInfo PoolInfo{.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-                                           .flags            = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
+    const VkCommandPoolCreateInfo PoolInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+                                           .flags = VK_COMMAND_POOL_CREATE_TRANSIENT_BIT | VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
                                            .queueFamilyIndex = QueueFamilyIndex};
 
     if (!LUVK_EXECUTE(vkCreateCommandPool(m_Device, &PoolInfo, nullptr, &m_CommandPool)))
@@ -43,10 +43,10 @@ void TransferContext::SubmitImmediate(std::function<void(VkCommandBuffer)>&& Rec
 {
     std::lock_guard Lock(m_Mutex);
 
-    VkCommandBuffer                   CommandBuffer{VK_NULL_HANDLE};
-    const VkCommandBufferAllocateInfo AllocInfo{.sType              = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
-                                                .commandPool        = m_CommandPool,
-                                                .level              = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    VkCommandBuffer CommandBuffer{VK_NULL_HANDLE};
+    const VkCommandBufferAllocateInfo AllocInfo{.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+                                                .commandPool = m_CommandPool,
+                                                .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
                                                 .commandBufferCount = 1};
 
     if (!LUVK_EXECUTE(vkAllocateCommandBuffers(m_Device, &AllocInfo, &CommandBuffer)))

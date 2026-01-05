@@ -45,7 +45,7 @@ void SwapChain::OnShutdown()
 
 void SwapChain::CreateSwapChain(const SwapChainCreationArguments& Arguments)
 {
-    m_Arguments           = Arguments;
+    m_Arguments = Arguments;
     const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
 
     VkSurfaceCapabilitiesKHR Caps;
@@ -64,20 +64,20 @@ void SwapChain::CreateSwapChain(const SwapChainCreationArguments& Arguments)
     }
     m_Arguments.Extent = Extent;
 
-    const VkSwapchainCreateInfoKHR Info{.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-                                        .surface          = Arguments.Surface,
-                                        .minImageCount    = MinImageCount,
-                                        .imageFormat      = Arguments.Format,
-                                        .imageColorSpace  = Arguments.ColorSpace,
-                                        .imageExtent      = Extent,
+    const VkSwapchainCreateInfoKHR Info{.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+                                        .surface = Arguments.Surface,
+                                        .minImageCount = MinImageCount,
+                                        .imageFormat = Arguments.Format,
+                                        .imageColorSpace = Arguments.ColorSpace,
+                                        .imageExtent = Extent,
                                         .imageArrayLayers = 1,
-                                        .imageUsage       = Arguments.Usage,
+                                        .imageUsage = Arguments.Usage,
                                         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
-                                        .preTransform     = Arguments.Transform,
-                                        .compositeAlpha   = Arguments.Alpha,
-                                        .presentMode      = Arguments.PresentMode,
-                                        .clipped          = Arguments.Clip ? VK_TRUE : VK_FALSE,
-                                        .oldSwapchain     = m_SwapChain};
+                                        .preTransform = Arguments.Transform,
+                                        .compositeAlpha = Arguments.Alpha,
+                                        .presentMode = Arguments.PresentMode,
+                                        .clipped = Arguments.Clip ? VK_TRUE : VK_FALSE,
+                                        .oldSwapchain = m_SwapChain};
 
     VkSwapchainKHR NewSwapChain;
     if (!LUVK_EXECUTE(vkCreateSwapchainKHR(DeviceMod->GetLogicalDevice(), &Info, nullptr, &NewSwapChain)))
@@ -105,10 +105,10 @@ void SwapChain::CreateSwapChain(const SwapChainCreationArguments& Arguments)
     m_Views.resize(Count);
     for (std::uint32_t It = 0; It < Count; ++It)
     {
-        const VkImageViewCreateInfo ViewInfo{.sType      = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                                             .image      = m_Images[It],
-                                             .viewType   = VK_IMAGE_VIEW_TYPE_2D,
-                                             .format     = Arguments.Format,
+        const VkImageViewCreateInfo ViewInfo{.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+                                             .image = m_Images[It],
+                                             .viewType = VK_IMAGE_VIEW_TYPE_2D,
+                                             .format = Arguments.Format,
                                              .components = {VK_COMPONENT_SWIZZLE_IDENTITY,
                                                             VK_COMPONENT_SWIZZLE_IDENTITY,
                                                             VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -126,8 +126,8 @@ void SwapChain::Recreate(const VkExtent2D& NewExtent)
 
 std::optional<std::uint32_t> SwapChain::AcquireNextImage(const VkSemaphore Semaphore, const VkFence Fence) const
 {
-    const auto*    DeviceMod = m_ServiceLocator->GetModule<Device>();
-    std::uint32_t  Index;
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
+    std::uint32_t Index;
     const VkResult Result = vkAcquireNextImageKHR(DeviceMod->GetLogicalDevice(), m_SwapChain, UINT64_MAX, Semaphore, Fence, &Index);
 
     if (Result == VK_ERROR_OUT_OF_DATE_KHR)
@@ -146,12 +146,12 @@ void SwapChain::Present(std::uint32_t ImageIndex, std::span<const VkSemaphore> W
 {
     const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
 
-    const VkPresentInfoKHR Info{.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+    const VkPresentInfoKHR Info{.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
                                 .waitSemaphoreCount = static_cast<std::uint32_t>(std::size(WaitSemaphores)),
-                                .pWaitSemaphores    = std::data(WaitSemaphores),
-                                .swapchainCount     = 1,
-                                .pSwapchains        = &m_SwapChain,
-                                .pImageIndices      = &ImageIndex};
+                                .pWaitSemaphores = std::data(WaitSemaphores),
+                                .swapchainCount = 1,
+                                .pSwapchains = &m_SwapChain,
+                                .pImageIndices = &ImageIndex};
 
     const VkResult Result = vkQueuePresentKHR(DeviceMod->GetQueue(VK_QUEUE_GRAPHICS_BIT), &Info);
 

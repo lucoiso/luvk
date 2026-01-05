@@ -18,8 +18,8 @@ using namespace luvk;
 
 void Memory::OnInitialize(IServiceLocator* ServiceLocator)
 {
-    m_ServiceLocator        = ServiceLocator;
-    const auto* DeviceMod   = m_ServiceLocator->GetModule<Device>();
+    m_ServiceLocator = ServiceLocator;
+    const auto* DeviceMod = m_ServiceLocator->GetModule<Device>();
     const auto* InstanceMod = m_ServiceLocator->GetModule<Instance>();
 
     if (!DeviceMod || !InstanceMod)
@@ -29,11 +29,11 @@ void Memory::OnInitialize(IServiceLocator* ServiceLocator)
 
     const VmaVulkanFunctions VulkanFunctions{.vkGetInstanceProcAddr = vkGetInstanceProcAddr, .vkGetDeviceProcAddr = vkGetDeviceProcAddr};
 
-    const VmaAllocatorCreateInfo AllocatorInfo{.flags            = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
-                                               .physicalDevice   = DeviceMod->GetPhysicalDevice(),
-                                               .device           = DeviceMod->GetLogicalDevice(),
+    const VmaAllocatorCreateInfo AllocatorInfo{.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
+                                               .physicalDevice = DeviceMod->GetPhysicalDevice(),
+                                               .device = DeviceMod->GetLogicalDevice(),
                                                .pVulkanFunctions = &VulkanFunctions,
-                                               .instance         = InstanceMod->GetHandle(),
+                                               .instance = InstanceMod->GetHandle(),
                                                .vulkanApiVersion = VK_API_VERSION_1_4};
 
     if (!LUVK_EXECUTE(vmaCreateAllocator(&AllocatorInfo, &m_Allocator)))

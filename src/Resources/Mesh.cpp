@@ -29,8 +29,8 @@ void Mesh::Render(const VkCommandBuffer CommandBuffer) const
 
     if (m_VertexBuffer)
     {
-        const VkBuffer         BufferHandle = m_VertexBuffer->GetHandle();
-        constexpr VkDeviceSize Offset       = 0;
+        const VkBuffer BufferHandle = m_VertexBuffer->GetHandle();
+        constexpr VkDeviceSize Offset = 0;
         vkCmdBindVertexBuffers(CommandBuffer, 0, 1, &BufferHandle, &Offset);
     }
 
@@ -47,38 +47,38 @@ void Mesh::Render(const VkCommandBuffer CommandBuffer) const
 
 void Mesh::UploadVertices(const std::span<const std::byte> Data, const std::uint32_t VertexCount)
 {
-    m_VertexCount  = VertexCount;
+    m_VertexCount = VertexCount;
     m_VertexBuffer = std::make_shared<Buffer>(m_Device, m_Memory);
-    m_VertexBuffer->CreateBuffer({.Size        = std::size(Data),
-                                  .Usage       = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    m_VertexBuffer->CreateBuffer({.Size = std::size(Data),
+                                  .Usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                   .MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
-                                  .Name        = "StaticMeshVertex"});
+                                  .Name = "StaticMeshVertex"});
     m_VertexBuffer->Upload(Data);
 }
 
 void Mesh::UploadIndices(const std::span<const std::uint16_t> Data)
 {
-    m_IndexType  = VK_INDEX_TYPE_UINT16;
+    m_IndexType = VK_INDEX_TYPE_UINT16;
     m_IndexCount = static_cast<std::uint32_t>(std::size(Data));
 
     m_IndexBuffer = std::make_shared<Buffer>(m_Device, m_Memory);
-    m_IndexBuffer->CreateBuffer({.Size        = std::size(Data) * sizeof(std::uint16_t),
-                                 .Usage       = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    m_IndexBuffer->CreateBuffer({.Size = std::size(Data) * sizeof(std::uint16_t),
+                                 .Usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                  .MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
-                                 .Name        = "StaticMeshIndex"});
+                                 .Name = "StaticMeshIndex"});
     m_IndexBuffer->Upload(std::as_bytes(Data));
 }
 
 void Mesh::UploadIndices(const std::span<const std::uint32_t> Data)
 {
-    m_IndexType  = VK_INDEX_TYPE_UINT32;
+    m_IndexType = VK_INDEX_TYPE_UINT32;
     m_IndexCount = static_cast<std::uint32_t>(std::size(Data));
 
     m_IndexBuffer = std::make_shared<Buffer>(m_Device, m_Memory);
-    m_IndexBuffer->CreateBuffer({.Size        = std::size(Data) * sizeof(std::uint32_t),
-                                 .Usage       = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+    m_IndexBuffer->CreateBuffer({.Size = std::size(Data) * sizeof(std::uint32_t),
+                                 .Usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
                                  .MemoryUsage = VMA_MEMORY_USAGE_GPU_ONLY,
-                                 .Name        = "StaticMeshIndex"});
+                                 .Name = "StaticMeshIndex"});
     m_IndexBuffer->Upload(std::as_bytes(Data));
 }
 

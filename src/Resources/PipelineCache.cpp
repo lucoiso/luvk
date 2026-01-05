@@ -41,7 +41,7 @@ void PipelineCache::Save(const std::string_view Path) const
     }
 
     const VkDevice Device = m_DeviceModule->GetLogicalDevice();
-    std::size_t    Size   = 0;
+    std::size_t Size = 0;
 
     if (vkGetPipelineCacheData(Device, m_Cache, &Size, nullptr) != VK_SUCCESS)
     {
@@ -64,7 +64,7 @@ void PipelineCache::Save(const std::string_view Path) const
 void PipelineCache::Load(const std::string_view Path)
 {
     std::vector<char> Data;
-    std::ifstream     File(std::data(Path), std::ios::binary | std::ios::ate);
+    std::ifstream File(std::data(Path), std::ios::binary | std::ios::ate);
 
     if (File.is_open())
     {
@@ -77,9 +77,9 @@ void PipelineCache::Load(const std::string_view Path)
         }
     }
 
-    const VkPipelineCacheCreateInfo Info{.sType           = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+    const VkPipelineCacheCreateInfo Info{.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
                                          .initialDataSize = std::size(Data),
-                                         .pInitialData    = std::empty(Data) ? nullptr : std::data(Data)};
+                                         .pInitialData = std::empty(Data) ? nullptr : std::data(Data)};
 
     if (m_Cache != VK_NULL_HANDLE)
     {

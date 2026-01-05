@@ -32,9 +32,9 @@ EventHandle& EventHandle::operator=(EventHandle&& Other) noexcept
     if (this != &Other)
     {
         Unbind();
-        m_Graph    = std::move(Other.m_Graph);
-        m_Key      = Other.m_Key;
-        m_Id       = Other.m_Id;
+        m_Graph = std::move(Other.m_Graph);
+        m_Key = Other.m_Key;
+        m_Id = Other.m_Id;
         Other.m_Id = 0;
     }
     return *this;
