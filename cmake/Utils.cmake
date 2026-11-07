@@ -1,0 +1,85 @@
+# Author: Lucas Vilas-Boas
+# Year: 2026
+# Repo: https://github.com/lucoiso/luvk
+
+MACRO(LUVK_DEFINE_MODULE_API TARGET_NAME API_NAME)
+    GET_TARGET_PROPERTY(TARGET_TYPE ${TARGET_NAME} TYPE)
+
+    IF(TARGET_TYPE STREQUAL "SHARED_LIBRARY")
+        IF(WIN32)
+            TARGET_COMPILE_DEFINITIONS(${TARGET_NAME} PRIVATE "${API_NAME}_API=__declspec(dllexport)")
+            TARGET_COMPILE_DEFINITIONS(${TARGET_NAME} INTERFACE "${API_NAME}_API=__declspec(dllimport)")
+        ELSE()
+            TARGET_COMPILE_DEFINITIONS(${TARGET_NAME} PRIVATE "${API_NAME}_API=__attribute__((visibility(\"default\")))")
+            TARGET_COMPILE_DEFINITIONS(${TARGET_NAME} INTERFACE "${API_NAME}_API=")
+        ENDIF()
+    ELSE()
+        TARGET_COMPILE_DEFINITIONS(${TARGET_NAME} PUBLIC "${API_NAME}_API=")
+    ENDIF()
+ENDMACRO()
+
+FUNCTION(LUVK_SET_OUTPUT_DIRECTORIES TARGET_NAME)
+    # Keep bin/ for runnable artifacts only; PDB files go to pdb/ so the bin folder stays clean.
+    IF (CMAKE_CONFIGURATION_TYPES)
+        SET(BINARY_DIR "${LUVK_OUTPUT_DIR}/bin")
+        SET(LIBRARY_DIR "${LUVK_OUTPUT_DIR}/lib")
+        SET(PDB_DIR "${LUVK_OUTPUT_DIR}/pdb")
+        FOREACH(CONFIG IN ITEMS DEBUG RELEASE RELWITHDEBINFO MINSIZEREL)
+            STRING(TOLOWER ${CONFIG} CONFIG_LOWER)
+            STRING(TOUPPER ${CONFIG} CONFIG_UPPER)
+            SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${BINARY_DIR}/${CONFIG_LOWER}"
+                ARCHIVE_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${LIBRARY_DIR}/${CONFIG_LOWER}"
+                LIBRARY_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${LIBRARY_DIR}/${CONFIG_LOWER}"
+                PDB_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${PDB_DIR}/${CONFIG_LOWER}"
+                COMPILE_PDB_OUTPUT_DIRECTORY_${CONFIG_UPPER} "${PDB_DIR}/${CONFIG_LOWER}"
+            )
+        ENDFOREACH()
+    ELSE ()
+        SET_TARGET_PROPERTIES(${TARGET_NAME} PROPERTIES
+            RUNTIME_OUTPUT_DIRECTORY "${LUVK_OUTPUT_DIR}/bin"
+            ARCHIVE_OUTPUT_DIRECTORY "${LUVK_OUTPUT_DIR}/lib"
+            LIBRARY_OUTPUT_DIRECTORY "${LUVK_OUTPUT_DIR}/lib"
+            PDB_OUTPUT_DIRECTORY "${LUVK_OUTPUT_DIR}/pdb"
+            COMPILE_PDB_OUTPUT_DIRECTORY "${LUVK_OUTPUT_DIR}/pdb"
+        )
+    ENDIF ()
+ENDFUNCTION()
+
+FUNCTION(LUVK_APPLY_WARNINGS TARGET_NAME)
+    IF (MSVC)
+        TARGET_COMPILE_OPTIONS(${TARGET_NAME} PRIVATE /W4 /permissive- /Zc:__cplusplus /utf-8)
+        IF (LUVK_WARNINGS_AS_ERRORS)
+            TARGET_COMPILE_OPTIONS(${TARGET_NAME} PRIVATE /WX)
+        ENDIF ()
+
+        # Incremental linking adds a .ilk next to the executable; disable it so bin/ contains only runnables.
+        GET_TARGET_PROPERTY(TARGET_TYPE ${TARGET_NAME} TYPE)
+        IF (TARGET_TYPE STREQUAL "EXECUTABLE" OR TARGET_TYPE STREQUAL "SHARED_LIBRARY")
+            TARGET_LINK_OPTIONS(${TARGET_NAME} PRIVATE /INCREMENTAL:NO)
+        ENDIF ()
+    ELSE ()
+        TARGET_COMPILE_OPTIONS(${TARGET_NAME} PRIVATE -Wall -Wextra -Wpedantic -Wno-missing-field-initializers)
+        IF (LUVK_WARNINGS_AS_ERRORS)
+            TARGET_COMPILE_OPTIONS(${TARGET_NAME} PRIVATE -Werror)
+        ENDIF ()
+    ENDIF ()
+ENDFUNCTION()
+
+FUNCTION(LUVK_STAGE_RUNTIME TARGET_NAME)
+    IF (WIN32 AND TARGET slang AND DEFINED SLANG_ROOT)
+        # Copy only the DLLs the runtime compiler needs; never stage slangc.exe/gfx/module folders in bin/.
+        FILE(GLOB SLANG_RUNTIME_DLLS "${SLANG_ROOT}/bin/*.dll")
+        FOREACH(SLANG_DLL ${SLANG_RUNTIME_DLLS})
+            GET_FILENAME_COMPONENT(SLANG_DLL_NAME "${SLANG_DLL}" NAME)
+            IF (SLANG_DLL_NAME STREQUAL "gfx.dll")
+                CONTINUE()
+            ENDIF ()
+
+            ADD_CUSTOM_COMMAND(TARGET ${TARGET_NAME} POST_BUILD
+                               COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SLANG_DLL}" "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+                               COMMENT "Staging ${SLANG_DLL_NAME} for ${TARGET_NAME}"
+            )
+        ENDFOREACH()
+    ENDIF ()
+ENDFUNCTION()

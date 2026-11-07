@@ -1,0 +1,21 @@
+# Author: Lucas Vilas-Boas
+# Year: 2026
+# Repo: https://github.com/lucoiso/luvk
+
+INCLUDE(FetchContent)
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/FetchGlm.cmake")
+
+FILE(GLOB_RECURSE LUVK_SCENE_SOURCES CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
+
+ADD_LIBRARY(luvk-scene STATIC ${LUVK_SCENE_SOURCES})
+ADD_LIBRARY(luvk::scene ALIAS luvk-scene)
+TARGET_COMPILE_FEATURES(luvk-scene PUBLIC cxx_std_23)
+TARGET_INCLUDE_DIRECTORIES(luvk-scene PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+TARGET_LINK_LIBRARIES(luvk-scene PUBLIC luvk::core glm::glm)
+TARGET_COMPILE_DEFINITIONS(luvk-scene PUBLIC GLM_FORCE_DEPTH_ZERO_TO_ONE GLM_FORCE_RADIANS)
+
+LUVK_APPLY_WARNINGS(luvk-scene)
+LUVK_SET_OUTPUT_DIRECTORIES(luvk-scene)

@@ -1,0 +1,33 @@
+# Author: Lucas Vilas-Boas
+# Year: 2026
+# Repo: https://github.com/lucoiso/luvk
+
+INCLUDE(FetchContent)
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/FetchGlm.cmake")
+
+SET(SDL_SHARED OFF CACHE BOOL "" FORCE)
+SET(SDL_STATIC ON CACHE BOOL "" FORCE)
+SET(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+SET(SDL_TESTS OFF CACHE BOOL "" FORCE)
+SET(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+SET(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+FETCHCONTENT_DECLARE(sdl3
+                     GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+                     GIT_TAG release-3.4.18
+                     SYSTEM
+)
+FETCHCONTENT_MAKEAVAILABLE(sdl3)
+
+FILE(GLOB_RECURSE LUVK_PLATFORM_SOURCES CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp"
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/*.hpp")
+
+ADD_LIBRARY(luvk-platform STATIC ${LUVK_PLATFORM_SOURCES})
+ADD_LIBRARY(luvk::platform ALIAS luvk-platform)
+TARGET_COMPILE_FEATURES(luvk-platform PUBLIC cxx_std_23)
+TARGET_INCLUDE_DIRECTORIES(luvk-platform PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+TARGET_LINK_LIBRARIES(luvk-platform PUBLIC luvk::core SDL3::SDL3-static glm::glm)
+
+LUVK_SET_OUTPUT_DIRECTORIES(luvk-platform)
+LUVK_APPLY_WARNINGS(luvk-platform)

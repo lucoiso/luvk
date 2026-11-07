@@ -1,0 +1,14 @@
+# Author: Lucas Vilas-Boas
+# Year: 2026
+# Repo: https://github.com/lucoiso/luvk
+
+FILE(GLOB LUVK_EXAMPLE_SOURCES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
+
+ADD_EXECUTABLE(luvk-example ${LUVK_EXAMPLE_SOURCES})
+TARGET_INCLUDE_DIRECTORIES(luvk-example PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include")
+TARGET_LINK_LIBRARIES(luvk-example PRIVATE luvk::app luvk::scene luvk::shaders)
+TARGET_COMPILE_FEATURES(luvk-example PRIVATE cxx_std_23)
+TARGET_COMPILE_DEFINITIONS(luvk-example PRIVATE LUVK_HAS_SHADER_COMPILER)
+LUVK_APPLY_WARNINGS(luvk-example)
+LUVK_SET_OUTPUT_DIRECTORIES(luvk-example)
+LUVK_STAGE_RUNTIME(luvk-example)
