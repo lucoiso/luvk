@@ -6,6 +6,7 @@ CMAKE_MINIMUM_REQUIRED(VERSION 3.28)
 
 PROJECT(luvk VERSION 0.1.0 LANGUAGES C CXX)
 
+OPTION(LUVK_BUILD_FRAME "Build luvk-frame (render features, phases, typed slots and the scene frame)" OFF)
 OPTION(LUVK_BUILD_PLATFORM "Build luvk-platform (SDL3 window and input)" OFF)
 OPTION(LUVK_BUILD_IMGUI "Build luvk-imgui (Dear ImGui rendered through luvk)" OFF)
 OPTION(LUVK_BUILD_APP "Build luvk-app (application skeleton, camera and debug draw)" OFF)
@@ -24,6 +25,7 @@ IF (LUVK_BUILD_EXAMPLE)
 ENDIF ()
 
 IF (LUVK_BUILD_APP)
+    SET(LUVK_BUILD_FRAME ON)
     SET(LUVK_BUILD_PLATFORM ON)
     SET(LUVK_BUILD_IMGUI ON)
 ENDIF ()
@@ -41,6 +43,10 @@ ADD_SUBDIRECTORY(core)
 
 IF (LUVK_INCLUDE_SLANG_COMPILER)
     ADD_SUBDIRECTORY(shaders)
+ENDIF ()
+
+IF (LUVK_BUILD_FRAME)
+    ADD_SUBDIRECTORY(frame)
 ENDIF ()
 
 IF (LUVK_BUILD_SCENE)
@@ -68,15 +74,3 @@ IF (LUVK_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.tx
     ADD_SUBDIRECTORY(tests)
 ENDIF ()
 
-# Regenerates the precompiled SPIR-V embedded in luvk-app / luvk-imgui from app/shaders and imgui/shaders.
-# Run it after editing those GLSL files: cmake --build <build> --target luvk-embedded-shaders
-FIND_PROGRAM(LUVK_GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
-FIND_PROGRAM(LUVK_POWERSHELL NAMES pwsh powershell)
-IF (LUVK_GLSLC AND LUVK_POWERSHELL)
-    ADD_CUSTOM_TARGET(luvk-embedded-shaders
-                      COMMAND "${LUVK_POWERSHELL}" -NoProfile -ExecutionPolicy Bypass
-                              -File "${CMAKE_CURRENT_SOURCE_DIR}/tools/generate-embedded-shaders.ps1" -Glslc "${LUVK_GLSLC}"
-                      WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
-                      COMMENT "Regenerating the embedded SPIR-V of luvk-app and luvk-imgui"
-                      VERBATIM)
-ENDIF ()

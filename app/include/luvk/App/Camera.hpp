@@ -5,7 +5,7 @@
 #pragma once
 
 #include <glm/glm.hpp>
-#include "luvk/App/Scene.hpp"
+#include <luvk/Frame/Slots.hpp>
 
 namespace luvk::platform
 {
@@ -59,6 +59,6 @@ namespace luvk::app
         [[nodiscard]] glm::mat4 ProjectionMatrix(float AspectRatio) const;
 
         /** Builds a ViewData with the view/projection matrices, position and clip distances. */
-        [[nodiscard]] ViewData MakeView(float AspectRatio) const;
+        [[nodiscard]] frame::ViewData MakeView(float AspectRatio) const;
     };
 }

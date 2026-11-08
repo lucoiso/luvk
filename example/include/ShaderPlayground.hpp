@@ -8,14 +8,14 @@
 #include <string>
 #include <string_view>
 #include <vector>
-#include <luvk/App/Feature.hpp>
+#include <luvk/Frame/Feature.hpp>
 #include <luvk/Resources/Image.hpp>
 #include <luvk/Resources/Pipeline.hpp>
 
 namespace Example
 {
     /** Live Slang editor: the fragment shader is recompiled at runtime and renders into a preview image. Replacing the pipeline needs no device wait: the old one is retired through the deletion queue. */
-    class ShaderPlayground final : public luvk::app::RenderFeature
+    class ShaderPlayground final : public luvk::frame::RenderFeature
     {
     private:
         /** Preview image the compiled fragment shader renders into. */
@@ -38,7 +38,7 @@ namespace Example
         [[nodiscard]] std::string_view Name() const override { return "Shader Playground"; }
 
         /** Stage in the frame graph (offscreen preparation). */
-        [[nodiscard]] luvk::app::FeatureStage Stage() const override { return luvk::app::FeatureStage::Prepare; }
+        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Prepare; }
 
         /** Creates the preview image and compiles the default fragment shader. */
         void OnAttach(luvk::Context& Ctx) override;
@@ -47,7 +47,7 @@ namespace Example
         void Update(float DeltaTime) override;
 
         /** Adds the preview pass for this frame. */
-        void AddPasses(luvk::app::FeatureContext& Frame) override;
+        void AddPasses(luvk::frame::FeatureContext& Frame) override;
 
         /** Compiles a fragment source and swaps the pipeline: returns an empty string on success, the compiler diagnostics otherwise. */
         std::string Compile(std::string_view FragmentSource);

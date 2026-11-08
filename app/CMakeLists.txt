@@ -16,7 +16,16 @@ ADD_LIBRARY(luvk-app STATIC ${LUVK_APP_SOURCES})
 ADD_LIBRARY(luvk::app ALIAS luvk-app)
 TARGET_COMPILE_FEATURES(luvk-app PUBLIC cxx_std_23)
 TARGET_INCLUDE_DIRECTORIES(luvk-app PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-TARGET_LINK_LIBRARIES(luvk-app PUBLIC luvk::core luvk::platform luvk::imgui glm::glm)
+TARGET_LINK_LIBRARIES(luvk-app PUBLIC luvk::core luvk::frame luvk::platform luvk::imgui glm::glm PRIVATE luvk::vulkan)
+
+LUVK_EMBED_SHADERS(luvk-app
+                   HEADER AppShaders.hpp
+                   NAMESPACE luvk::app::Shaders
+                   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+                   SHADERS
+                   DebugDraw.slang:DebugDrawVertex:vertex
+                   DebugDraw.slang:DebugDrawGpuVertex:vertex
+                   DebugDraw.slang:DebugDrawFragment:fragment)
 IF (TARGET luvk-scene)
     TARGET_LINK_LIBRARIES(luvk-app PUBLIC luvk::scene)
 ENDIF ()

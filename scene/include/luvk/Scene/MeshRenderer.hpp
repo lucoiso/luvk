@@ -48,10 +48,10 @@ namespace luvk::scene
         TextureHandle Depth = {};
 
         /** Format of Color. */
-        VkFormat ColorFormat = VK_FORMAT_UNDEFINED;
+        Format ColorFormat = Format::Undefined;
 
         /** Format of Depth. */
-        VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
+        Format DepthFormat = Format::Undefined;
 
         /** Camera view-projection matrix. */
         glm::mat4 ViewProjection{1.F};
@@ -123,10 +123,10 @@ namespace luvk::scene
         struct PipelineKey
         {
             /** Color attachment format. */
-            VkFormat ColorFormat = VK_FORMAT_UNDEFINED;
+            Format ColorFormat = Format::Undefined;
 
             /** Depth attachment format. */
-            VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
+            Format DepthFormat = Format::Undefined;
 
             /** Line rasterization. */
             bool Wireframe = false;

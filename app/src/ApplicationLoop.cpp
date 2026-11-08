@@ -5,6 +5,7 @@
 #include "luvk/App/Application.hpp"
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <optional>
 #include <stdexcept>
 #include <SDL3/SDL.h>
@@ -30,7 +31,8 @@ bool luvk::app::Application::PumpEvents()
         const bool        FromMain   = Source == nullptr || Source == MainWindow;
         const bool        IsMouse    = Event.type == SDL_EVENT_MOUSE_BUTTON_DOWN || Event.type == SDL_EVENT_MOUSE_MOTION || Event.type == SDL_EVENT_MOUSE_WHEEL;
         const bool        IsKey      = Event.type == SDL_EVENT_KEY_DOWN;
-        const bool        Swallowed  = (IsMouse && ImGui::GetIO().WantCaptureMouse) || (IsKey && ImGui::GetIO().WantCaptureKeyboard);
+        const bool        SceneHover = IsMouseOverSceneViewport();
+        const bool        Swallowed  = !SceneHover && ((IsMouse && ImGui::GetIO().WantCaptureMouse) || (IsKey && ImGui::GetIO().WantCaptureKeyboard));
 
         switch (Event.type)
         {
@@ -86,7 +88,8 @@ void luvk::app::Application::RenderFrame(const float DeltaTime)
     auto Start = std::chrono::steady_clock::now();
 
     const ImGuiIO& IO = ImGui::GetIO();
-    if (IsCameraEnabled() && !IO.WantCaptureMouse && !IO.WantCaptureKeyboard)
+    const bool     SceneHover = IsMouseOverSceneViewport();
+    if (IsCameraEnabled() && ((!IO.WantCaptureMouse && !IO.WantCaptureKeyboard) || SceneHover))
     {
         m_Camera.Update(m_Input, DeltaTime);
     }
@@ -146,20 +149,49 @@ void luvk::app::Application::RecordFrame(const Frame& Current, const float Delta
 
     if (m_Scene)
     {
-        const float Aspect = static_cast<float>(Current.Extent.width) / static_cast<float>(std::max(1U, Current.Extent.height));
+        Rect2D   Viewport{};
+        Extent2D ViewportExtent = Current.Extent;
+        if (m_SceneViewportEnabled)
+        {
+            const float X0 = std::clamp(m_SceneViewport[0], 0.F, 1.F);
+            const float Y0 = std::clamp(m_SceneViewport[1], 0.F, 1.F);
+            const float X1 = std::clamp(m_SceneViewport[0] + m_SceneViewport[2], X0, 1.F);
+            const float Y1 = std::clamp(m_SceneViewport[1] + m_SceneViewport[3], Y0, 1.F);
+
+            Viewport = Rect2D{.Offset = {static_cast<std::int32_t>(std::lround(X0 * static_cast<float>(Current.Extent.Width))),
+                                         static_cast<std::int32_t>(std::lround(Y0 * static_cast<float>(Current.Extent.Height)))},
+                              .Extent = {static_cast<std::uint32_t>(std::lround((X1 - X0) * static_cast<float>(Current.Extent.Width))),
+                                         static_cast<std::uint32_t>(std::lround((Y1 - Y0) * static_cast<float>(Current.Extent.Height)))}};
+            ViewportExtent = Viewport.Extent;
+        }
+
+        const float Aspect = static_cast<float>(ViewportExtent.Width) / static_cast<float>(std::max(1U, ViewportExtent.Height));
+
         m_Camera.ReverseDepth = m_Scene->Settings().ReverseDepth;
         m_View                = m_Camera.MakeView(Aspect);
+        if (m_ProjectionJitter.x != 0.F || m_ProjectionJitter.y != 0.F)
+        {
+            const float JitterX = 2.F * m_ProjectionJitter.x / static_cast<float>(std::max(1U, ViewportExtent.Width));
+            const float JitterY = -2.F * m_ProjectionJitter.y / static_cast<float>(std::max(1U, ViewportExtent.Height));
+            m_View.Projection[2][0] += JitterX;
+            m_View.Projection[2][1] += JitterY;
+            m_View.ViewProjection        = m_View.Projection * m_View.View;
+            m_View.InverseViewProjection = glm::inverse(m_View.ViewProjection);
+        }
 
-        m_Scene->AddPasses(SceneFrame{.Graph        = Current.Graph,
+        m_Scene->AddPasses(frame::SceneFrame{.Graph = Current.Graph,
                                       .Allocator    = Current.Allocator,
                                       .Backbuffer   = Current.Backbuffer,
                                       .OutputExtent = Current.Extent,
+                                      .Viewport     = Viewport,
                                       .OutputFormat = Current.Format,
                                       .View         = IsCameraEnabled() ? &m_View : nullptr,
                                       .DeltaTime    = DeltaTime,
+                                      .ProjectionJitter = m_ProjectionJitter,
                                       .Time         = m_Time,
-                                      .FrameNumber  = Current.Number},
-                           [this](FeatureContext& Frame)
+                                      .FrameNumber  = Current.Number,
+                                      .AsyncGraph   = &Current.AsyncGraph},
+                           [this](frame::FeatureContext& Frame)
                            {
                                OnRender(Frame);
                            });
@@ -168,15 +200,15 @@ void luvk::app::Application::RecordFrame(const Frame& Current, const float Delta
     }
     else
     {
-        VkClearColorValue Clear{};
-        std::copy(std::begin(m_Desc.BackgroundColor), std::end(m_Desc.BackgroundColor), std::begin(Clear.float32));
+        ClearColorValue Clear{};
+        std::copy(std::begin(m_Desc.BackgroundColor), std::end(m_Desc.BackgroundColor), std::begin(Clear.Float));
 
         // A premultiplied surface expects RGB = color * alpha, so an alpha-0 clear must also have RGB 0.
-        if (m_TransparentActive && m_Renderer->MainTarget().CompositeAlpha() == VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR)
+        if (m_TransparentActive && m_Renderer->MainTarget().CompositeAlpha() == CompositeAlpha::PreMultiplied)
         {
             for (std::size_t Index = 0U; Index < 3U; ++Index)
             {
-                Clear.float32[Index] *= Clear.float32[3];
+                Clear.Float[Index] *= Clear.Float[3];
             }
         }
 
@@ -205,6 +237,47 @@ void luvk::app::Application::RequestExit() noexcept
 void luvk::app::Application::RequestRedraw() noexcept
 {
     m_RedrawRequested = true;
+}
+
+void luvk::app::Application::SetSceneViewport(const float X, const float Y, const float Width, const float Height) noexcept
+{
+    const float X0 = std::clamp(X, 0.F, 1.F);
+    const float Y0 = std::clamp(Y, 0.F, 1.F);
+    const float X1 = std::clamp(X + Width, X0, 1.F);
+    const float Y1 = std::clamp(Y + Height, Y0, 1.F);
+
+    m_SceneViewport        = {X0, Y0, X1 - X0, Y1 - Y0};
+    m_SceneViewportEnabled = (X1 - X0) > 0.F && (Y1 - Y0) > 0.F;
+    RequestRedraw();
+}
+
+void luvk::app::Application::ClearSceneViewport() noexcept
+{
+    m_SceneViewportEnabled = false;
+    RequestRedraw();
+}
+
+bool luvk::app::Application::IsMouseOverSceneViewport() const noexcept
+{
+    if (!m_SceneViewportEnabled || !m_ImGui)
+    {
+        return false;
+    }
+
+    const ImVec2 Display = ImGui::GetIO().DisplaySize;
+    const ImVec2 Mouse   = ImGui::GetIO().MousePos;
+
+    if (Display.x <= 0.F || Display.y <= 0.F)
+    {
+        return false;
+    }
+
+    const float X0 = m_SceneViewport[0] * Display.x;
+    const float Y0 = m_SceneViewport[1] * Display.y;
+    const float X1 = (m_SceneViewport[0] + m_SceneViewport[2]) * Display.x;
+    const float Y1 = (m_SceneViewport[1] + m_SceneViewport[3]) * Display.y;
+
+    return Mouse.x >= X0 && Mouse.x < X1 && Mouse.y >= Y0 && Mouse.y < Y1;
 }
 
 ImTextureID luvk::app::Application::UiTexture(Image& Texture)
@@ -249,6 +322,10 @@ void luvk::app::Application::OnGui()
 {
 }
 
-void luvk::app::Application::OnRender(FeatureContext&)
+void luvk::app::Application::OnRender(frame::FeatureContext&)
+{
+}
+
+void luvk::app::Application::OnDeviceLost(const DeviceLostReport&)
 {
 }

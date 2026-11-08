@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string_view>
 #include <glm/glm.hpp>
-#include <luvk/App/Feature.hpp>
+#include <luvk/Frame/Feature.hpp>
 #include <luvk/Resources/Buffer.hpp>
 #include <luvk/Resources/Pipeline.hpp>
 
@@ -15,7 +15,7 @@ namespace Example
 {
     /** GPU particle fountain: a compute pass simulates the particles in place through a buffer device address, then
      *  camera-facing quads are pulled as instances and blended over the scene, depth-tested but not depth-writing. */
-    class Particles final : public luvk::app::RenderFeature
+    class Particles final : public luvk::frame::RenderFeature
     {
     public:
         /** One particle (matches the shader layout: two 16-byte rows). */
@@ -48,7 +48,7 @@ namespace Example
             glm::mat4 ViewProjection;
 
             /** Device address of the particle storage buffer. */
-            VkDeviceAddress Particles;
+            luvk::DeviceAddress Particles;
 
             /** Number of particles. */
             std::uint32_t Count;
@@ -88,7 +88,7 @@ namespace Example
         std::uint32_t m_DebugBuiltStride = 0U;
 
         /** Color format the graphics pipeline was built for. */
-        VkFormat m_Format = VK_FORMAT_UNDEFINED;
+        luvk::Format m_Format = luvk::Format::Undefined;
 
         /** Wireframe setting the graphics pipeline was built for. */
         bool m_Wireframe = false;
@@ -111,6 +111,9 @@ namespace Example
         /** Draws a velocity line for every m_DebugStride-th particle, written by a compute pass (GPU debug lines). */
         bool m_ShowVelocities = false;
 
+        /** Simulates on the frame's async compute graph (FeatureContext::AsyncGraph) instead of the main graph. */
+        bool m_AsyncSimulation = true;
+
         /** Particle stride of the velocity lines (a specialization constant of the debug pipeline). */
         int m_DebugStride = 16;
 
@@ -121,13 +124,13 @@ namespace Example
         struct DebugPush
         {
             /** Address of the particle buffer. */
-            VkDeviceAddress Particles;
+            luvk::DeviceAddress Particles;
 
             /** Address of the GPU debug line header. */
-            VkDeviceAddress Lines;
+            luvk::DeviceAddress Lines;
 
             /** Address of the first GPU debug line vertex. */
-            VkDeviceAddress Vertices;
+            luvk::DeviceAddress Vertices;
 
             /** Number of particles. */
             std::uint32_t Count;
@@ -137,14 +140,14 @@ namespace Example
         };
 
         /** Adds the compute pass appending velocity lines to the frame's GPU debug line buffer. */
-        void AddVelocityLines(luvk::app::FeatureContext& Frame, luvk::BufferHandle Data);
+        void AddVelocityLines(luvk::frame::FeatureContext& Frame, luvk::BufferHandle Data);
 
     public:
         /** Name shown in the UI. */
         [[nodiscard]] std::string_view Name() const override { return "Particle fountain (compute)"; }
 
         /** Blended over the opaque scene. */
-        [[nodiscard]] luvk::app::FeatureStage Stage() const override { return luvk::app::FeatureStage::Transparent; }
+        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Transparent; }
 
         /** Creates the particle buffer (staggered lifetimes, so the fountain starts gradually) and the compute pipeline. */
         void OnAttach(luvk::Context& Ctx) override;
@@ -153,7 +156,7 @@ namespace Example
         void Update(float DeltaTime) override;
 
         /** Adds the simulate and draw passes. */
-        void AddPasses(luvk::app::FeatureContext& Frame) override;
+        void AddPasses(luvk::frame::FeatureContext& Frame) override;
 
         /** Particle size and simulation speed. */
         void OnGui() override;

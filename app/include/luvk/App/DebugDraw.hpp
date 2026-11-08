@@ -9,7 +9,7 @@
 #include <vector>
 #include <glm/glm.hpp>
 #include <luvk/Resources/Pipeline.hpp>
-#include "luvk/App/Feature.hpp"
+#include <luvk/Frame/Feature.hpp>
 
 namespace luvk::app
 {
@@ -39,7 +39,7 @@ namespace luvk::app
         std::uint32_t Padding[3] = {};
     };
 
-    /** One GPU debug line endpoint: world-space position and RGBA8 color (red in the lowest byte, unpackUnorm4x8). */
+    /** One debug line endpoint: world-space position and RGBA8 color (red in the lowest byte). */
     struct GpuDebugLineVertex
     {
         /** Endpoint position in world space. */
@@ -58,20 +58,20 @@ namespace luvk::app
      *
      *  GPU passes (culling, meshing...) can draw lines too, without readback: AcquireGpuLines returns a per-frame buffer
      *  they append to, and DebugDraw draws its contents indirectly in the same frame. */
-    class DebugDraw final : public RenderFeature
+    class DebugDraw final : public frame::RenderFeature
     {
     public:
         /** Toggles depth testing of the debug lines against SceneDepth. */
         bool DepthTest = true;
 
         /** Returns the feature name shown in the stats window. */
-        [[nodiscard]] std::string_view Name() const override { return "Debug Draw"; }
+        [[nodiscard]] std::string_view Name() const override { return "luvk.DebugDraw"; }
 
-        /** Runs in the Debug stage of the frame, after most scene features. */
-        [[nodiscard]] FeatureStage Stage() const override { return FeatureStage::Debug; }
+        /** Runs in the Debug phase of the frame, after most scene features. */
+        [[nodiscard]] std::string_view Phase() const override { return frame::Phases::Debug; }
 
         /** Uploads the submitted vertices and records the line drawing pass into the frame graph. */
-        void AddPasses(FeatureContext& Frame) override;
+        void AddPasses(frame::FeatureContext& Frame) override;
 
         /** Draws the depth test toggle and the vertex count of the last frame. */
         void OnGui() override;
@@ -101,21 +101,11 @@ namespace luvk::app
          * Slots::DebugLines. Declare it with Access::ShaderStorageWrite in the passes that append, and pass its
          * address (CommandList::ResolveBuffer(...).Address) to the shaders.
          */
-        [[nodiscard]] static BufferHandle AcquireGpuLines(FeatureContext& Frame, std::uint32_t MaxLines = 65536U);
+        [[nodiscard]] static BufferHandle AcquireGpuLines(frame::FeatureContext& Frame, std::uint32_t MaxLines = 65536U);
 
     private:
-        /** One line endpoint: world-space position and RGBA color packed as 8-bit channels. */
-        struct Vertex
-        {
-            /** Endpoint position in world space. */
-            glm::vec3 Position;
-
-            /** Packed RGBA color, one byte per channel (red in the lowest byte). */
-            std::uint32_t Color;
-        };
-
-        /** Line endpoints submitted since the last AddPasses; packed, uploaded and cleared every frame. */
-        std::vector<Vertex> m_Vertices;
+        /** Line endpoints submitted since the last AddPasses (the GPU line layout); uploaded and cleared every frame. */
+        std::vector<GpuDebugLineVertex> m_Vertices;
 
         /** Line pipeline with depth test enabled. */
         Pipeline m_Tested;
@@ -133,18 +123,18 @@ namespace luvk::app
         bool m_LastGpuLines = false;
 
         /** SceneColor format the pipelines were built for; rebuilt on change. */
-        VkFormat m_ColorFormat = VK_FORMAT_UNDEFINED;
+        Format m_ColorFormat = Format::Undefined;
 
         /** SceneDepth format the pipelines were built for; rebuilt on change. */
-        VkFormat m_DepthFormat = VK_FORMAT_UNDEFINED;
+        Format m_DepthFormat = Format::Undefined;
 
         /** Depth comparison the tested pipeline was built with (follows FrameSettings::ReverseDepth). */
-        VkCompareOp m_DepthCompare = VK_COMPARE_OP_LESS_OR_EQUAL;
+        CompareOp m_DepthCompare = CompareOp::LessOrEqual;
 
         /** Number of vertices drawn in the previous frame, shown in OnGui. */
         std::uint32_t m_LastVertexCount = 0U;
 
         /** Builds the tested/overlay pipelines for the given formats. */
-        void CreatePipelines(Context& Ctx, VkFormat ColorFormat, VkFormat DepthFormat, VkCompareOp DepthCompare);
+        void CreatePipelines(Context& Ctx, Format ColorFormat, Format DepthFormat, CompareOp DepthCompare);
     };
 }

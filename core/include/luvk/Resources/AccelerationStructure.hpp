@@ -8,9 +8,12 @@
 #include <cstdint>
 #include <span>
 #include <string_view>
-#include "luvk/Core/Module.hpp"
 #include "luvk/Core/Common.hpp"
+#include "luvk/Core/Handles.hpp"
+#include "luvk/Core/Module.hpp"
 #include "luvk/Resources/Buffer.hpp"
+
+struct VkAccelerationStructureGeometryKHR;
 
 namespace luvk
 {
@@ -74,10 +77,10 @@ namespace luvk
         Buffer m_Storage = {};
 
         /** Vulkan acceleration structure handle. */
-        VkAccelerationStructureKHR m_Handle = VK_NULL_HANDLE;
+        VkAccelerationStructureKHR m_Handle = nullptr;
 
         /** Device address of the structure, referenced by top-level builds and shaders. */
-        VkDeviceAddress m_Address = 0U;
+        DeviceAddress m_Address = 0U;
 
         /** Bindless slot in the acceleration structure array (binding 3), or InvalidBindlessIndex. */
         std::uint32_t m_BindlessIndex = InvalidBindlessIndex;
@@ -111,13 +114,13 @@ namespace luvk
         void Reset() noexcept;
 
         /** True when a VkAccelerationStructureKHR was created. */
-        [[nodiscard]] explicit operator bool() const noexcept { return m_Handle != VK_NULL_HANDLE; }
+        [[nodiscard]] explicit operator bool() const noexcept { return m_Handle != nullptr; }
 
         /** Underlying VkAccelerationStructureKHR handle. */
         [[nodiscard]] VkAccelerationStructureKHR Handle() const noexcept { return m_Handle; }
 
         /** Device address of the structure. */
-        [[nodiscard]] VkDeviceAddress            Address() const noexcept { return m_Address; }
+        [[nodiscard]] DeviceAddress            Address() const noexcept { return m_Address; }
 
         /** Bindless slot index, or InvalidBindlessIndex for bottom-level structures. */
         [[nodiscard]] std::uint32_t              BindlessIndex() const noexcept { return m_BindlessIndex; }
@@ -125,7 +128,7 @@ namespace luvk
     private:
         /** Shared build path for both structure types: allocates the storage buffer, records the build and waits on the graphics queue. */
         static AccelerationStructure Build(Context&                                       Ctx,
-                                           VkAccelerationStructureTypeKHR                 Type,
+                                           std::int32_t                                   Type,
                                            const VkAccelerationStructureGeometryKHR&      Geometry,
                                            std::uint32_t                                  PrimitiveCount,
                                            std::string_view                               Name);

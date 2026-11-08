@@ -12,7 +12,9 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "luvk/Core/Vulkan.hpp"
 #include "luvk/Render/RenderGraph.hpp"
+#include "../Resources/ImageInternals.hpp"
 
 namespace luvk
 {
@@ -24,6 +26,36 @@ namespace luvk
                                                VK_ACCESS_2_TRANSFER_WRITE_BIT |
                                                VK_ACCESS_2_HOST_WRITE_BIT |
                                                VK_ACCESS_2_MEMORY_WRITE_BIT;
+
+    /** Pipeline stages a compute-only queue supports (barriers of the async compute graph are restricted to them). */
+    inline constexpr VkPipelineStageFlags2 ComputeQueueStages = VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT |
+                                                         VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT |
+                                                         VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT |
+                                                         VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT |
+                                                         VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT |
+                                                         VK_PIPELINE_STAGE_2_COPY_BIT |
+                                                         VK_PIPELINE_STAGE_2_CLEAR_BIT |
+                                                         VK_PIPELINE_STAGE_2_HOST_BIT |
+                                                         VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT |
+                                                         VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR |
+                                                         VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_COPY_BIT_KHR;
+
+    /** Access types a compute-only queue can perform. */
+    inline constexpr VkAccessFlags2 ComputeQueueAccess = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT |
+                                                  VK_ACCESS_2_UNIFORM_READ_BIT |
+                                                  VK_ACCESS_2_SHADER_READ_BIT |
+                                                  VK_ACCESS_2_SHADER_WRITE_BIT |
+                                                  VK_ACCESS_2_SHADER_SAMPLED_READ_BIT |
+                                                  VK_ACCESS_2_SHADER_STORAGE_READ_BIT |
+                                                  VK_ACCESS_2_SHADER_STORAGE_WRITE_BIT |
+                                                  VK_ACCESS_2_TRANSFER_READ_BIT |
+                                                  VK_ACCESS_2_TRANSFER_WRITE_BIT |
+                                                  VK_ACCESS_2_HOST_READ_BIT |
+                                                  VK_ACCESS_2_HOST_WRITE_BIT |
+                                                  VK_ACCESS_2_MEMORY_READ_BIT |
+                                                  VK_ACCESS_2_MEMORY_WRITE_BIT |
+                                                  VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR |
+                                                  VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
 
     /** Executions after which an unused pooled transient is released. */
     inline constexpr std::uint64_t TransientLifetime = 8U;
@@ -61,12 +93,6 @@ namespace luvk
 
         /** True when the access applies to buffers. */
         bool Buffers = false;
-
-        /** VkImageUsageFlags a texture needs for the access. */
-        VkImageUsageFlags ImageUsage = 0U;
-
-        /** VkBufferUsageFlags a buffer needs for the access. */
-        VkBufferUsageFlags BufferUsage = 0U;
     };
 
     /** Human-readable name of an Access (used in error messages). */
@@ -118,39 +144,33 @@ namespace luvk
                     .Mask       = VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT,
                     .Layout     = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
                     .Write      = true,
-                    .Images     = true,
-                    .ImageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT};
+                    .Images     = true};
         case Access::DepthAttachment:
             RequireType(Type == PassType::Graphics);
             return {.Stage      = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                     .Mask       = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT,
                     .Layout     = VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL,
                     .Write      = true,
-                    .Images     = true,
-                    .ImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT};
+                    .Images     = true};
         case Access::DepthRead:
             RequireType(Type == PassType::Graphics);
             return {.Stage      = VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT,
                     .Mask       = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT,
                     .Layout     = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                    .Images     = true,
-                    .ImageUsage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT};
+                    .Images     = true};
         case Access::ShaderSampled:
             RequireType(Type != PassType::Transfer);
             return {.Stage      = ShaderStages,
                     .Mask       = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT,
-                    .Layout     = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
-                    .Images     = true,
-                    .ImageUsage = VK_IMAGE_USAGE_SAMPLED_BIT};
+                    .Layout     = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                    .Images     = true};
         case Access::ShaderStorageRead:
             RequireType(Type != PassType::Transfer);
             return {.Stage       = ShaderStages,
                     .Mask        = VK_ACCESS_2_SHADER_STORAGE_READ_BIT,
                     .Layout      = VK_IMAGE_LAYOUT_GENERAL,
                     .Images      = true,
-                    .Buffers     = true,
-                    .ImageUsage  = VK_IMAGE_USAGE_STORAGE_BIT,
-                    .BufferUsage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT};
+                    .Buffers     = true};
         case Access::ShaderStorageWrite:
             RequireType(Type != PassType::Transfer);
             return {.Stage       = ShaderStages,
@@ -158,44 +178,36 @@ namespace luvk
                     .Layout      = VK_IMAGE_LAYOUT_GENERAL,
                     .Write       = true,
                     .Images      = true,
-                    .Buffers     = true,
-                    .ImageUsage  = VK_IMAGE_USAGE_STORAGE_BIT,
-                    .BufferUsage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT};
+                    .Buffers     = true};
         case Access::UniformRead:
             RequireType(Type != PassType::Transfer);
-            return {.Stage = ShaderStages, .Mask = VK_ACCESS_2_UNIFORM_READ_BIT, .Buffers = true, .BufferUsage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT};
+            return {.Stage = ShaderStages, .Mask = VK_ACCESS_2_UNIFORM_READ_BIT, .Buffers = true};
         case Access::VertexBuffer:
             RequireType(Type == PassType::Graphics);
             return {.Stage       = VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT,
                     .Mask        = VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT,
-                    .Buffers     = true,
-                    .BufferUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT};
+                    .Buffers     = true};
         case Access::IndexBuffer:
             RequireType(Type == PassType::Graphics);
-            return {.Stage = VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, .Mask = VK_ACCESS_2_INDEX_READ_BIT, .Buffers = true, .BufferUsage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT};
+            return {.Stage = VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT, .Mask = VK_ACCESS_2_INDEX_READ_BIT, .Buffers = true};
         case Access::IndirectBuffer:
             RequireType(Type != PassType::Transfer);
             return {.Stage       = VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT,
                     .Mask        = VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT,
-                    .Buffers     = true,
-                    .BufferUsage = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT};
+                    .Buffers     = true};
         case Access::TransferSrc:
             return {.Stage       = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
                     .Mask        = VK_ACCESS_2_TRANSFER_READ_BIT,
                     .Layout      = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                     .Images      = true,
-                    .Buffers     = true,
-                    .ImageUsage  = VK_IMAGE_USAGE_TRANSFER_SRC_BIT,
-                    .BufferUsage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT};
+                    .Buffers     = true};
         case Access::TransferDst:
             return {.Stage       = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT,
                     .Mask        = VK_ACCESS_2_TRANSFER_WRITE_BIT,
                     .Layout      = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                     .Write       = true,
                     .Images      = true,
-                    .Buffers     = true,
-                    .ImageUsage  = VK_IMAGE_USAGE_TRANSFER_DST_BIT,
-                    .BufferUsage = VK_BUFFER_USAGE_TRANSFER_DST_BIT};
+                    .Buffers     = true};
         case Access::Present:
             return {.Layout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR, .Images = true};
         case Access::HostRead:
@@ -227,17 +239,11 @@ struct luvk::RenderGraph::Implementation
         /** Creation parameters of a transient texture (extent, format, samples). */
         TransientTextureDesc TextureDesc = {};
 
-        /** Accumulated VkImageUsageFlags required by all accesses. */
-        VkImageUsageFlags ImageUsage = 0U;
-
         /** Buffer handle data resolved during allocation (buffers only). */
         GraphBuffer Data = {};
 
         /** Creation parameters of a transient buffer (size, extra usage). */
         TransientBufferDesc BufferDesc = {};
-
-        /** Accumulated VkBufferUsageFlags required by all accesses. */
-        VkBufferUsageFlags BufferUsage = 0U;
 
         /** Active barrier state (points to LocalState for transients or to external storage for imported resources). */
         ResourceState* State = {nullptr};
@@ -314,7 +320,7 @@ struct luvk::RenderGraph::Implementation
         LoadOp Load = {LoadOp::Clear};
 
         /** Clear value used when Load is LoadOp::Clear. */
-        VkClearColorValue Clear = {};
+        ClearColorValue Clear = {};
 
         /** True when the attachment contents are stored when the pass ends. */
         bool Store = true;
@@ -382,23 +388,8 @@ struct luvk::RenderGraph::Implementation
         /** Backing image of the pool entry. */
         Image Resource = {};
 
-        /** Extent of the pooled image in texels. */
-        VkExtent2D Extent = {};
-
-        /** Format of the pooled image. */
-        VkFormat Format = VK_FORMAT_UNDEFINED;
-
-        /** Mip level count of the pooled image. */
-        std::uint32_t MipLevels = 1U;
-
-        /** Array layer count of the pooled image. */
-        std::uint32_t ArrayLayers = 1U;
-
-        /** Sample count of the pooled image. */
-        VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
-
-        /** Superset of the image usages requested so far. */
-        VkImageUsageFlags Usage = 0U;
+        /** Description the pooled image was created with. */
+        TransientTextureDesc Desc = {};
 
         /** Execution index that last used the entry (drives the lifetime based release). */
         std::uint64_t LastUsed = 0U;
@@ -412,9 +403,6 @@ struct luvk::RenderGraph::Implementation
     {
         /** Backing buffer of the pool entry. */
         luvk::Buffer Resource = {};
-
-        /** Superset of the buffer usages requested so far. */
-        VkBufferUsageFlags Usage = 0U;
 
         /** Execution index that last used the entry (drives the lifetime based release). */
         std::uint64_t LastUsed = 0U;
@@ -447,11 +435,26 @@ struct luvk::RenderGraph::Implementation
     /** Total number of barriers emitted so far (statistics). */
     std::size_t EmittedBarriers = 0U;
 
+    /** States of the persistent resources the last execution used (their last graphics use is set at submission). */
+    std::vector<ResourceState*> UsedStates;
+
+    /** Frame number of the graph being built (stamped into imported resources). */
+    std::uint64_t FrameNumber = 0U;
+
     /** Image barriers accumulated for the next flush. */
     std::vector<VkImageMemoryBarrier2> ImageBarriers;
 
     /** Buffer barriers accumulated for the next flush. */
     std::vector<VkBufferMemoryBarrier2> BufferBarriers;
+
+    /** Transient images stay VK_SHARING_MODE_EXCLUSIVE (false for the async compute graph on a dedicated compute family). */
+    bool GraphicsOnlyTransients = true;
+
+    /** True when barriers must only use stages / accesses of a compute-only queue (async compute graph on its own family). */
+    bool ComputeQueueOnly = false;
+
+    /** Pass type used to describe final accesses (Compute for the async compute graph). */
+    PassType FinalAccessType = {PassType::Graphics};
 
     /** Index of the imported resource tracking State, if the graph already imported it this frame. */
     [[nodiscard]] std::optional<std::uint32_t> FindImported(const ResourceState* const State, const bool Texture) const noexcept
@@ -512,9 +515,9 @@ struct luvk::RenderGraph::Implementation
         {
             Result.BaseMipLevel = MipLevel;
             Result.MipLevels    = 1U;
-            Result.Extent       = {std::max(1U, Res.Texture.Extent.width >> MipLevel),
-                                   std::max(1U, Res.Texture.Extent.height >> MipLevel),
-                                   std::max(1U, Res.Texture.Extent.depth >> MipLevel)};
+            Result.Extent       = {std::max(1U, Res.Texture.Extent.Width >> MipLevel),
+                                   std::max(1U, Res.Texture.Extent.Height >> MipLevel),
+                                   std::max(1U, Res.Texture.Extent.Depth >> MipLevel)};
         }
         if (!WholeLayers)
         {
@@ -562,9 +565,6 @@ struct luvk::RenderGraph::Implementation
             throw std::logic_error(std::string("[luvk] Access::") + AccessName(Usage) + " is not valid for " + (Res.IsTexture ? "textures" : "buffers") +
                                    " (resource '" + Res.Name + "', pass '" + Target.Name + "').");
         }
-
-        Res.ImageUsage |= Info.ImageUsage;
-        Res.BufferUsage |= Info.BufferUsage;
 
         if (Res.IsTexture)
         {
@@ -661,105 +661,106 @@ struct luvk::RenderGraph::Implementation
         }
     }
 
-    /** Binds pooled textures and buffers to every referenced transient resource of the frame. */
-    void AllocateTransients(Context& Ctx)
+    /**
+     * Binds a pooled image to a transient texture as soon as it is created, so its view and bindless indices are known
+     * while the frame is built (AddPass<Push> fills push structs at declaration time). Entries are reused across frames.
+     */
+    void AcquireTexture(Context& Ctx, Resource& Res)
     {
+        const TransientTextureDesc& Desc = Res.TextureDesc;
+
+        PooledTexture* Match = nullptr;
+        for (const std::unique_ptr<PooledTexture>& Entry : TexturePool)
+        {
+            const TransientTextureDesc& Pooled = Entry->Desc;
+            if (!Entry->InUse && Pooled.Extent == Desc.Extent && Pooled.Depth == Desc.Depth && Pooled.Format == Desc.Format &&
+                Pooled.MipLevels == Desc.MipLevels && Pooled.ArrayLayers == Desc.ArrayLayers && Pooled.Samples == Desc.Samples)
+            {
+                Match = Entry.get();
+                break;
+            }
+        }
+
+        if (Match == nullptr)
+        {
+            auto Entry      = std::make_unique<PooledTexture>();
+            Entry->Resource = Image(Ctx,
+                                    ImageDesc{.Extent            = {Desc.Extent.Width, Desc.Extent.Height, std::max(1U, Desc.Depth)},
+                                              .Format            = Desc.Format,
+                                              .MipLevels         = Desc.MipLevels,
+                                              .ArrayLayers       = Desc.ArrayLayers,
+                                              .Samples           = Desc.Samples,
+                                              .GraphicsQueueOnly = GraphicsOnlyTransients,
+                                              .Name              = Res.Name});
+            Entry->Desc      = Desc;
+            Entry->Desc.Name = {};
+            Match            = TexturePool.emplace_back(std::move(Entry)).get();
+        }
+
+        Match->InUse    = true;
+        Match->LastUsed = ExecutionIndex + 1U;
+
+        Image& Img  = Match->Resource;
+        Res.Owner   = &Img;
+        Res.Texture = GraphTexture{.Image        = Img.Handle(),
+                                   .View         = Img.View(),
+                                   .Format       = Img.Format(),
+                                   .Extent       = Img.Extent(),
+                                   .Aspect       = Img.Aspect(),
+                                   .SampledIndex = Img.SampledIndex(),
+                                   .StorageIndex = Img.StorageIndex(),
+                                   .MipLevels    = Img.MipLevels(),
+                                   .ArrayLayers  = Img.ArrayLayers()};
+    }
+
+    /** Binds a pooled buffer to a transient buffer as soon as it is created. */
+    void AcquireBuffer(Context& Ctx, Resource& Res)
+    {
+        PooledBuffer* Match = nullptr;
+        for (const std::unique_ptr<PooledBuffer>& Entry : BufferPool)
+        {
+            // Bounded reuse: a small request must not pin a much larger pooled buffer indefinitely.
+            if (!Entry->InUse && Entry->Resource.Size() >= Res.BufferDesc.Size && Entry->Resource.Size() <= Res.BufferDesc.Size * 2U)
+            {
+                Match = Entry.get();
+                break;
+            }
+        }
+
+        if (Match == nullptr)
+        {
+            auto Entry      = std::make_unique<PooledBuffer>();
+            Entry->Resource = luvk::Buffer(Ctx, BufferDesc{.Size = Res.BufferDesc.Size, .Name = Res.Name});
+            Match           = BufferPool.emplace_back(std::move(Entry)).get();
+        }
+
+        Match->InUse    = true;
+        Match->LastUsed = ExecutionIndex + 1U;
+        Res.Data        = GraphBuffer{.Buffer = Match->Resource.Handle(), .Size = Res.BufferDesc.Size, .Address = Match->Resource.Address()};
+    }
+
+    /** Points every transient at its frame-local barrier state (the resource vector no longer grows once the frame executes). */
+    void BindTransientStates()
+    {
+        for (Resource& Res : Resources)
+        {
+            if (!Res.Imported)
+            {
+                Res.LocalState = {};
+                Res.State      = &Res.LocalState;
+            }
+        }
+    }
+
+    /** Collects the persistent resources the live passes use, so the Renderer can stamp their last graphics use. */
+    void CollectUsedStates()
+    {
+        UsedStates.clear();
         for (std::size_t Index = 0U; Index < std::size(Resources); ++Index)
         {
-            Resource& Res = Resources[Index];
-            if (Res.Imported)
+            if (Resources[Index].Imported && Referenced[Index] && Resources[Index].State != nullptr)
             {
-                continue;
-            }
-
-            Res.LocalState = {};
-            Res.State      = &Res.LocalState;
-
-            if (!Referenced[Index])
-            {
-                continue;
-            }
-
-            if (Res.IsTexture)
-            {
-                const TransientTextureDesc& Desc  = Res.TextureDesc;
-                const VkImageUsageFlags     Usage = Res.ImageUsage | Desc.ExtraUsage;
-
-                PooledTexture* Match = nullptr;
-                for (const std::unique_ptr<PooledTexture>& Entry : TexturePool)
-                {
-                    if (!Entry->InUse && Entry->Extent.width == Desc.Extent.width && Entry->Extent.height == Desc.Extent.height &&
-                        Entry->Format == Desc.Format && Entry->MipLevels == Desc.MipLevels && Entry->ArrayLayers == Desc.ArrayLayers &&
-                        Entry->Samples == Desc.Samples && (Entry->Usage & Usage) == Usage)
-                    {
-                        Match = Entry.get();
-                        break;
-                    }
-                }
-
-                if (Match == nullptr)
-                {
-                    auto Entry      = std::make_unique<PooledTexture>();
-                    Entry->Resource = Image(Ctx,
-                                            ImageDesc{.Extent            = {Desc.Extent.width, Desc.Extent.height, 1U},
-                                                      .Format            = Desc.Format,
-                                                      .Usage             = Usage,
-                                                      .MipLevels         = Desc.MipLevels,
-                                                      .ArrayLayers       = Desc.ArrayLayers,
-                                                      .Samples           = Desc.Samples,
-                                                      .GraphicsQueueOnly = true,
-                                                      .Name              = Res.Name});
-                    Entry->Extent      = Desc.Extent;
-                    Entry->Format      = Desc.Format;
-                    Entry->MipLevels   = Desc.MipLevels;
-                    Entry->ArrayLayers = Desc.ArrayLayers;
-                    Entry->Samples     = Desc.Samples;
-                    Entry->Usage       = Usage;
-                    Match              = TexturePool.emplace_back(std::move(Entry)).get();
-                }
-
-                Match->InUse    = true;
-                Match->LastUsed = ExecutionIndex;
-
-                Image& Img  = Match->Resource;
-                Res.Owner   = &Img;
-                Res.Texture = GraphTexture{.Image        = Img.Handle(),
-                                           .View         = Img.View(),
-                                           .Format       = Img.Format(),
-                                           .Extent       = Img.Extent(),
-                                           .Aspect       = Img.Aspect(),
-                                           .SampledIndex = Img.SampledIndex(),
-                                           .StorageIndex = Img.StorageIndex(),
-                                           .MipLevels    = Img.MipLevels(),
-                                           .ArrayLayers  = Img.ArrayLayers()};
-            }
-            else
-            {
-                const VkBufferUsageFlags Usage = Res.BufferUsage | Res.BufferDesc.ExtraUsage;
-
-                PooledBuffer* Match = nullptr;
-                for (const std::unique_ptr<PooledBuffer>& Entry : BufferPool)
-                {
-                    // Bounded reuse: a small request must not pin a much larger pooled buffer indefinitely.
-                    if (!Entry->InUse && Entry->Resource.Size() >= Res.BufferDesc.Size && Entry->Resource.Size() <= Res.BufferDesc.Size * 2U &&
-                        (Entry->Usage & Usage) == Usage)
-                    {
-                        Match = Entry.get();
-                        break;
-                    }
-                }
-
-                if (Match == nullptr)
-                {
-                    auto Entry      = std::make_unique<PooledBuffer>();
-                    Entry->Resource = luvk::Buffer(Ctx, BufferDesc{.Size = Res.BufferDesc.Size, .Usage = Usage, .Name = Res.Name});
-                    Entry->Usage    = Usage;
-                    Match           = BufferPool.emplace_back(std::move(Entry)).get();
-                }
-
-                Match->InUse    = true;
-                Match->LastUsed = ExecutionIndex;
-                Res.Data        = GraphBuffer{.Buffer = Match->Resource.Handle(), .Size = Res.BufferDesc.Size, .Address = Match->Resource.Address()};
+                UsedStates.push_back(Resources[Index].State);
             }
         }
     }
@@ -783,8 +784,7 @@ struct luvk::RenderGraph::Implementation
             return std::ranges::any_of(TexturePool,
                                        [&](const std::unique_ptr<PooledTexture>& Used)
                                        {
-                                           return Used->LastUsed == ExecutionIndex && Used->Format == Idle.Format &&
-                                                  (Used->Extent.width != Idle.Extent.width || Used->Extent.height != Idle.Extent.height);
+                                           return Used->LastUsed == ExecutionIndex && Used->Desc.Format == Idle.Desc.Format && Used->Desc.Extent != Idle.Desc.Extent;
                                        });
         };
 
@@ -818,7 +818,7 @@ struct luvk::RenderGraph::Implementation
             if (Res.IsTexture && Res.Split && Res.State != nullptr)
             {
                 Res.Subresources.assign(static_cast<std::size_t>(Res.Texture.MipLevels) * Res.Texture.ArrayLayers, *Res.State);
-                Res.LastLayout = Res.State->Layout;
+                Res.LastLayout = static_cast<VkImageLayout>(Res.State->Layout);
             }
         }
     }
@@ -873,7 +873,7 @@ struct luvk::RenderGraph::Implementation
                 continue;
             }
 
-            const VkImageLayout Target = Res.FinalAccess.has_value() ? Describe(*Res.FinalAccess, PassType::Graphics).Layout : Res.LastLayout;
+            const VkImageLayout Target = Res.FinalAccess.has_value() ? Describe(*Res.FinalAccess, FinalAccessType).Layout : Res.LastLayout;
             bool                Pending = false;
 
             for (std::uint32_t Mip = 0U; Mip < Res.Texture.MipLevels; ++Mip)
@@ -894,7 +894,7 @@ struct luvk::RenderGraph::Implementation
                                                                       .srcAccessMask       = State.WriteAccess,
                                                                       .dstStageMask        = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
                                                                       .dstAccessMask       = VK_ACCESS_2_NONE,
-                                                                      .oldLayout           = State.Layout,
+                                                                      .oldLayout           = static_cast<VkImageLayout>(State.Layout),
                                                                       .newLayout           = Target,
                                                                       .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                                                       .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -970,7 +970,7 @@ struct luvk::RenderGraph::Implementation
                                                           .srcAccessMask       = SrcAccess,
                                                           .dstStageMask        = Stage,
                                                           .dstAccessMask       = Mask,
-                                                          .oldLayout           = State.Layout,
+                                                          .oldLayout           = static_cast<VkImageLayout>(State.Layout),
                                                           .newLayout           = Layout,
                                                           .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                                           .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -1017,12 +1017,40 @@ struct luvk::RenderGraph::Implementation
         }
     }
 
+    /**
+     * Restricts a barrier half to what a compute-only queue supports. Stages of other queues (e.g. the fragment shader that
+     * read a resource in the previous graphics frame) become ALL_COMMANDS, which chains with the semaphore waits of the
+     * submission; their accesses are dropped, since those writes were made available by the semaphore signal already.
+     */
+    static void RestrictToComputeQueue(VkPipelineStageFlags2& Stage, VkAccessFlags2& Access) noexcept
+    {
+        if ((Stage & ~ComputeQueueStages) != 0U)
+        {
+            Stage = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+        }
+        Access &= ComputeQueueAccess;
+    }
+
     /** Records all accumulated barriers into the command buffer and clears the batches. */
     void FlushBarriers(const VkCommandBuffer Commands)
     {
         if (std::empty(ImageBarriers) && std::empty(BufferBarriers))
         {
             return;
+        }
+
+        if (ComputeQueueOnly)
+        {
+            for (VkImageMemoryBarrier2& Barrier : ImageBarriers)
+            {
+                RestrictToComputeQueue(Barrier.srcStageMask, Barrier.srcAccessMask);
+                RestrictToComputeQueue(Barrier.dstStageMask, Barrier.dstAccessMask);
+            }
+            for (VkBufferMemoryBarrier2& Barrier : BufferBarriers)
+            {
+                RestrictToComputeQueue(Barrier.srcStageMask, Barrier.srcAccessMask);
+                RestrictToComputeQueue(Barrier.dstStageMask, Barrier.dstAccessMask);
+            }
         }
 
         const VkDependencyInfo Dependency{.sType                    = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,

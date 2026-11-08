@@ -9,7 +9,7 @@
 #include <vector>
 #include <imgui.h>
 #include <luvk/App/DebugDraw.hpp>
-#include <luvk/App/Scene.hpp>
+#include <luvk/Frame/Slots.hpp>
 #include <luvk/Core/Context.hpp>
 #include <luvk/Render/CommandList.hpp>
 #include <luvk/Shaders/ShaderCompiler.hpp>
@@ -36,7 +36,7 @@ void Example::Particles::OnAttach(luvk::Context& Ctx)
         Item = Particle{.Position = Emitter, .Life = -2.5F * Distribution(Generator), .Velocity = glm::vec3{0.F}, .Seed = Distribution(Generator)};
     }
 
-    m_Buffer = luvk::Buffer(Ctx, {.Size = ParticleCount * sizeof(Particle), .Usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, .Name = "particles"});
+    m_Buffer = luvk::Buffer(Ctx, {.Size = ParticleCount * sizeof(Particle), .Name = "particles"});
     m_Buffer.Write(std::span<const Particle>(Initial));
 
     m_Compute = luvk::Pipeline(Ctx,
@@ -50,12 +50,12 @@ void Example::Particles::Update(const float DeltaTime)
     m_Time += m_DeltaTime;
 }
 
-void Example::Particles::AddPasses(luvk::app::FeatureContext& Frame)
+void Example::Particles::AddPasses(luvk::frame::FeatureContext& Frame)
 {
     static_assert(std::is_trivially_copyable_v<PushData>);
     static_assert(sizeof(PushData) <= luvk::PushConstantSize);
 
-    const auto* const View = Frame.Board.Find<luvk::app::ViewData>(luvk::app::Slots::View);
+    const auto* const View = Frame.Board.Find(luvk::frame::Slots::View);
     if (View == nullptr)
     {
         return;
@@ -70,7 +70,7 @@ void Example::Particles::AddPasses(luvk::app::FeatureContext& Frame)
                                                                 .Blend        = {luvk::BlendMode::Alpha},
                                                                 .DepthFormat  = Frame.Settings.DepthFormat,
                                                                 .PolygonMode  = Frame.Settings.PolygonMode(),
-                                                                .CullMode     = VK_CULL_MODE_NONE,
+                                                                .CullMode     = luvk::CullMode::None,
                                                                 .DepthTest    = true,
                                                                 .DepthWrite   = false,
                                                                 .DepthCompare = Frame.Settings.DepthCompare(),
@@ -92,14 +92,19 @@ void Example::Particles::AddPasses(luvk::app::FeatureContext& Frame)
                         .CameraUp       = {View->View[0][1], View->View[1][1], View->View[2][1]}};
 
     const luvk::BufferHandle  Data  = Frame.Graph.Import(m_Buffer);
-    const luvk::TextureHandle Color = Frame.Board.FindTexture(luvk::app::Slots::SceneColor);
-    const luvk::TextureHandle Depth = Frame.Board.FindTexture(luvk::app::Slots::SceneDepth);
+    const luvk::TextureHandle Color = Frame.Board.FindTexture(luvk::frame::Slots::SceneColor);
+    const luvk::TextureHandle Depth = Frame.Board.FindTexture(luvk::frame::Slots::SceneDepth);
 
-    Frame.Graph.AddPass("Particles: simulate",
+    // On the async compute graph the simulation runs on the compute queue before the frame's graphics work (which waits
+    // for it); the particle buffer is imported in both graphs and its barriers follow from its tracked state.
+    luvk::RenderGraph&       SimulationGraph = m_AsyncSimulation ? Frame.AsyncGraph : Frame.Graph;
+    const luvk::BufferHandle SimulationData  = m_AsyncSimulation ? SimulationGraph.Import(m_Buffer) : Data;
+
+    SimulationGraph.AddPass("Particles: simulate",
                         luvk::PassType::Compute,
                         [&](luvk::PassBuilder& Pass)
                         {
-                            Pass.Use(Data, luvk::Access::ShaderStorageWrite);
+                            Pass.Use(SimulationData, luvk::Access::ShaderStorageWrite);
                         },
                         [this, Push](luvk::CommandList& Cmd)
                         {
@@ -129,7 +134,7 @@ void Example::Particles::AddPasses(luvk::app::FeatureContext& Frame)
                         });
 }
 
-void Example::Particles::AddVelocityLines(luvk::app::FeatureContext& Frame, const luvk::BufferHandle Data)
+void Example::Particles::AddVelocityLines(luvk::frame::FeatureContext& Frame, const luvk::BufferHandle Data)
 {
     const auto Stride = static_cast<std::uint32_t>(std::max(1, m_DebugStride));
     if (Stride != m_DebugBuiltStride)
@@ -154,7 +159,7 @@ void Example::Particles::AddVelocityLines(luvk::app::FeatureContext& Frame, cons
                         },
                         [this, Data, Lines, Scale, Stride](luvk::CommandList& Cmd)
                         {
-                            const VkDeviceAddress Header = Cmd.ResolveBuffer(Lines).Address;
+                            const luvk::DeviceAddress Header = Cmd.ResolveBuffer(Lines).Address;
                             const DebugPush       Push{.Particles = Cmd.ResolveBuffer(Data).Address,
                                                        .Lines     = Header,
                                                        .Vertices  = Header + sizeof(luvk::app::GpuDebugLinesHeader),
@@ -171,6 +176,7 @@ void Example::Particles::OnGui()
     ImGui::Text("%u particles, simulated and drawn on the GPU", ParticleCount);
     ImGui::SliderFloat("Particle size", &m_Size, 0.01F, 0.1F);
     ImGui::SliderFloat("Simulation speed", &m_Speed, 0.F, 2.F);
+    ImGui::Checkbox("Simulate on async compute", &m_AsyncSimulation);
     ImGui::Checkbox("Velocity lines (GPU debug draw)", &m_ShowVelocities);
     if (m_ShowVelocities)
     {

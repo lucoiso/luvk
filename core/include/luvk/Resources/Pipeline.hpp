@@ -4,12 +4,14 @@
 
 #pragma once
 
+#include <array>
 #include <bit>
 #include <cstdint>
 #include <span>
 #include <string_view>
 #include <vector>
 #include "luvk/Core/Common.hpp"
+#include "luvk/Resources/ShaderReflection.hpp"
 
 namespace luvk
 {
@@ -88,16 +90,16 @@ namespace luvk
     struct StencilFaceDesc
     {
         /** Operation when the stencil test fails. */
-        VkStencilOp Fail = VK_STENCIL_OP_KEEP;
+        StencilOp Fail = StencilOp::Keep;
 
         /** Operation when both the stencil and the depth tests pass. */
-        VkStencilOp Pass = VK_STENCIL_OP_KEEP;
+        StencilOp Pass = StencilOp::Keep;
 
         /** Operation when the stencil test passes and the depth test fails. */
-        VkStencilOp DepthFail = VK_STENCIL_OP_KEEP;
+        StencilOp DepthFail = StencilOp::Keep;
 
         /** Stencil comparison against the reference. */
-        VkCompareOp Compare = VK_COMPARE_OP_ALWAYS;
+        CompareOp Compare = CompareOp::Always;
 
         /** Bits of the reference and stored value that take part in the comparison. */
         std::uint32_t CompareMask = 0xFFU;
@@ -106,7 +108,7 @@ namespace luvk
         std::uint32_t WriteMask = 0xFFU;
     };
 
-    /** Stencil test (requires a DepthFormat with a stencil aspect, e.g. VK_FORMAT_D32_SFLOAT_S8_UINT). */
+    /** Stencil test (requires a DepthFormat with a stencil aspect, e.g. Format::D32SfloatS8Uint). */
     struct StencilDesc
     {
         /** Enables the stencil test. */
@@ -151,31 +153,31 @@ namespace luvk
         ShaderStage Fragment;
 
         /** Color attachment formats, in draw order. */
-        std::vector<VkFormat> ColorFormats;
+        std::vector<Format> ColorFormats;
 
         /** Per color attachment; missing entries are Opaque. */
         std::vector<BlendMode> Blend;
 
-        /** Depth/stencil attachment format, or VK_FORMAT_UNDEFINED for none. */
-        VkFormat DepthFormat = VK_FORMAT_UNDEFINED;
+        /** Depth/stencil attachment format, or Format::Undefined for none. */
+        Format DepthFormat = Format::Undefined;
 
         /** Empty = vertex pulling through buffer addresses. */
-        std::vector<VkVertexInputBindingDescription> VertexBindings;
+        std::vector<VertexBinding> VertexBindings;
 
         /** Vertex input attribute descriptions matching VertexBindings. */
-        std::vector<VkVertexInputAttributeDescription> VertexAttributes;
+        std::vector<VertexAttribute> VertexAttributes;
 
         /** Input assembly primitive topology. */
-        VkPrimitiveTopology Topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        luvk::Topology Topology = luvk::Topology::TriangleList;
 
         /** Rasterization polygon mode. */
-        VkPolygonMode PolygonMode = VK_POLYGON_MODE_FILL;
+        luvk::PolygonMode PolygonMode = luvk::PolygonMode::Fill;
 
         /** Face culling mode. */
-        VkCullModeFlags CullMode = VK_CULL_MODE_BACK_BIT;
+        luvk::CullMode CullMode = luvk::CullMode::Back;
 
         /** Winding order considered front-facing. */
-        VkFrontFace FrontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        luvk::FrontFace FrontFace = luvk::FrontFace::CounterClockwise;
 
         /** Enable depth testing (requires a DepthFormat). */
         bool DepthTest = true;
@@ -184,7 +186,7 @@ namespace luvk
         bool DepthWrite = true;
 
         /** Depth comparison operator. */
-        VkCompareOp DepthCompare = VK_COMPARE_OP_LESS_OR_EQUAL;
+        CompareOp DepthCompare = CompareOp::LessOrEqual;
 
         /** Rasterizer depth bias (disabled by default). */
         DepthBiasDesc DepthBias;
@@ -193,7 +195,10 @@ namespace luvk
         StencilDesc Stencil;
 
         /** Rasterization sample count. */
-        VkSampleCountFlagBits Samples = VK_SAMPLE_COUNT_1_BIT;
+        SampleCount Samples = SampleCount::X1;
+
+        /** sizeof the C++ push struct; when set, creation fails unless it matches the reflected push block of the stages. */
+        std::uint32_t PushSize = 0U;
 
         /** Optional debug name for the pipeline. */
         std::string_view Name;
@@ -204,6 +209,9 @@ namespace luvk
     {
         /** The compute shader stage. */
         ShaderStage Compute;
+
+        /** sizeof the C++ push struct; when set, creation fails unless it matches the reflected push block. */
+        std::uint32_t PushSize = 0U;
 
         /** Optional debug name for the pipeline. */
         std::string_view Name;
@@ -217,10 +225,19 @@ namespace luvk
         Context* m_Context = nullptr;
 
         /** Vulkan pipeline handle. */
-        VkPipeline m_Pipeline = VK_NULL_HANDLE;
+        VkPipeline m_Pipeline = nullptr;
 
-        /** Graphics or compute bind point. */
-        VkPipelineBindPoint m_BindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        /** True for compute pipelines. */
+        bool m_Compute = false;
+
+        /** Largest push-constant block used by the stages (0 = none). */
+        std::uint32_t m_PushSize = 0U;
+
+        /** Workgroup size of the compute (or mesh) stage. */
+        std::array<std::uint32_t, 3> m_ThreadGroupSize = {1U, 1U, 1U};
+
+        /** Members of the push-constant block (from the stage that declares the most). */
+        std::vector<PushMember> m_PushLayout;
 
     public:
         /** Default constructor. */
@@ -251,15 +268,28 @@ namespace luvk
         void Reset() noexcept;
 
         /** True when a VkPipeline was created. */
-        [[nodiscard]] explicit operator bool() const noexcept { return m_Pipeline != VK_NULL_HANDLE; }
+        [[nodiscard]] explicit operator bool() const noexcept { return m_Pipeline != nullptr; }
 
         /** Underlying VkPipeline handle. */
         [[nodiscard]] VkPipeline          Handle() const noexcept { return m_Pipeline; }
 
-        /** Graphics or compute bind point used with vkCmdBindPipeline. */
-        [[nodiscard]] VkPipelineBindPoint BindPoint() const noexcept { return m_BindPoint; }
+        /** True for compute pipelines. */
+        [[nodiscard]] bool IsCompute() const noexcept { return m_Compute; }
 
-        /** Global bindless pipeline layout (Context::Bindless()), or VK_NULL_HANDLE when the pipeline is empty. */
+        /** Size of the reflected push-constant block (0 when the stages use none). */
+        [[nodiscard]] std::uint32_t PushSize() const noexcept { return m_PushSize; }
+
+        /** Reflected members of the push-constant block (an engine compares them with its own struct description). */
+        [[nodiscard]] std::span<const PushMember> PushLayout() const noexcept { return m_PushLayout; }
+
+        /** Workgroup size of the compute (or mesh) stage, from [numthreads]. */
+        [[nodiscard]] const std::array<std::uint32_t, 3>& ThreadGroupSize() const noexcept { return m_ThreadGroupSize; }
+
+        /** Global bindless pipeline layout (Context::Bindless()), or nullptr when the pipeline is empty. */
         [[nodiscard]] VkPipelineLayout    Layout() const noexcept;
+
+    private:
+        /** Merges the reflection of one stage (push block, workgroup size). */
+        void Reflect(const ShaderStage& Stage);
     };
 }

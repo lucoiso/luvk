@@ -8,7 +8,7 @@
 #include <luvk/Core/Context.hpp>
 #include <luvk/Render/CommandList.hpp>
 #include "luvk/Scene/Mesh.hpp"
-#include "Shaders/SceneShaders.hpp"
+#include "SceneShaders.hpp"
 
 namespace
 {
@@ -24,9 +24,9 @@ namespace
     /** Per-draw push constants (matches Mesh.vert / Mesh.frag). */
     struct MeshPushConstants
     {
-        VkDeviceAddress Frame     = 0U;
-        VkDeviceAddress Vertices  = 0U;
-        VkDeviceAddress Instances = 0U;
+        luvk::DeviceAddress Frame     = 0U;
+        luvk::DeviceAddress Vertices  = 0U;
+        luvk::DeviceAddress Instances = 0U;
         std::uint32_t   Texture   = 0U;
         std::uint32_t   Sampler   = 0U;
         glm::vec4       BaseColor{1.F};
@@ -84,16 +84,16 @@ const luvk::Pipeline& luvk::scene::MeshRenderer::PipelineFor(const PipelineKey& 
         return *It->second;
     }
 
-    const GraphicsPipelineDesc Desc{.Vertex       = {.Code = shaders::MeshVertexShader()},
-                                    .Fragment     = {.Code = shaders::MeshFragmentShader()},
+    const GraphicsPipelineDesc Desc{.Vertex       = {.Code = Shaders::MeshVertex()},
+                                    .Fragment     = {.Code = Shaders::MeshFragment()},
                                     .ColorFormats = {Key.ColorFormat},
                                     .Blend        = {Key.Transparent ? BlendMode::Alpha : BlendMode::Opaque},
                                     .DepthFormat  = Key.DepthFormat,
-                                    .PolygonMode  = Key.Wireframe ? VK_POLYGON_MODE_LINE : VK_POLYGON_MODE_FILL,
-                                    .CullMode     = static_cast<VkCullModeFlags>(Key.DoubleSided ? VK_CULL_MODE_NONE : VK_CULL_MODE_BACK_BIT),
+                                    .PolygonMode  = Key.Wireframe ? PolygonMode::Line : PolygonMode::Fill,
+                                    .CullMode     = Key.DoubleSided ? CullMode::None : CullMode::Back,
                                     .DepthTest    = true,
                                     .DepthWrite   = !Key.Transparent,
-                                    .DepthCompare = Key.ReverseDepth ? VK_COMPARE_OP_GREATER_OR_EQUAL : VK_COMPARE_OP_LESS_OR_EQUAL,
+                                    .DepthCompare = Key.ReverseDepth ? CompareOp::GreaterOrEqual : CompareOp::LessOrEqual,
                                     .Name         = "luvk-scene mesh"};
 
     return *m_Pipelines.emplace_back(Key, std::make_unique<Pipeline>(m_Context, Desc)).second;
@@ -150,7 +150,7 @@ void luvk::scene::MeshRenderer::AddPasses(RenderGraph& Graph, FrameAllocator& Al
 
         const MeshPushConstants Push{.Frame     = Frame.Address,
                                      .Vertices  = Request.Target->Vertices().Address(),
-                                     .Instances = Instances.Address + static_cast<VkDeviceAddress>(Request.FirstTransform) * sizeof(glm::mat4),
+                                     .Instances = Instances.Address + static_cast<DeviceAddress>(Request.FirstTransform) * sizeof(glm::mat4),
                                      .Texture   = Textured ? Surface.BaseColorTexture->SampledIndex() : 0U,
                                      .Sampler   = Surface.Sampler != InvalidBindlessIndex ? Surface.Sampler : m_Sampler.Index(),
                                      .BaseColor = Surface.BaseColor,
@@ -187,7 +187,7 @@ void luvk::scene::MeshRenderer::AddPasses(RenderGraph& Graph, FrameAllocator& Al
                       for (const PreparedDraw& It : Draws)
                       {
                           Cmd.BindPipeline(*It.Pipeline);
-                          Cmd.BindIndexBuffer(*It.Indices, VK_INDEX_TYPE_UINT32);
+                          Cmd.BindIndexBuffer(*It.Indices, IndexType::UInt32);
                           Cmd.PushConstants(It.Push);
                           Cmd.DrawIndexed(It.Range.IndexCount, It.Instances, It.Range.FirstIndex);
                       }

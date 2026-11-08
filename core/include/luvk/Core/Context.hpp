@@ -16,17 +16,26 @@
 #include <string_view>
 #include <utility>
 #include <vector>
-#include "luvk/Core/DeletionQueue.hpp"
-#include "luvk/Core/FeatureChain.hpp"
+#include <array>
 #include "luvk/Core/Common.hpp"
+#include "luvk/Core/DeletionQueue.hpp"
 #include "luvk/Core/Queue.hpp"
-#include "luvk/Core/Vma.hpp"
+
+struct VkPhysicalDeviceProperties;
+struct VkPhysicalDeviceVulkan12Properties;
+struct VkPhysicalDeviceVulkan13Properties;
 
 namespace luvk
 {
     class Module;
+    class FeatureChain;
+    struct InstanceRequirements;
+    struct DeviceRequirements;
+    struct DeviceInfo;
     class BindlessHeap;
     class UploadManager;
+    class DiagnosticsModule;
+    struct DeviceLostReport;
 
     /** Physical device selection policy used when ContextDesc::PhysicalDeviceIndex is not set. */
     enum class DevicePreference : std::uint8_t
@@ -60,6 +69,44 @@ namespace luvk
         std::uint32_t AccelerationStructures = 64U;
     };
 
+    /**
+     * Features of VK_LAYER_KHRONOS_validation, applied only when ContextDesc::EnableValidation is set. They are passed
+     * through VK_EXT_layer_settings (validate_gpu_based/gpuav_enable, validate_sync, validate_best_practices,
+     * printf_enable), or VkValidationFeaturesEXT with older layers.
+     */
+    struct ValidationOptions
+    {
+        /** GPU-assisted validation: instruments shaders to catch out-of-bounds descriptor indexing, invalid buffer device
+         *  addresses, bad indirect arguments... (slow; the best tool against VK_ERROR_DEVICE_LOST). */
+        bool GpuAssisted = false;
+
+        /** Synchronization validation: reports missing or wrong barriers (hazards) between commands and submissions. */
+        bool Synchronization = false;
+
+        /** Best practices warnings (performance and portability). */
+        bool BestPractices = false;
+
+        /** Shader debugPrintfEXT / Slang printf output (written to stdout by the layer). */
+        bool DebugPrintf = false;
+    };
+
+    /** Queues created besides the graphics and transfer ones. */
+    struct ExtraQueueDesc
+    {
+        /** Creates a dedicated compute queue (a family with compute and without graphics) when the device has one; it runs
+         *  the Renderer's async compute graph. Without it Context::ComputeQueue() is the graphics queue. */
+        bool AsyncCompute = true;
+
+        /** Creates one more present-capable queue for third-party code (e.g. FidelityFX frame generation's presentQueue):
+         *  a queue of a non-graphics family when it can present, else another queue of the graphics family. luvk never
+         *  submits to it. Requires a surface. See Context::GetQueueInfo(QueueRole::Present). */
+        bool Present = false;
+
+        /** Creates one more queue for third-party code (e.g. FidelityFX frame generation's imageAcquireQueue); luvk never
+         *  submits to it. See Context::GetQueueInfo(QueueRole::ImageAcquire). */
+        bool ImageAcquire = false;
+    };
+
     /** User callback receiving debug messages (defaults to printing to stderr). */
     using DebugMessageCallback = std::function<void(DebugSeverity, std::string_view)>;
 
@@ -72,8 +119,8 @@ namespace luvk
         /** Application name reported to the driver through VkApplicationInfo. */
         std::string ApplicationName = "luvk";
 
-        /** Application version as a packed VK_MAKE_API_VERSION value. */
-        std::uint32_t ApplicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+        /** Application version (major, minor, patch) reported to the driver. */
+        std::array<std::uint32_t, 3> ApplicationVersion = {1U, 0U, 0U};
 
         /** Enables VK_LAYER_KHRONOS_validation when available (a warning is emitted otherwise). */
         bool EnableValidation = false;
@@ -111,6 +158,15 @@ namespace luvk
 
         /** Bindless heap sizes. */
         BindlessLimits Bindless = {};
+
+        /** Validation layer features (only applied when EnableValidation is set). */
+        ValidationOptions Validation = {};
+
+        /** Additional queues (async compute, third-party present / image acquire queues). */
+        ExtraQueueDesc ExtraQueues = {};
+
+        /** When set, device-lost reports are also written to this directory as gpu-crash-YYYYMMDD-HHMMSS.txt. */
+        std::filesystem::path CrashReportDirectory;
     };
 
     /**
@@ -125,9 +181,15 @@ namespace luvk
      * the Context counts live resources and reports any that outlive it.
      *
      * volk uses global dispatch, so only one Context may exist at a time.
+     *
+     * Whenever luvk observes VK_ERROR_DEVICE_LOST (any checked Vulkan call: submits, waits, present, acquire...), the
+     * Context produces one DeviceLostReport (see ReportDeviceLost); from then on every wait returns at once, so teardown
+     * after a device loss never blocks.
      */
     class LUVK_API Context
     {
+        friend class DiagnosticsModule;
+
     public:
         /** Constructor: builds the whole Vulkan device stack from Desc. Throws on failure. */
         explicit Context(const ContextDesc& Desc);
@@ -156,11 +218,11 @@ namespace luvk
         /** Logical device created from the physical device. */
         [[nodiscard]] VkDevice         Device() const noexcept { return m_Device; }
 
-        /** Window surface still owned by this Context (VK_NULL_HANDLE for headless contexts or once released). */
+        /** Window surface still owned by this Context (nullptr for headless contexts or once released). */
         [[nodiscard]] VkSurfaceKHR     Surface() const noexcept { return m_Surface; }
 
-        /** Transfers ownership of the window surface to its presenter; Surface() returns VK_NULL_HANDLE afterwards. */
-        [[nodiscard]] VkSurfaceKHR     ReleaseSurface() noexcept { return std::exchange(m_Surface, VK_NULL_HANDLE); }
+        /** Transfers ownership of the window surface to its presenter; Surface() returns nullptr afterwards. */
+        [[nodiscard]] VkSurfaceKHR     ReleaseSurface() noexcept { return std::exchange(m_Surface, nullptr); }
 
         /** VMA allocator (created with buffer device address support). */
         [[nodiscard]] VmaAllocator     Allocator() const noexcept { return m_Allocator; }
@@ -171,17 +233,35 @@ namespace luvk
         /** Device API version as a packed VK_API_VERSION_* value (1.3 or 1.4). */
         [[nodiscard]] std::uint32_t    ApiVersion() const noexcept { return m_ApiVersion; }
 
-        /** Basic device properties (queried without the pNext chain). */
-        [[nodiscard]] const VkPhysicalDeviceProperties&       Properties() const noexcept { return m_Properties.properties; }
+        /** Device identity and common limits. */
+        [[nodiscard]] const DeviceLimits& Limits() const noexcept;
 
-        /** Vulkan 1.2 core properties. */
-        [[nodiscard]] const VkPhysicalDeviceVulkan12Properties& Properties12() const noexcept { return m_Properties12; }
+        /** Usage and budget of every memory heap (VK_EXT_memory_budget through VMA). */
+        [[nodiscard]] std::vector<HeapBudget> MemoryBudget() const;
 
-        /** Vulkan 1.3 core properties. */
-        [[nodiscard]] const VkPhysicalDeviceVulkan13Properties& Properties13() const noexcept { return m_Properties13; }
+        /** Usage an image of Value gets: Requested when set (plus transfer), else every usage the format supports. */
+        [[nodiscard]] ImageUsage ResolveImageUsage(Format Value, ImageUsage Requested) const noexcept;
 
-        /** Feature chain actually enabled on the device. */
-        [[nodiscard]] const FeatureChain&                     EnabledFeatures() const noexcept { return m_EnabledFeatures; }
+        /** VkBufferUsageFlags every buffer is created with (storage, uniform, index, vertex, indirect, transfer, address). */
+        [[nodiscard]] std::uint32_t DefaultBufferUsage() const noexcept { return m_DefaultBufferUsage; }
+
+        /** Number of the frame being recorded by the Renderer (0 outside a frame). */
+        [[nodiscard]] std::uint64_t RecordingFrame() const noexcept { return m_RecordingFrame.load(std::memory_order_relaxed); }
+
+        /** Renderer hook: the frame being recorded (0 once it is submitted). */
+        void SetRecordingFrame(std::uint64_t Frame) noexcept { m_RecordingFrame.store(Frame, std::memory_order_relaxed); }
+
+        /** Interop: basic device properties (luvk/Core/Vulkan.hpp defines the type). */
+        [[nodiscard]] const VkPhysicalDeviceProperties&         Properties() const noexcept;
+
+        /** Interop: Vulkan 1.2 core properties. */
+        [[nodiscard]] const VkPhysicalDeviceVulkan12Properties& Properties12() const noexcept;
+
+        /** Interop: Vulkan 1.3 core properties. */
+        [[nodiscard]] const VkPhysicalDeviceVulkan13Properties& Properties13() const noexcept;
+
+        /** Interop: feature chain actually enabled on the device (luvk/Core/FeatureChain.hpp defines the type). */
+        [[nodiscard]] const FeatureChain&                       EnabledFeatures() const noexcept;
 
         /** Device extensions enabled on the device. */
         [[nodiscard]] const std::vector<std::string>&         EnabledDeviceExtensions() const noexcept { return m_DeviceExtensions; }
@@ -191,6 +271,9 @@ namespace luvk
 
         /** True when VK_LAYER_KHRONOS_validation was enabled. */
         [[nodiscard]] bool                                    IsValidationEnabled() const noexcept { return m_ValidationEnabled; }
+
+        /** Validation layer features actually requested from the layer (all false when validation is off). */
+        [[nodiscard]] const ValidationOptions&                EnabledValidation() const noexcept { return m_Validation; }
 
         /** True when VK_EXT_debug_utils was enabled (SetDebugName is functional). */
         [[nodiscard]] bool                                    IsDebugUtilsEnabled() const noexcept { return m_DebugUtilsEnabled; }
@@ -210,10 +293,24 @@ namespace luvk
         /** Transfer queue (may wrap the same VkQueue as the graphics one). */
         [[nodiscard]] Queue& TransferQueue() noexcept { return m_TransferQueue; }
 
+        /** Async compute queue (ExtraQueueDesc::AsyncCompute), or the graphics queue when the device has none. */
+        [[nodiscard]] Queue& ComputeQueue() noexcept { return m_HasAsyncCompute ? m_ComputeQueue : m_GraphicsQueue; }
+
+        /** True when a dedicated compute queue (a family without graphics) exists. */
+        [[nodiscard]] bool   HasAsyncCompute() const noexcept { return m_HasAsyncCompute; }
+
         /** True when transfers run on a different queue family than graphics. */
         [[nodiscard]] bool   HasDedicatedTransferQueue() const noexcept { return m_GraphicsQueue.Family() != m_TransferQueue.Family(); }
 
-        /** Queue families that resources shared between graphics and transfer must list (1 or 2 entries). */
+        /**
+         * Queue of the given role. Present and ImageAcquire are only distinct queues (UsedByLuvk = false) when they were
+         * requested in ContextDesc::ExtraQueues and the device has a free queue; otherwise they fall back to the graphics
+         * queue (UsedByLuvk = true: use Queue::WithLock). Compute falls back to the graphics queue without async compute.
+         */
+        [[nodiscard]] QueueInfo GetQueueInfo(QueueRole Role) const noexcept;
+
+        /** Every distinct queue family luvk submits to (graphics, transfer, async compute): resources not restricted to the
+         *  graphics queue are created with VK_SHARING_MODE_CONCURRENT across them (1 to 3 entries). */
         [[nodiscard]] std::span<const std::uint32_t> SharedQueueFamilies() const noexcept;
 
         /** Global bindless heap. */
@@ -226,10 +323,10 @@ namespace luvk
          * Defers destruction of Object until the graphics work submitted so far (and any frame being
          * recorded now) has completed. Thread-safe; producers briefly lock the queue.
          */
-        void Retire(RetiredObject&& Object);
+        void Retire(RetiredObject&& Object) noexcept;
 
         /** Same, with an explicit point (e.g. {0, TransferValue} for objects only used by the transfer queue). */
-        void Retire(RetiredObject&& Object, const TimelinePoint& Point);
+        void Retire(RetiredObject&& Object, const TimelinePoint& Point) noexcept;
 
         /** Retires an arbitrary action (e.g. releasing user data tied to GPU work). */
         void RetireCallback(std::function<void()> Callback);
@@ -261,18 +358,35 @@ namespace luvk
         /** Number of retired objects not destroyed yet. */
         [[nodiscard]] std::size_t   PendingDeletions() const noexcept { return m_DeletionQueue.Size(); }
 
-        /** Names a Vulkan object for debugging tools (no-op without VK_EXT_debug_utils). */
-        void SetDebugName(VkObjectType Type, std::uint64_t Handle, std::string_view Name) const;
+        /** Names a Vulkan object (Type is a VkObjectType value) for debugging tools (no-op without VK_EXT_debug_utils). */
+        void SetDebugName(std::int32_t Type, std::uint64_t Handle, std::string_view Name) const;
 
         /** Overload taking any Vulkan handle type directly (converted with HandleToU64). */
-        template <typename HandleType>
-        void SetDebugName(const HandleType Handle, const VkObjectType Type, const std::string_view Name) const
+        template <typename HandleType, typename ObjectType>
+        void SetDebugName(const HandleType Handle, const ObjectType Type, const std::string_view Name) const
         {
-            SetDebugName(Type, HandleToU64(Handle), Name);
+            SetDebugName(static_cast<std::int32_t>(Type), HandleToU64(Handle), Name);
         }
 
         /** Number of validation-layer error messages seen so far (0 when validation is off). */
         [[nodiscard]] std::uint32_t ValidationErrorCount() const noexcept { return m_ValidationErrors.load(std::memory_order_relaxed); }
+
+        /** True once VK_ERROR_DEVICE_LOST was observed: waits return at once and the device can only be destroyed. */
+        [[nodiscard]] bool IsDeviceLost() const noexcept { return m_DeviceLost.load(std::memory_order_acquire); }
+
+        /** Report of the device loss (nullptr until one was observed). */
+        [[nodiscard]] const DeviceLostReport* LastDeviceLostReport() const noexcept;
+
+        /**
+         * Marks the device as lost and, the first time only, builds the DeviceLostReport (GPU and driver, VK_EXT_device_fault
+         * information, breadcrumbs of the frames in flight), prints it to stderr and writes it to
+         * ContextDesc::CrashReportDirectory. luvk calls it whenever a checked Vulkan call returns VK_ERROR_DEVICE_LOST; call it
+         * yourself when third-party code (e.g. a vendor SDK) reports the loss. Where describes the failing operation.
+         */
+        void ReportDeviceLost(std::string_view Where) noexcept;
+
+        /** Attached DiagnosticsModule (nullptr when none was added to ContextDesc::Modules). */
+        [[nodiscard]] DiagnosticsModule* Diagnostics() const noexcept { return m_Diagnostics; }
 
         /** Live resource counter maintained by TrackResource (should reach 0 before the Context is destroyed). */
         [[nodiscard]] std::int64_t  LiveResourceCount() const noexcept { return m_LiveResources.load(std::memory_order_relaxed); }
@@ -282,6 +396,9 @@ namespace luvk
 
         /** Forwards Message to the user callback (or stderr) when Severity passes the configured minimum. */
         void EmitMessage(DebugSeverity Severity, std::string_view Message) const;
+
+        /** Debug messenger hook: counts a validation-layer error. */
+        void NoteValidationError() noexcept { m_ValidationErrors.fetch_add(1U, std::memory_order_relaxed); }
 
     private:
         /** Runs the full creation sequence described in the class comment. */
@@ -302,6 +419,12 @@ namespace luvk
         /** Creates the VMA allocator (buffer device address, optional memory budget/priority). */
         void CreateAllocator();
 
+        /** Builds the text of a DeviceLostReport (called once, under m_DeviceLostMutex). */
+        [[nodiscard]] DeviceLostReport BuildDeviceLostReport(std::string_view Where) const;
+
+        /** Writes Report to CrashReportDirectory; returns the file written (empty on failure or without a directory). */
+        [[nodiscard]] std::filesystem::path WriteCrashReport(const DeviceLostReport& Report) const noexcept;
+
         /** Loads and validates ContextDesc::PipelineCachePath, then creates the pipeline cache. */
         void CreatePipelineCache();
 
@@ -311,11 +434,8 @@ namespace luvk
         /** Dispatches to the correct Vulkan destroy function for Object's kind. */
         void DestroyRetired(RetiredObject& Object) noexcept;
 
-        /** Static trampoline registered with the debug messenger (forwards to EmitMessage). */
-        static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      Severity,
-                                                            VkDebugUtilsMessageTypeFlagsEXT             Types,
-                                                            const VkDebugUtilsMessengerCallbackDataEXT* Data,
-                                                            void*                                       UserData);
+        /** Fills the limits, the default buffer usage and the format cache once the device exists. */
+        void QueryDeviceInfo();
 
         /** User debug callback (empty = print to stderr). */
         DebugMessageCallback m_OnDebugMessage = {};
@@ -345,13 +465,13 @@ namespace luvk
         std::vector<std::shared_ptr<Module>> m_Modules;
 
         /** VkInstance handle. */
-        VkInstance m_Instance = VK_NULL_HANDLE;
+        VkInstance m_Instance = nullptr;
 
-        /** Debug utils messenger (VK_NULL_HANDLE without debug utils). */
-        VkDebugUtilsMessengerEXT m_Messenger = VK_NULL_HANDLE;
+        /** Debug utils messenger (nullptr without debug utils). */
+        VkDebugUtilsMessengerEXT m_Messenger = nullptr;
 
-        /** Window surface owned by the Context (VK_NULL_HANDLE when headless). */
-        VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
+        /** Window surface owned by the Context (nullptr when headless). */
+        VkSurfaceKHR m_Surface = nullptr;
 
         /** Instance API version clamped to 1.3/1.4 (packed VK_API_VERSION_*). */
         std::uint32_t m_InstanceApiVersion = 0U;
@@ -372,16 +492,16 @@ namespace luvk
         bool m_OwnsContextSlot = false;
 
         /** Selected physical device. */
-        VkPhysicalDevice m_PhysicalDevice = VK_NULL_HANDLE;
+        VkPhysicalDevice m_PhysicalDevice = nullptr;
 
-        /** Basic device properties (pNext chain set temporarily while querying). */
-        VkPhysicalDeviceProperties2        m_Properties{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2};
+        /** Device properties, enabled features, limits and the per-format usage cache (private Vulkan state). */
+        std::unique_ptr<DeviceInfo> m_Info;
 
-        /** Vulkan 1.2 core properties. */
-        VkPhysicalDeviceVulkan12Properties m_Properties12{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_PROPERTIES};
+        /** VkBufferUsageFlags of every buffer. */
+        std::uint32_t m_DefaultBufferUsage = 0U;
 
-        /** Vulkan 1.3 core properties. */
-        VkPhysicalDeviceVulkan13Properties m_Properties13{.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_PROPERTIES};
+        /** Frame being recorded (0 outside a frame). */
+        std::atomic<std::uint64_t> m_RecordingFrame = 0U;
 
         /** Device API version (packed, 1.3 or 1.4). */
         std::uint32_t m_ApiVersion = 0U;
@@ -389,8 +509,7 @@ namespace luvk
         /** Device extensions actually enabled. */
         std::vector<std::string> m_DeviceExtensions;
 
-        /** Feature chain enabled at device creation. */
-        FeatureChain m_EnabledFeatures = {};
+
 
         /** Graphics queue family index. */
         std::uint32_t m_GraphicsFamily = 0U;
@@ -401,17 +520,38 @@ namespace luvk
         /** Queue index within the transfer family (1 when sharing the graphics family). */
         std::uint32_t m_TransferQueueIndex = 0U;
 
-        /** Queue families for concurrent sharing (1 or 2 entries). */
+        /** Async compute queue family index (valid when m_HasAsyncCompute). */
+        std::uint32_t m_ComputeFamily = 0U;
+
+        /** Queue index within the async compute family. */
+        std::uint32_t m_ComputeQueueIndex = 0U;
+
+        /** True when a dedicated compute queue was created. */
+        bool m_HasAsyncCompute = false;
+
+        /** Extra present queue for third parties (Queue = nullptr when not created). */
+        QueueInfo m_PresentQueue = {};
+
+        /** Extra image-acquire queue for third parties (Queue = nullptr when not created). */
+        QueueInfo m_ImageAcquireQueue = {};
+
+        /** Extra queues requested by the ContextDesc. */
+        ExtraQueueDesc m_ExtraQueues = {};
+
+        /** Queue families for concurrent sharing (graphics, transfer and async compute; 1 to 3 entries). */
         std::vector<std::uint32_t> m_SharedFamilies;
 
         /** Logical device handle. */
-        VkDevice m_Device = VK_NULL_HANDLE;
+        VkDevice m_Device = nullptr;
 
         /** Serialises graphics queue access (shared with the transfer queue when both wrap one VkQueue). */
-        std::mutex m_GraphicsQueueMutex;
+        std::recursive_mutex m_GraphicsQueueMutex;
 
         /** Serialises transfer queue access. */
-        std::mutex m_TransferQueueMutex;
+        std::recursive_mutex m_TransferQueueMutex;
+
+        /** Serialises async compute queue access. */
+        std::recursive_mutex m_ComputeQueueMutex;
 
         /** Graphics queue wrapper. */
         Queue m_GraphicsQueue = {};
@@ -419,11 +559,14 @@ namespace luvk
         /** Transfer queue wrapper. */
         Queue m_TransferQueue = {};
 
+        /** Async compute queue wrapper (initialized only when m_HasAsyncCompute). */
+        Queue m_ComputeQueue = {};
+
         /** VMA allocator handle. */
-        VmaAllocator m_Allocator = VK_NULL_HANDLE;
+        VmaAllocator m_Allocator = nullptr;
 
         /** Pipeline cache handle. */
-        VkPipelineCache m_PipelineCache = VK_NULL_HANDLE;
+        VkPipelineCache m_PipelineCache = nullptr;
 
         /** Timeline-tagged deferred destruction queue. */
         DeletionQueue m_DeletionQueue = {};
@@ -439,5 +582,26 @@ namespace luvk
 
         /** Live resource counter incremented/decremented by TrackResource. */
         std::atomic<std::int64_t> m_LiveResources = 0;
+
+        /** Validation layer features requested from the layer. */
+        ValidationOptions m_Validation = {};
+
+        /** Set once VK_ERROR_DEVICE_LOST was observed (read by the queues to stop waiting). */
+        std::atomic<bool> m_DeviceLost = false;
+
+        /** Serialises the creation of the device-lost report. */
+        mutable std::mutex m_DeviceLostMutex;
+
+        /** Device-lost report (null until the device is lost). */
+        std::unique_ptr<DeviceLostReport> m_DeviceLostReport;
+
+        /** Set once m_DeviceLostReport is complete (LastDeviceLostReport reads it without locking). */
+        std::atomic<bool> m_DeviceLostReported = false;
+
+        /** Directory receiving the crash reports (empty = not written). */
+        std::filesystem::path m_CrashReportDirectory;
+
+        /** Attached diagnostics module (set by DiagnosticsModule::OnContextCreated). */
+        DiagnosticsModule* m_Diagnostics = nullptr;
     };
 }

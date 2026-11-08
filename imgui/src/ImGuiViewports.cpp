@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <luvk/Core/Context.hpp>
 #include <luvk/Core/Error.hpp>
+#include <luvk/Core/Vulkan.hpp>
 #include "ImGuiViewportWindow.hpp"
 
 namespace luvk::imgui::detail
@@ -47,7 +48,7 @@ void luvk::imgui::ImGuiRenderer::CreateViewportWindow(ImGuiViewport* Viewport)
         PlatformIO.Platform_CreateVkSurface(Viewport, HandleToU64(m_Context.Instance()), nullptr, reinterpret_cast<ImU64*>(&Surface)));
     if (Result != VK_SUCCESS || Surface == VK_NULL_HANDLE)
     {
-        std::fprintf(stderr, "[luvk-imgui] ImGui viewport surface creation failed: %s\n", ToString(Result));
+        std::fprintf(stderr, "[luvk-imgui] ImGui viewport surface creation failed: %s\n", ResultName(Result));
         return;
     }
 

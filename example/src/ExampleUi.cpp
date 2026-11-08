@@ -101,7 +101,7 @@ void Example::ExampleUi::DrawSceneTab()
     }
 }
 
-void Example::ExampleUi::DrawExhibit(luvk::app::RenderFeature& Feature, const char* const Label, const std::optional<glm::vec3>& Target)
+void Example::ExampleUi::DrawExhibit(luvk::frame::RenderFeature& Feature, const char* const Label, const std::optional<glm::vec3>& Target)
 {
     ImGui::PushID(&Feature);
 

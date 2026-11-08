@@ -8,6 +8,7 @@
 #include <string>
 #include <glm/glm.hpp>
 #include <imgui.h>
+#include <luvk/Frame/Feature.hpp>
 
 namespace luvk::app
 {
@@ -89,7 +90,7 @@ namespace Example
         void DrawDiagnosticsTab();
 
         /** One exhibit row: enable toggle, "go to" button and the feature's own controls. */
-        void DrawExhibit(luvk::app::RenderFeature& Feature, const char* Label, const std::optional<glm::vec3>& Focus);
+        void DrawExhibit(luvk::frame::RenderFeature& Feature, const char* Label, const std::optional<glm::vec3>& Focus);
 
         /** A second OS window demonstrating Dear ImGui multi-viewport. */
         void DrawFloatingWindow();

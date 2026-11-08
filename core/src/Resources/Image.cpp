@@ -12,6 +12,7 @@
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
 #include "luvk/Core/Upload.hpp"
+#include "luvk/Core/Vulkan.hpp"
 
 namespace
 {
@@ -110,7 +111,7 @@ namespace
 
     VkImageViewType ViewType(const luvk::ImageDesc& Desc)
     {
-        if (Desc.Extent.depth > 1U)
+        if (Desc.Extent.Depth > 1U)
         {
             return VK_IMAGE_VIEW_TYPE_3D;
         }
@@ -122,9 +123,9 @@ namespace
     }
 }
 
-bool luvk::IsDepthFormat(const VkFormat Format) noexcept
+bool luvk::IsDepthFormat(const Format Value) noexcept
 {
-    switch (Format)
+    switch (ToVk(Value))
     {
     case VK_FORMAT_D16_UNORM:
     case VK_FORMAT_X8_D24_UNORM_PACK32:
@@ -136,9 +137,9 @@ bool luvk::IsDepthFormat(const VkFormat Format) noexcept
     }
 }
 
-bool luvk::HasStencil(const VkFormat Format) noexcept
+bool luvk::HasStencil(const Format Value) noexcept
 {
-    switch (Format)
+    switch (ToVk(Value))
     {
     case VK_FORMAT_S8_UINT:
     case VK_FORMAT_D16_UNORM_S8_UINT:
@@ -148,50 +149,50 @@ bool luvk::HasStencil(const VkFormat Format) noexcept
     }
 }
 
-VkImageAspectFlags luvk::AspectFromFormat(const VkFormat Format) noexcept
+VkImageAspectFlags luvk::AspectFromFormat(const Format Value) noexcept
 {
-    if (Format == VK_FORMAT_S8_UINT)
+    if (Value == Format::S8Uint)
     {
         return VK_IMAGE_ASPECT_STENCIL_BIT;
     }
 
-    if (IsDepthFormat(Format))
+    if (IsDepthFormat(Value))
     {
-        return HasStencil(Format) ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
+        return HasStencil(Value) ? VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT : VK_IMAGE_ASPECT_DEPTH_BIT;
     }
 
     return VK_IMAGE_ASPECT_COLOR_BIT;
 }
 
-VkDeviceSize luvk::FormatRegionSize(const VkFormat Format, const VkExtent3D Extent) noexcept
+luvk::DeviceSize luvk::FormatRegionSize(const Format Value, const Extent3D Extent) noexcept
 {
-    const luvk::FormatInfo Info = DescribeFormat(Format);
+    const luvk::FormatInfo Info = DescribeFormat(ToVk(Value));
     if (Info.BlockBytes == 0U)
     {
         return 0U;
     }
 
-    const VkDeviceSize BlocksX = (Extent.width + Info.BlockWidth - 1U) / Info.BlockWidth;
-    const VkDeviceSize BlocksY = (Extent.height + Info.BlockHeight - 1U) / Info.BlockHeight;
-    return BlocksX * BlocksY * Extent.depth * Info.BlockBytes;
+    const VkDeviceSize BlocksX = (Extent.Width + Info.BlockWidth - 1U) / Info.BlockWidth;
+    const VkDeviceSize BlocksY = (Extent.Height + Info.BlockHeight - 1U) / Info.BlockHeight;
+    return BlocksX * BlocksY * Extent.Depth * Info.BlockBytes;
 }
 
 luvk::Image::Image(Context& Ctx, const ImageDesc& Desc)
     : m_Context(&Ctx),
       m_Extent(Desc.Extent),
       m_Format(Desc.Format),
-      m_Usage(Desc.Usage),
+      m_Usage(Ctx.ResolveImageUsage(Desc.Format, Desc.Usage)),
       m_Aspect(AspectFromFormat(Desc.Format)),
       m_MipLevels(Desc.MipLevels),
       m_ArrayLayers(Desc.ArrayLayers),
       m_Cube(Desc.Cube)
 {
-    if (Desc.Extent.width == 0U || Desc.Extent.height == 0U || Desc.Extent.depth == 0U || Desc.MipLevels == 0U || Desc.ArrayLayers == 0U)
+    if (Desc.Extent.Width == 0U || Desc.Extent.Height == 0U || Desc.Extent.Depth == 0U || Desc.MipLevels == 0U || Desc.ArrayLayers == 0U)
     {
         throw std::invalid_argument("[luvk] Image extent, mip levels and array layers must be non-zero.");
     }
 
-    if (Desc.Cube && (Desc.ArrayLayers % 6U != 0U || Desc.Extent.width != Desc.Extent.height))
+    if (Desc.Cube && (Desc.ArrayLayers % 6U != 0U || Desc.Extent.Width != Desc.Extent.Height))
     {
         throw std::invalid_argument("[luvk] Cube images need square faces and a multiple of 6 layers.");
     }
@@ -202,23 +203,21 @@ luvk::Image::Image(Context& Ctx, const ImageDesc& Desc)
 
     const VkImageCreateInfo Info{.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
                                  .flags                 = Desc.Cube ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : VkImageCreateFlags{0U},
-                                 .imageType             = Desc.Extent.depth > 1U ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D,
-                                 .format                = Desc.Format,
-                                 .extent                = Desc.Extent,
+                                 .imageType             = Desc.Extent.Depth > 1U ? VK_IMAGE_TYPE_3D : VK_IMAGE_TYPE_2D,
+                                 .format                = ToVk(Desc.Format),
+                                 .extent                = ToVk(Desc.Extent),
                                  .mipLevels             = Desc.MipLevels,
                                  .arrayLayers           = Desc.ArrayLayers,
-                                 .samples               = Desc.Samples,
+                                 .samples               = ToVk(Desc.Samples),
                                  .tiling                = VK_IMAGE_TILING_OPTIMAL,
-                                 .usage                 = Desc.Usage,
+                                 .usage                 = ToVk(m_Usage),
                                  .sharingMode           = Concurrent ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
                                  .queueFamilyIndexCount = Concurrent ? static_cast<std::uint32_t>(std::size(Families)) : 0U,
                                  .pQueueFamilyIndices   = Concurrent ? std::data(Families) : nullptr,
                                  .initialLayout         = VK_IMAGE_LAYOUT_UNDEFINED};
 
-    constexpr VkImageUsageFlags AttachmentUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-    const VmaAllocationCreateInfo AllocationInfo{.flags    = (Desc.Usage & AttachmentUsage) != 0U ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : VmaAllocationCreateFlags{0U},
-                                                 .usage    = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+    // Dedicated memory is left to VMA: it follows the driver's VK_KHR_dedicated_allocation preference per image.
+    const VmaAllocationCreateInfo AllocationInfo{.usage    = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
                                                  .priority = Desc.Priority};
 
     Check(vmaCreateImage(Ctx.Allocator(), &Info, &AllocationInfo, &m_Image, &m_Allocation, nullptr), "vmaCreateImage");
@@ -232,31 +231,31 @@ luvk::Image::Image(Context& Ctx, const ImageDesc& Desc)
     {
         // A VkImageView may only be created for images with at least one view-compatible usage.
         // Transfer-only transients (e.g. staging/copy targets) are valid images but cannot have a view.
-        if ((Desc.Usage & ViewUsage) != 0U)
+        if ((ToVk(m_Usage) & ViewUsage) != 0U)
         {
             const VkImageViewType Type = ViewType(Desc);
 
             VkImageViewCreateInfo ViewInfo{.sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                                            .image            = m_Image,
                                            .viewType         = Type,
-                                           .format           = Desc.Format,
+                                           .format           = ToVk(Desc.Format),
                                            .subresourceRange = {m_Aspect, 0U, VK_REMAINING_MIP_LEVELS, 0U, VK_REMAINING_ARRAY_LAYERS}};
             Check(vkCreateImageView(Ctx.Device(), &ViewInfo, nullptr, &m_View), "vkCreateImageView");
 
-            if ((Desc.Usage & VK_IMAGE_USAGE_SAMPLED_BIT) != 0U && m_Aspect == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
+            if (HasFlags(m_Usage, ImageUsage::Sampled) && m_Aspect == (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))
             {
                 ViewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
                 Check(vkCreateImageView(Ctx.Device(), &ViewInfo, nullptr, &m_SampledView), "vkCreateImageView (sampled)");
             }
 
-            if ((Desc.Usage & VK_IMAGE_USAGE_SAMPLED_BIT) != 0U)
+            if (HasFlags(m_Usage, ImageUsage::Sampled))
             {
                 m_SampledIndex = Ctx.Bindless().Allocate(BindlessSlot::SampledImage);
                 Ctx.Bindless().WriteSampledImage(m_SampledIndex, SampledView());
             }
 
             // Storage descriptors must cover a single mip level: multi-mip images expose storage per Subview(Mip).
-            if ((Desc.Usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0U && Desc.MipLevels == 1U)
+            if (HasFlags(m_Usage, ImageUsage::Storage) && Desc.MipLevels == 1U)
             {
                 m_StorageIndex = Ctx.Bindless().Allocate(BindlessSlot::StorageImage);
                 Ctx.Bindless().WriteStorageImage(m_StorageIndex, m_View);
@@ -422,7 +421,7 @@ const luvk::ImageSubview& luvk::Image::Subview(const std::uint32_t MipLevel, con
     const bool OneMip   = MipLevel != AllSubresources || m_MipLevels == 1U;
 
     VkImageViewType Type = VK_IMAGE_VIEW_TYPE_2D;
-    if (m_Extent.depth > 1U)
+    if (m_Extent.Depth > 1U)
     {
         Type = VK_IMAGE_VIEW_TYPE_3D;
     }
@@ -435,7 +434,7 @@ const luvk::ImageSubview& luvk::Image::Subview(const std::uint32_t MipLevel, con
     const VkImageViewCreateInfo ViewInfo{.sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                                          .image            = m_Image,
                                          .viewType         = Type,
-                                         .format           = m_Format,
+                                         .format           = ToVk(m_Format),
                                          .subresourceRange = {m_Aspect,
                                                               MipLevel == AllSubresources ? 0U : MipLevel,
                                                               MipLevel == AllSubresources ? VK_REMAINING_MIP_LEVELS : 1U,
@@ -444,8 +443,8 @@ const luvk::ImageSubview& luvk::Image::Subview(const std::uint32_t MipLevel, con
     Check(vkCreateImageView(m_Context->Device(), &ViewInfo, nullptr, &Created->View), "vkCreateImageView (subview)");
 
     // Combined depth/stencil views cannot be sampled; storage descriptors must cover a single 2D/3D mip level.
-    const bool Sampleable = (m_Usage & VK_IMAGE_USAGE_SAMPLED_BIT) != 0U && m_Aspect != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
-    const bool Storable   = (m_Usage & VK_IMAGE_USAGE_STORAGE_BIT) != 0U && OneMip && (OneLayer || m_Extent.depth > 1U);
+    const bool Sampleable = HasFlags(m_Usage, ImageUsage::Sampled) && m_Aspect != (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT);
+    const bool Storable   = HasFlags(m_Usage, ImageUsage::Storage) && OneMip && (OneLayer || m_Extent.Depth > 1U);
 
     if (Sampleable)
     {
@@ -464,7 +463,12 @@ const luvk::ImageSubview& luvk::Image::Subview(const std::uint32_t MipLevel, con
 
 bool luvk::Image::IsSharedWithTransferQueue() const noexcept
 {
-    return m_Concurrent || (m_Context != nullptr && std::size(m_Context->SharedQueueFamilies()) == 1U);
+    return m_Concurrent || (m_Context != nullptr && !m_Context->HasDedicatedTransferQueue());
+}
+
+bool luvk::Image::IsSharedWithComputeQueue() const noexcept
+{
+    return m_Concurrent || (m_Context != nullptr && (!m_Context->HasAsyncCompute() || m_Context->ComputeQueue().Family() == m_Context->GraphicsQueue().Family()));
 }
 
 void luvk::Image::Upload(const std::span<const std::byte> Data, const std::uint32_t MipLevel, const std::uint32_t ArrayLayer)
@@ -480,4 +484,40 @@ void luvk::Image::Upload(const std::span<const std::byte> Data, const ImageRegio
     }
 
     m_Context->Uploads().Upload(*this, Data, Region);
+}
+
+luvk::Texture2D luvk::Image::Sampled() const
+{
+    if (Is3D() || m_Cube || m_ArrayLayers > 1U)
+    {
+        throw std::logic_error("[luvk] Image::Sampled is for 2D images: use Sampled3D, SampledCube or SampledArray.");
+    }
+    return {m_SampledIndex};
+}
+
+luvk::Texture3D luvk::Image::Sampled3D() const
+{
+    if (!Is3D())
+    {
+        throw std::logic_error("[luvk] Image::Sampled3D needs a 3D image.");
+    }
+    return {m_SampledIndex};
+}
+
+luvk::TextureCube luvk::Image::SampledCube() const
+{
+    if (!m_Cube)
+    {
+        throw std::logic_error("[luvk] Image::SampledCube needs a cube image.");
+    }
+    return {m_SampledIndex};
+}
+
+luvk::TextureArray luvk::Image::SampledArray() const
+{
+    if (Is3D() || m_Cube || m_ArrayLayers == 1U)
+    {
+        throw std::logic_error("[luvk] Image::SampledArray needs a 2D array image.");
+    }
+    return {m_SampledIndex};
 }

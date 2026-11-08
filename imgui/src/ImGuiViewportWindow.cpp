@@ -9,7 +9,7 @@
 namespace
 {
     /** Viewport size in pixels: ImGui sizes are logical units, swapchains are created in pixels. */
-    VkExtent2D FramebufferExtent(const ImGuiViewport& Viewport)
+    luvk::Extent2D FramebufferExtent(const ImGuiViewport& Viewport)
     {
         const float ScaleX = Viewport.FramebufferScale.x > 0.F ? Viewport.FramebufferScale.x : 1.F;
         const float ScaleY = Viewport.FramebufferScale.y > 0.F ? Viewport.FramebufferScale.y : 1.F;
@@ -24,8 +24,8 @@ luvk::imgui::ImGuiViewportWindow::ImGuiViewportWindow(Context& Ctx, ImGuiViewpor
                PresentTargetDesc{.Surface        = Surface,
                                  .OwnsSurface    = true,
                                  .Swapchain      = {.Extent           = FramebufferExtent(*Viewport),
-                                                    .PreferredFormats = {{VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
-                                                                         {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}}},
+                                                    .PreferredFormats = {{Format::B8G8R8A8Unorm, ColorSpace::SrgbNonlinear},
+                                                                         {Format::R8G8B8A8Unorm, ColorSpace::SrgbNonlinear}}},
                                  .FramesInFlight = FramesInFlight,
                                  .Name           = "ImGui viewport"}),
       m_RequestedExtent(FramebufferExtent(*Viewport))
@@ -34,8 +34,8 @@ luvk::imgui::ImGuiViewportWindow::ImGuiViewportWindow(Context& Ctx, ImGuiViewpor
 
 void luvk::imgui::ImGuiViewportWindow::SyncSize()
 {
-    const VkExtent2D Extent = FramebufferExtent(*m_Viewport);
-    if (Extent.width != m_RequestedExtent.width || Extent.height != m_RequestedExtent.height)
+    const Extent2D Extent = FramebufferExtent(*m_Viewport);
+    if (Extent != m_RequestedExtent)
     {
         m_RequestedExtent = Extent;
         m_Target.Resize(Extent);

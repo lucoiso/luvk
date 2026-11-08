@@ -15,10 +15,14 @@ namespace luvk
     class Renderer;
 }
 
+namespace luvk::frame
+{
+    class SceneRenderer;
+}
+
 namespace luvk::app
 {
     class Camera;
-    class SceneRenderer;
 
     /**
      * Built-in diagnostics: frame rate, CPU/GPU timings, scene settings, feature list and resource usage. Draw() shows
@@ -29,7 +33,7 @@ namespace luvk::app
     {
     public:
         /** Constructor. Scene is null for UI-only applications; Camera is null without a fly camera. */
-        Statistics(Context& Ctx, Renderer& TargetRenderer, SceneRenderer* Scene, Camera* Camera, std::string Title = "luvk");
+        Statistics(Context& Ctx, Renderer& TargetRenderer, frame::SceneRenderer* Scene, Camera* Camera, std::string Title = "luvk");
 
         /** Adds the elapsed time since Start to the exponential moving average of CPU stage Index. */
         void RecordCpuTime(std::size_t Index, std::chrono::steady_clock::time_point Start);
@@ -70,7 +74,7 @@ namespace luvk::app
         Renderer& m_Renderer;
 
         /** Optional scene: settings and features listed and edited by the UI. */
-        SceneRenderer* m_Scene;
+        frame::SceneRenderer* m_Scene;
 
         /** Optional fly camera. */
         Camera* m_Camera;

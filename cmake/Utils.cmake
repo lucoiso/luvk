@@ -66,19 +66,15 @@ FUNCTION(LUVK_APPLY_WARNINGS TARGET_NAME)
     ENDIF ()
 ENDFUNCTION()
 
+# Copies the Slang runtime libraries (LUVK_SLANG_RUNTIME_FILES, from the Vulkan SDK or the downloaded release) next to
+# TARGET_NAME's binary. Only those libraries are staged: never slangc, gfx or the SDK's other DLLs.
 FUNCTION(LUVK_STAGE_RUNTIME TARGET_NAME)
-    IF (WIN32 AND TARGET slang AND DEFINED SLANG_ROOT)
-        # Copy only the DLLs the runtime compiler needs; never stage slangc.exe/gfx/module folders in bin/.
-        FILE(GLOB SLANG_RUNTIME_DLLS "${SLANG_ROOT}/bin/*.dll")
-        FOREACH(SLANG_DLL ${SLANG_RUNTIME_DLLS})
-            GET_FILENAME_COMPONENT(SLANG_DLL_NAME "${SLANG_DLL}" NAME)
-            IF (SLANG_DLL_NAME STREQUAL "gfx.dll")
-                CONTINUE()
-            ENDIF ()
-
+    IF (WIN32 AND TARGET slang AND LUVK_SLANG_RUNTIME_FILES)
+        FOREACH(SLANG_RUNTIME_FILE IN LISTS LUVK_SLANG_RUNTIME_FILES)
+            GET_FILENAME_COMPONENT(SLANG_RUNTIME_NAME "${SLANG_RUNTIME_FILE}" NAME)
             ADD_CUSTOM_COMMAND(TARGET ${TARGET_NAME} POST_BUILD
-                               COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SLANG_DLL}" "$<TARGET_FILE_DIR:${TARGET_NAME}>"
-                               COMMENT "Staging ${SLANG_DLL_NAME} for ${TARGET_NAME}"
+                               COMMAND ${CMAKE_COMMAND} -E copy_if_different "${SLANG_RUNTIME_FILE}" "$<TARGET_FILE_DIR:${TARGET_NAME}>"
+                               COMMENT "Staging ${SLANG_RUNTIME_NAME} for ${TARGET_NAME}"
             )
         ENDFOREACH()
     ENDIF ()

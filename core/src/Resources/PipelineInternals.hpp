@@ -10,6 +10,7 @@
 #include <vector>
 #include <utility>
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/Vulkan.hpp"
 #include "luvk/Resources/Pipeline.hpp"
 
 namespace luvk

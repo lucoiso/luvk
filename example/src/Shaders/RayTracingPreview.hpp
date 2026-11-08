@@ -223,7 +223,7 @@ float3 TraceColor(RayDesc Ray)
 void ComputeMain(uint3 Id : SV_DispatchThreadID)
 {
     uint Width, Height;
-    luvk::Images[Push.Image].GetDimensions(Width, Height);
+    LuvkImages[Push.Image].GetDimensions(Width, Height);
     if (Id.x >= Width || Id.y >= Height)
     {
         return;
@@ -252,7 +252,7 @@ void ComputeMain(uint3 Id : SV_DispatchThreadID)
     Color = 1.0 - exp(-Color * Push.Exposure);
     Color = pow(saturate(Color), 1.0 / 2.2);
 
-    luvk::Images[Push.Image][Id.xy] = float4(Color, 1.0);
+    LuvkImages[Push.Image][Id.xy] = float4(Color, 1.0);
 }
 )slang";
 }

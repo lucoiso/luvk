@@ -37,7 +37,15 @@ ADD_LIBRARY(luvk-imgui STATIC ${LUVK_IMGUI_SOURCES})
 ADD_LIBRARY(luvk::imgui ALIAS luvk-imgui)
 TARGET_COMPILE_FEATURES(luvk-imgui PUBLIC cxx_std_23)
 TARGET_INCLUDE_DIRECTORIES(luvk-imgui PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
-TARGET_LINK_LIBRARIES(luvk-imgui PUBLIC luvk::core luvk::platform luvk-imgui-vendor)
+TARGET_LINK_LIBRARIES(luvk-imgui PUBLIC luvk::core luvk::platform luvk-imgui-vendor PRIVATE luvk::vulkan)
+
+LUVK_EMBED_SHADERS(luvk-imgui
+                   HEADER ImGuiShaders.hpp
+                   NAMESPACE luvk::imgui::Shaders
+                   SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders"
+                   SHADERS
+                   ImGui.slang:ImGuiVertex:vertex
+                   ImGui.slang:ImGuiFragment:fragment)
 
 TARGET_COMPILE_DEFINITIONS(luvk-imgui PRIVATE _CRT_SECURE_NO_WARNINGS)
 LUVK_APPLY_WARNINGS(luvk-imgui)

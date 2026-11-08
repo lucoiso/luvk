@@ -6,7 +6,7 @@
 
 #include <cstdint>
 #include <type_traits>
-#include <volk.h>
+#include "luvk/Core/Types.hpp"
 
 #ifndef LUVK_API
 #    define LUVK_API
@@ -42,7 +42,8 @@ namespace luvk
         }
     }
 
-    /** Size of the push constant block shared by every luvk pipeline (guaranteed minimum by the spec). */
+    /** Size of the push constant block shared by every luvk pipeline: 128 bytes, the portable minimum every device
+     *  guarantees (maxPushConstantsSize >= 128). Larger data goes through buffer device addresses. */
     inline constexpr std::uint32_t PushConstantSize = 128U;
 
     /** Sentinel for "no bindless slot". */

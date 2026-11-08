@@ -8,7 +8,7 @@
 #include <span>
 #include <glm/glm.hpp>
 #include <luvk/Scene/MeshRenderer.hpp>
-#include "luvk/App/Feature.hpp"
+#include <luvk/Frame/Feature.hpp>
 
 namespace luvk::app
 {
@@ -19,14 +19,14 @@ namespace luvk::app
      *     auto Meshes = Features().Add<luvk::app::MeshFeature>();
      *     Meshes->Draw(Cube, Material, Transform);
      */
-    class MeshFeature final : public RenderFeature
+    class MeshFeature final : public frame::RenderFeature
     {
     public:
         /** Feature name. */
         [[nodiscard]] std::string_view Name() const override { return "Meshes"; }
 
         /** Draws with the opaque geometry (transparent materials are ordered after the opaque ones inside the pass). */
-        [[nodiscard]] FeatureStage Stage() const override { return FeatureStage::Opaque; }
+        [[nodiscard]] std::string_view Phase() const override { return frame::Phases::Opaque; }
 
         /** Creates the mesh renderer. */
         void OnAttach(Context& Ctx) override;
@@ -35,7 +35,7 @@ namespace luvk::app
         void OnDetach(Context& Ctx) override;
 
         /** Records the queued draws (needs Slots::View, i.e. an application camera). */
-        void AddPasses(FeatureContext& Frame) override;
+        void AddPasses(frame::FeatureContext& Frame) override;
 
         /** Draw statistics and light controls. */
         void OnGui() override;

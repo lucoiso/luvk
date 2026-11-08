@@ -9,11 +9,25 @@
 #include <string>
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/FeatureChain.hpp"
+#include "luvk/Core/Vulkan.hpp"
+#include "luvk/Render/SwapchainProvider.hpp"
+#include "../Core/ErrorInternals.hpp"
+
+namespace
+{
+    /** Slice of the device-loss aware waits (acquire, present fences). */
+    constexpr std::uint64_t WaitSliceNs = 100000000ULL;
+
+    /** Acquisition slices before giving up (10 s): an acquisition that never completes is reported, not waited on forever. */
+    constexpr std::uint32_t MaxAcquireSlices = 100U;
+}
 
 luvk::Swapchain::Swapchain(Context& Ctx, SwapchainDesc Desc)
     : m_Context(Ctx),
       m_Desc(std::move(Desc)),
-      m_Surface(m_Desc.Surface)
+      m_Surface(m_Desc.Surface),
+      m_Provider(m_Desc.Provider)
 {
     if (m_Surface == VK_NULL_HANDLE)
     {
@@ -27,37 +41,100 @@ luvk::Swapchain::Swapchain(Context& Ctx, SwapchainDesc Desc)
     catch (...)
     {
         DestroyImageResources();
-        if (m_Swapchain != VK_NULL_HANDLE)
-        {
-            vkDestroySwapchainKHR(m_Context.Device(), m_Swapchain, nullptr);
-            m_Swapchain = VK_NULL_HANDLE;
-        }
+        DestroyHandle(m_Swapchain);
+        m_Swapchain = VK_NULL_HANDLE;
         throw;
     }
 }
 
+luvk::SwapchainFunctions luvk::Swapchain::ResolveFunctions() const
+{
+    SwapchainFunctions Functions = m_Provider ? m_Provider->Functions() : SwapchainFunctions{};
+    if (Functions.GetImages == nullptr)
+    {
+        Functions.GetImages = vkGetSwapchainImagesKHR;
+    }
+    if (Functions.Acquire == nullptr)
+    {
+        Functions.Acquire = vkAcquireNextImageKHR;
+    }
+    if (Functions.Present == nullptr)
+    {
+        Functions.Present = vkQueuePresentKHR;
+    }
+    return Functions;
+}
+
+void luvk::Swapchain::DestroyHandle(const VkSwapchainKHR Handle) noexcept
+{
+    if (Handle == VK_NULL_HANDLE)
+    {
+        return;
+    }
+
+    if (m_Provider)
+    {
+        m_Provider->Destroy(m_Context, Handle);
+    }
+    else
+    {
+        vkDestroySwapchainKHR(m_Context.Device(), Handle, nullptr);
+    }
+}
+
+bool luvk::Swapchain::SetVSync(const bool Enabled)
+{
+    const std::vector<luvk::PresentMode> Modes =
+            Enabled ? std::vector{PresentMode::Fifo} : std::vector{PresentMode::Mailbox, PresentMode::Immediate, PresentMode::Fifo};
+    if (m_Desc.PreferredPresentModes == Modes)
+    {
+        return IsValid();
+    }
+
+    m_Desc.PreferredPresentModes = Modes;
+    return Recreate(m_Extent);
+}
+
+bool luvk::Swapchain::SetProvider(std::shared_ptr<SwapchainProvider> Provider)
+{
+    if (Provider == m_Provider)
+    {
+        return IsValid();
+    }
+
+    m_Context.GraphicsQueue().WaitIdle();
+    WaitForAllPresents();
+
+    // A swapchain created by the previous provider goes back to it; a core swapchain is handed to the new provider.
+    if (m_Swapchain != VK_NULL_HANDLE && m_Provider)
+    {
+        DestroyImageResources();
+        DestroyHandle(m_Swapchain);
+        m_Swapchain = VK_NULL_HANDLE;
+    }
+
+    m_Provider = std::move(Provider);
+    return Recreate(m_Desc.Extent);
+}
+
 luvk::Swapchain::~Swapchain()
 {
-
     try
     {
+        // Returns at once after a device loss.
         m_Context.GraphicsQueue().WaitIdle();
     }
     catch (...)
     {
-
     }
 
     WaitForAllPresents();
     DestroyImageResources();
-    if (m_Swapchain != VK_NULL_HANDLE)
-    {
-        vkDestroySwapchainKHR(m_Context.Device(), m_Swapchain, nullptr);
-        m_Swapchain = VK_NULL_HANDLE;
-    }
+    DestroyHandle(m_Swapchain);
+    m_Swapchain = VK_NULL_HANDLE;
 }
 
-bool luvk::Swapchain::Recreate(const VkExtent2D RequestedExtent)
+bool luvk::Swapchain::Recreate(const Extent2D RequestedExtent)
 {
     const VkPhysicalDevice PhysicalDevice = m_Context.PhysicalDevice();
     const VkSurfaceKHR     Surface        = m_Surface;
@@ -71,8 +148,8 @@ bool luvk::Swapchain::Recreate(const VkExtent2D RequestedExtent)
     VkExtent2D Extent = Capabilities.currentExtent;
     if (Extent.width == UINT32_MAX)
     {
-        Extent.width  = std::clamp(RequestedExtent.width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
-        Extent.height = std::clamp(RequestedExtent.height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
+        Extent.width  = std::clamp(RequestedExtent.Width, Capabilities.minImageExtent.width, Capabilities.maxImageExtent.width);
+        Extent.height = std::clamp(RequestedExtent.Height, Capabilities.minImageExtent.height, Capabilities.maxImageExtent.height);
     }
 
     // A minimised window keeps reporting a zero extent: bail out before stalling the queue every frame.
@@ -92,13 +169,13 @@ bool luvk::Swapchain::Recreate(const VkExtent2D RequestedExtent)
         throw std::runtime_error("[luvk] The surface reports no formats.");
     }
 
-    m_Format = Formats.front();
-    for (const VkSurfaceFormatKHR& Wanted : m_Desc.PreferredFormats)
+    m_Format = SurfaceFormat{FromVk(Formats.front().format), static_cast<luvk::ColorSpace>(Formats.front().colorSpace)};
+    for (const SurfaceFormat& Wanted : m_Desc.PreferredFormats)
     {
         if (std::ranges::any_of(Formats,
                                 [&](const VkSurfaceFormatKHR& It)
                                 {
-                                    return It.format == Wanted.format && It.colorSpace == Wanted.colorSpace;
+                                    return It.format == ToVk(Wanted.Format) && It.colorSpace == ToVk(Wanted.ColorSpace);
                                 }))
         {
             m_Format = Wanted;
@@ -106,10 +183,10 @@ bool luvk::Swapchain::Recreate(const VkExtent2D RequestedExtent)
         }
     }
 
-    m_PresentMode = VK_PRESENT_MODE_FIFO_KHR;
-    for (const VkPresentModeKHR Wanted : m_Desc.PreferredPresentModes)
+    m_PresentMode = PresentMode::Fifo;
+    for (const luvk::PresentMode Wanted : m_Desc.PreferredPresentModes)
     {
-        if (std::ranges::find(Modes, Wanted) != std::end(Modes))
+        if (std::ranges::find(Modes, ToVk(Wanted)) != std::end(Modes))
         {
             m_PresentMode = Wanted;
             break;
@@ -122,22 +199,22 @@ bool luvk::Swapchain::Recreate(const VkExtent2D RequestedExtent)
         ImageCount = std::min(ImageCount, Capabilities.maxImageCount);
     }
 
-    const VkImageUsageFlags Usage = m_Desc.Usage & Capabilities.supportedUsageFlags;
+    const VkImageUsageFlags Usage = ToVk(m_Desc.Usage) & Capabilities.supportedUsageFlags;
     if ((Usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) == 0U)
     {
         throw std::runtime_error("[luvk] The surface does not support color attachment usage.");
     }
 
     VkCompositeAlphaFlagBitsKHR CompositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
-    if ((Capabilities.supportedCompositeAlpha & m_Desc.PreferredCompositeAlpha) != 0U)
+    if ((Capabilities.supportedCompositeAlpha & ToVk(m_Desc.PreferredCompositeAlpha)) != 0U)
     {
-        CompositeAlpha = m_Desc.PreferredCompositeAlpha;
+        CompositeAlpha = ToVk(m_Desc.PreferredCompositeAlpha);
     }
     else
     {
         // A caller asking for transparency should keep an alpha mode if the preferred one is missing; a
         // caller asking for opaque should stay opaque. Within each group, prefer the standard modes.
-        const bool PreferAlpha = m_Desc.PreferredCompositeAlpha != VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+        const bool PreferAlpha = m_Desc.PreferredCompositeAlpha != luvk::CompositeAlpha::Opaque;
         const std::array<VkCompositeAlphaFlagBitsKHR, 4> Candidates = PreferAlpha
                                                                           ? std::array{VK_COMPOSITE_ALPHA_POST_MULTIPLIED_BIT_KHR,
                                                                                        VK_COMPOSITE_ALPHA_PRE_MULTIPLIED_BIT_KHR,
@@ -157,42 +234,59 @@ bool luvk::Swapchain::Recreate(const VkExtent2D RequestedExtent)
             }
         }
     }
-    m_CompositeAlpha = CompositeAlpha;
+    m_CompositeAlpha = FromVk(CompositeAlpha);
 
     const VkSwapchainKHR Old = m_Swapchain;
+
+    const bool UsePresentFences = m_Context.SupportsPresentFences() && (!m_Provider || m_Provider->SupportsPresentFences());
 
     const VkSwapchainCreateInfoKHR CreateInfo{.sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
                                               .surface          = Surface,
                                               .minImageCount    = ImageCount,
-                                              .imageFormat      = m_Format.format,
-                                              .imageColorSpace  = m_Format.colorSpace,
+                                              .imageFormat      = ToVk(m_Format.Format),
+                                              .imageColorSpace  = ToVk(m_Format.ColorSpace),
                                               .imageExtent      = Extent,
                                               .imageArrayLayers = 1U,
                                               .imageUsage       = Usage,
                                               .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE,
                                               .preTransform     = Capabilities.currentTransform,
                                               .compositeAlpha   = CompositeAlpha,
-                                              .presentMode      = m_PresentMode,
+                                              .presentMode      = ToVk(m_PresentMode),
                                               .clipped          = VK_TRUE,
                                               .oldSwapchain     = Old};
 
     VkSwapchainKHR Created = VK_NULL_HANDLE;
-    Check(vkCreateSwapchainKHR(Device, &CreateInfo, nullptr, &Created), "vkCreateSwapchainKHR");
-
-    DestroyImageResources();
-    if (Old != VK_NULL_HANDLE)
+    if (m_Provider)
     {
-        vkDestroySwapchainKHR(Device, Old, nullptr);
+        // The provider takes the old swapchain over (it destroys it), so nothing may reference its images anymore.
+        DestroyImageResources();
+        Created = Old;
+        m_Swapchain = VK_NULL_HANDLE;
+        Check(m_Provider->Create(m_Context, CreateInfo, Created), "SwapchainProvider::Create");
+        if (Created == VK_NULL_HANDLE)
+        {
+            throw std::runtime_error("[luvk] SwapchainProvider::Create returned VK_NULL_HANDLE.");
+        }
+    }
+    else
+    {
+        Check(vkCreateSwapchainKHR(Device, &CreateInfo, nullptr, &Created), "vkCreateSwapchainKHR");
+
+        DestroyImageResources();
+        if (Old != VK_NULL_HANDLE)
+        {
+            vkDestroySwapchainKHR(Device, Old, nullptr);
+        }
     }
 
     m_Swapchain = Created;
-    m_Extent    = Extent;
-    m_Images    = Enumerate<VkImage>(vkGetSwapchainImagesKHR, Device, m_Swapchain);
+    m_Extent    = FromVk(Extent);
+    m_Images    = Enumerate<VkImage>(ResolveFunctions().GetImages, Device, m_Swapchain);
 
     m_Views.resize(std::size(m_Images), VK_NULL_HANDLE);
     m_RenderFinished.resize(std::size(m_Images), VK_NULL_HANDLE);
 
-    if (m_Context.SupportsPresentFences())
+    if (UsePresentFences)
     {
         constexpr VkFenceCreateInfo FenceInfo{.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, .flags = VK_FENCE_CREATE_SIGNALED_BIT};
         m_PresentFences.resize(std::size(m_Images), VK_NULL_HANDLE);
@@ -210,7 +304,7 @@ bool luvk::Swapchain::Recreate(const VkExtent2D RequestedExtent)
         const VkImageViewCreateInfo ViewInfo{.sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                                              .image            = m_Images[Index],
                                              .viewType         = VK_IMAGE_VIEW_TYPE_2D,
-                                             .format           = m_Format.format,
+                                             .format           = ToVk(m_Format.Format),
                                              .subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0U, 1U, 0U, 1U}};
         Check(vkCreateImageView(Device, &ViewInfo, nullptr, &m_Views[Index]), "vkCreateImageView (swapchain)");
         Check(vkCreateSemaphore(Device, &SemaphoreInfo, nullptr, &m_RenderFinished[Index]), "vkCreateSemaphore (render finished)");
@@ -230,7 +324,28 @@ luvk::SwapchainStatus luvk::Swapchain::Acquire(const VkSemaphore Signal, std::ui
         return SwapchainStatus::OutOfDate;
     }
 
-    const VkResult Result = vkAcquireNextImageKHR(m_Context.Device(), m_Swapchain, UINT64_MAX, Signal, VK_NULL_HANDLE, &OutImageIndex);
+    // Sliced acquisition: a device loss reported elsewhere ends it, and an acquisition that never completes is reported.
+    const PFN_vkAcquireNextImageKHR Acquire = ResolveFunctions().Acquire;
+    VkResult                        Result  = VK_TIMEOUT;
+    for (std::uint32_t Slice = 0U; Slice < MaxAcquireSlices; ++Slice)
+    {
+        Result = Acquire(m_Context.Device(), m_Swapchain, WaitSliceNs, Signal, VK_NULL_HANDLE, &OutImageIndex);
+        if (Result != VK_TIMEOUT && Result != VK_NOT_READY)
+        {
+            break;
+        }
+
+        if (m_Context.IsDeviceLost())
+        {
+            Check(VK_ERROR_DEVICE_LOST, "vkAcquireNextImageKHR (device lost while waiting)");
+        }
+    }
+
+    if (Result == VK_TIMEOUT || Result == VK_NOT_READY)
+    {
+        throw std::runtime_error("[luvk] vkAcquireNextImageKHR did not return an image within 10 seconds (GPU hang or presentation engine stall).");
+    }
+
     switch (Result)
     {
     case VK_SUCCESS: return SwapchainStatus::Ok;
@@ -263,7 +378,11 @@ luvk::SwapchainStatus luvk::Swapchain::Present(const std::uint32_t ImageIndex)
                                 .pSwapchains        = &m_Swapchain,
                                 .pImageIndices      = &ImageIndex};
 
-    const VkResult Result = m_Context.GraphicsQueue().Present(Info);
+    const PFN_vkQueuePresentKHR Present = ResolveFunctions().Present;
+    const VkResult              Result  = m_Context.GraphicsQueue().WithLock([&](const VkQueue Queue)
+    {
+        return Present(Queue, &Info);
+    });
 
     if (UseFence && (Result == VK_SUCCESS || Result == VK_SUBOPTIMAL_KHR || Result == VK_ERROR_OUT_OF_DATE_KHR))
     {
@@ -285,7 +404,20 @@ void luvk::Swapchain::WaitForPresent(const std::uint32_t ImageIndex)
 {
     if (ImageIndex < std::size(m_PresentFences) && m_PresentPending[ImageIndex] != 0)
     {
-        Check(vkWaitForFences(m_Context.Device(), 1U, &m_PresentFences[ImageIndex], VK_TRUE, UINT64_MAX), "vkWaitForFences (present)");
+        // Sliced wait: once the device is lost the fence will never signal, the present is treated as done.
+        while (!m_Context.IsDeviceLost())
+        {
+            const VkResult Result = vkWaitForFences(m_Context.Device(), 1U, &m_PresentFences[ImageIndex], VK_TRUE, WaitSliceNs);
+            if (Result == VK_SUCCESS)
+            {
+                break;
+            }
+            if (Result != VK_TIMEOUT)
+            {
+                Check(Result, "vkWaitForFences (present)");
+                break;
+            }
+        }
         m_PresentPending[ImageIndex] = 0;
     }
 }

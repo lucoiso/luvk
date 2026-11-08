@@ -10,6 +10,8 @@
 #include <vector>
 #include "luvk/Core/Common.hpp"
 
+struct VkDescriptorImageInfo;
+
 namespace luvk
 {
     class Context;
@@ -56,16 +58,16 @@ namespace luvk
         mutable std::mutex m_Mutex;
 
         /** Bindless set layout (update-after-bind and partially bound flags on every binding). */
-        VkDescriptorSetLayout m_SetLayout = VK_NULL_HANDLE;
+        VkDescriptorSetLayout m_SetLayout = nullptr;
 
         /** Descriptor pool backing the single bindless set. */
-        VkDescriptorPool m_Pool = VK_NULL_HANDLE;
+        VkDescriptorPool m_Pool = nullptr;
 
         /** The global descriptor set bound at set 0. */
-        VkDescriptorSet m_Set = VK_NULL_HANDLE;
+        VkDescriptorSet m_Set = nullptr;
 
         /** Pipeline layout shared by every luvk pipeline (bindless set + push constants). */
-        VkPipelineLayout m_PipelineLayout = VK_NULL_HANDLE;
+        VkPipelineLayout m_PipelineLayout = nullptr;
 
     public:
         /** Constructor: creates the layout, pool, descriptor set and shared pipeline layout from Limits. */
@@ -86,8 +88,9 @@ namespace luvk
         /** Frees a slot immediately. Slots the GPU may still read must go through Context::Retire (RetiredKind::BindlessSlot). */
         void Free(BindlessSlot Slot, std::uint32_t Index) noexcept;
 
-        /** Writes an image view (with its layout, default VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL) into the sampled image array. */
-        void WriteSampledImage(std::uint32_t Index, VkImageView View, VkImageLayout Layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL) const;
+        /** Writes an image view into the sampled image array, in VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL: the layout the
+         *  render graph and the upload path leave sampled images in, also for depth formats. */
+        void WriteSampledImage(std::uint32_t Index, VkImageView View) const;
 
         /** Writes a sampler into the sampler array. */
         void WriteSampler(std::uint32_t Index, VkSampler Sampler) const;

@@ -80,9 +80,9 @@ glm::mat4 luvk::app::Camera::ProjectionMatrix(const float AspectRatio) const
     return Projection;
 }
 
-luvk::app::ViewData luvk::app::Camera::MakeView(const float AspectRatio) const
+luvk::frame::ViewData luvk::app::Camera::MakeView(const float AspectRatio) const
 {
-    ViewData Data{.View = ViewMatrix(), .Projection = ProjectionMatrix(AspectRatio), .Position = Position, .Near = Near, .Far = Far, .ReverseDepth = ReverseDepth};
+    frame::ViewData Data{.View = ViewMatrix(), .Projection = ProjectionMatrix(AspectRatio), .Position = Position, .Near = Near, .Far = Far, .ReverseDepth = ReverseDepth};
     Data.ViewProjection        = Data.Projection * Data.View;
     Data.InverseViewProjection = glm::inverse(Data.ViewProjection);
     return Data;

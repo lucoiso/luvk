@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -14,6 +15,8 @@
 #include "luvk/Render/Swapchain.hpp"
 #include "luvk/Resources/ResourceState.hpp"
 
+struct VkSemaphoreSubmitInfo;
+
 namespace luvk
 {
     class Context;
@@ -22,7 +25,7 @@ namespace luvk
     struct PresentTargetDesc
     {
         /** Surface to present to (required). */
-        VkSurfaceKHR Surface = VK_NULL_HANDLE;
+        VkSurfaceKHR Surface = nullptr;
 
         /** Destroys Surface together with the target (true for surfaces created for this target). */
         bool OwnsSurface = true;
@@ -44,10 +47,10 @@ namespace luvk
         TextureHandle Texture = {};
 
         /** Image extent in pixels. */
-        VkExtent2D Extent = {};
+        Extent2D Extent = {};
 
         /** Image format. */
-        VkFormat Format = VK_FORMAT_UNDEFINED;
+        luvk::Format Format = luvk::Format::Undefined;
 
         /** Index of the image inside the swapchain. */
         std::uint32_t ImageIndex = 0U;
@@ -67,7 +70,7 @@ namespace luvk
         Context& m_Context;
 
         /** Surface presented to. */
-        VkSurfaceKHR m_Surface = VK_NULL_HANDLE;
+        VkSurfaceKHR m_Surface = nullptr;
 
         /** True when the surface is destroyed with the target. */
         bool m_OwnsSurface = true;
@@ -88,7 +91,7 @@ namespace luvk
         std::vector<std::uint32_t> m_AcquiredImages;
 
         /** Extent requested through Resize, applied before the next acquisition. */
-        VkExtent2D m_PendingExtent = {};
+        Extent2D m_PendingExtent = {};
 
         /** Set when the swapchain must be recreated before the next acquisition. */
         bool m_NeedsRecreate = false;
@@ -107,19 +110,38 @@ namespace luvk
         PresentTarget& operator=(const PresentTarget&) = delete;
 
         /** Requests a new size; the swapchain is recreated before the next acquisition. */
-        void Resize(VkExtent2D NewExtent) noexcept;
+        void Resize(Extent2D NewExtent) noexcept;
 
         /** Current swapchain extent in pixels ({0, 0} while not renderable). */
-        [[nodiscard]] VkExtent2D Extent() const noexcept;
+        [[nodiscard]] Extent2D Extent() const noexcept;
 
         /** Swapchain image format (VK_FORMAT_UNDEFINED while not renderable). */
-        [[nodiscard]] VkFormat Format() const noexcept;
+        [[nodiscard]] luvk::Format Format() const noexcept;
 
         /** Composite alpha mode selected for the surface. */
-        [[nodiscard]] VkCompositeAlphaFlagBitsKHR CompositeAlpha() const noexcept;
+        [[nodiscard]] luvk::CompositeAlpha CompositeAlpha() const noexcept;
+
+        /** Present mode currently in use (FIFO while not renderable). */
+        [[nodiscard]] luvk::PresentMode PresentMode() const noexcept;
 
         /** True when a swapchain exists. */
         [[nodiscard]] bool IsRenderable() const noexcept { return m_Swapchain.has_value() && m_Swapchain->IsValid(); }
+
+        /** Current VkSwapchainKHR (nullptr while not renderable), e.g. for third-party presentation libraries. */
+        [[nodiscard]] VkSwapchainKHR SwapchainHandle() const noexcept;
+
+        /**
+         * Installs (or removes, with nullptr) a SwapchainProvider and recreates the swapchain through it. Waits for the
+         * graphics queue and pending presents first. Must not be called between Renderer::BeginFrame and EndFrame when the
+         * target was acquired (Renderer::SetSwapchainProvider does it safely for the main target).
+         */
+        void SetProvider(std::shared_ptr<SwapchainProvider> Provider);
+
+        /** Installed swapchain provider (null when the core Vulkan functions are used). */
+        [[nodiscard]] std::shared_ptr<SwapchainProvider> Provider() const noexcept;
+
+        /** Switches FIFO VSync on/off; the caller must not have an acquired image. Recreates the swapchain. */
+        bool SetVSync(bool Enabled);
 
     private:
         /** Recreates the swapchain if requested; false when nothing can be presented right now (e.g. minimised). */

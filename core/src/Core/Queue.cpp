@@ -3,20 +3,29 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Core/Queue.hpp"
+#include <algorithm>
 #include <vector>
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/Vulkan.hpp"
 
 luvk::Queue::~Queue()
 {
     Destroy();
 }
 
-void luvk::Queue::Initialize(const VkDevice Device, const VkQueue Handle, const std::uint32_t Family, std::mutex& Mutex)
+void luvk::Queue::Initialize(const VkDevice                 Device,
+                             const VkQueue                  Handle,
+                             const std::uint32_t            Family,
+                             std::recursive_mutex&          Mutex,
+                             const std::uint32_t            Index,
+                             const std::atomic<bool>* const DeviceLost)
 {
-    m_Device = Device;
-    m_Queue  = Handle;
-    m_Family = Family;
-    m_Mutex  = &Mutex;
+    m_Device     = Device;
+    m_Queue      = Handle;
+    m_Family     = Family;
+    m_Index      = Index;
+    m_Mutex      = &Mutex;
+    m_DeviceLost = DeviceLost;
     m_NextValue.store(1U, std::memory_order_release);
 
     constexpr VkSemaphoreTypeCreateInfo TypeInfo{.sType         = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
@@ -67,7 +76,7 @@ std::uint64_t luvk::Queue::Submit(const std::span<const VkCommandBufferSubmitInf
     return Value;
 }
 
-VkResult luvk::Queue::Present(const VkPresentInfoKHR& Info)
+std::int32_t luvk::Queue::Present(const VkPresentInfoKHR& Info)
 {
     std::scoped_lock Lock(*m_Mutex);
     return vkQueuePresentKHR(m_Queue, &Info);
@@ -75,13 +84,25 @@ VkResult luvk::Queue::Present(const VkPresentInfoKHR& Info)
 
 void luvk::Queue::WaitIdle()
 {
+    if (m_Queue == VK_NULL_HANDLE || IsDeviceLost())
+    {
+        return;
+    }
+
+    // The sliced timeline wait ends early on a device loss observed elsewhere; the idle wait under the lock then also
+    // covers work third parties submitted through WithLock.
+    (void)Wait(LastSubmittedValue());
+
     std::scoped_lock Lock(*m_Mutex);
-    Check(vkQueueWaitIdle(m_Queue), "vkQueueWaitIdle");
+    if (!IsDeviceLost())
+    {
+        Check(vkQueueWaitIdle(m_Queue), "vkQueueWaitIdle");
+    }
 }
 
 bool luvk::Queue::Wait(const std::uint64_t Value, const std::uint64_t TimeoutNs) const
 {
-    if (Value == 0U)
+    if (Value == 0U || IsDeviceLost())
     {
         return true;
     }
@@ -91,13 +112,49 @@ bool luvk::Queue::Wait(const std::uint64_t Value, const std::uint64_t TimeoutNs)
                                        .pSemaphores    = &m_Timeline,
                                        .pValues        = &Value};
 
-    const VkResult Result = vkWaitSemaphores(m_Device, &WaitInfo, TimeoutNs);
-    Check(Result, "vkWaitSemaphores");
-    return Result == VK_SUCCESS;
+    // Slices keep a wait responsive to a device loss observed elsewhere (another queue, a present, a fence).
+    constexpr std::uint64_t SliceNs   = 100000000ULL;
+    std::uint64_t           Remaining = TimeoutNs;
+
+    while (true)
+    {
+        const std::uint64_t Slice  = TimeoutNs == UINT64_MAX ? SliceNs : std::min(Remaining, SliceNs);
+        const VkResult      Result = vkWaitSemaphores(m_Device, &WaitInfo, Slice);
+        if (Result == VK_SUCCESS)
+        {
+            return true;
+        }
+
+        if (Result != VK_TIMEOUT)
+        {
+            // VK_ERROR_DEVICE_LOST is reported (once) and thrown by Check.
+            Check(Result, "vkWaitSemaphores");
+            return true;
+        }
+
+        if (IsDeviceLost())
+        {
+            return true;
+        }
+
+        if (TimeoutNs != UINT64_MAX)
+        {
+            Remaining -= Slice;
+            if (Remaining == 0U)
+            {
+                return false;
+            }
+        }
+    }
 }
 
 std::uint64_t luvk::Queue::CompletedValue() const
 {
+    if (IsDeviceLost())
+    {
+        return LastSubmittedValue();
+    }
+
     std::uint64_t Value = 0U;
     Check(vkGetSemaphoreCounterValue(m_Device, m_Timeline, &Value), "vkGetSemaphoreCounterValue");
     return Value;

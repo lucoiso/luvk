@@ -4,7 +4,7 @@
 
 #include "luvk/App/MeshFeature.hpp"
 #include <imgui.h>
-#include "luvk/App/Scene.hpp"
+#include <luvk/Frame/Slots.hpp>
 
 void luvk::app::MeshFeature::OnAttach(Context& Ctx)
 {
@@ -16,13 +16,13 @@ void luvk::app::MeshFeature::OnDetach(Context&)
     m_Renderer.reset();
 }
 
-void luvk::app::MeshFeature::AddPasses(FeatureContext& Frame)
+void luvk::app::MeshFeature::AddPasses(frame::FeatureContext& Frame)
 {
-    const ViewData* const View = Frame.Board.Find<ViewData>(Slots::View);
+    const frame::ViewData* const View = Frame.Board.Find(frame::Slots::View);
     m_Renderer->AddPasses(Frame.Graph,
                           Frame.Allocator,
-                          scene::MeshTargets{.Color          = View != nullptr ? Frame.Board.FindTexture(Slots::SceneColor) : TextureHandle{},
-                                             .Depth          = Frame.Board.FindTexture(Slots::SceneDepth),
+                          scene::MeshTargets{.Color          = View != nullptr ? Frame.Board.FindTexture(frame::Slots::SceneColor) : TextureHandle{},
+                                             .Depth          = Frame.Board.FindTexture(frame::Slots::SceneDepth),
                                              .ColorFormat    = Frame.Settings.ColorFormat,
                                              .DepthFormat    = Frame.Settings.DepthFormat,
                                              .ViewProjection = View != nullptr ? View->ViewProjection : glm::mat4{1.F},

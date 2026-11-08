@@ -24,7 +24,13 @@ TARGET_INCLUDE_DIRECTORIES(luvk-core
                            ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-TARGET_LINK_LIBRARIES(luvk-core PUBLIC volk VulkanMemoryAllocator)
+# volk and VMA are private: the public headers declare luvk types and opaque handles only. Interop code that includes
+# luvk/Core/Vulkan.hpp links luvk::vulkan, which adds their include directories.
+TARGET_LINK_LIBRARIES(luvk-core PRIVATE volk VulkanMemoryAllocator luvk-spirv-reflect)
+
+ADD_LIBRARY(luvk-vulkan INTERFACE)
+ADD_LIBRARY(luvk::vulkan ALIAS luvk-vulkan)
+TARGET_LINK_LIBRARIES(luvk-vulkan INTERFACE luvk-core volk VulkanMemoryAllocator)
 
 IF (WIN32)
     TARGET_COMPILE_DEFINITIONS(luvk-core PRIVATE NOMINMAX WIN32_LEAN_AND_MEAN)
@@ -43,6 +49,4 @@ INSTALL(TARGETS luvk-core
 )
 INSTALL(DIRECTORY include/ DESTINATION include)
 
-# Package-config export is intentionally not installed yet: the public core headers expose volk and
-# VulkanMemoryAllocator, which are fetched dependencies and must be packaged first. External projects
-# can consume luvk with add_subdirectory/FetchContent in the meantime.
+# Package-config export is not installed yet: external projects consume luvk with add_subdirectory/FetchContent.

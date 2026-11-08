@@ -7,13 +7,13 @@
 #include <string>
 #include <string_view>
 #include <glm/glm.hpp>
-#include <luvk/App/Feature.hpp>
+#include <luvk/Frame/Feature.hpp>
 #include <luvk/Resources/Pipeline.hpp>
 
 namespace Example
 {
     /** Mesh shading: a task shader launches one mesh workgroup per cube face (needs VK_EXT_mesh_shader). */
-    class MeshShaderCube final : public luvk::app::RenderFeature
+    class MeshShaderCube final : public luvk::frame::RenderFeature
     {
     public:
         /** Constructor: places the cube at Position. */
@@ -27,7 +27,7 @@ namespace Example
         luvk::Pipeline m_Pipeline;
 
         /** Color format the pipeline was built for. */
-        VkFormat m_Format = VK_FORMAT_UNDEFINED;
+        luvk::Format m_Format = luvk::Format::Undefined;
 
         /** Wireframe setting the pipeline was built for. */
         bool m_Wireframe = false;
@@ -52,7 +52,7 @@ namespace Example
         [[nodiscard]] std::string_view Name() const override { return "Mesh Shader Cube"; }
 
         /** Stage in the frame graph (opaque geometry). */
-        [[nodiscard]] luvk::app::FeatureStage Stage() const override { return luvk::app::FeatureStage::Opaque; }
+        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Opaque; }
 
         /** Checks the mesh shader feature requirements. */
         void OnAttach(luvk::Context& Ctx) override;
@@ -61,7 +61,7 @@ namespace Example
         void Update(float DeltaTime) override;
 
         /** Adds the cube pass for this frame. */
-        void AddPasses(luvk::app::FeatureContext& Frame) override;
+        void AddPasses(luvk::frame::FeatureContext& Frame) override;
 
         /** Draws the rotation speed slider. */
         void OnGui() override;

@@ -9,6 +9,8 @@
 #include <vector>
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/FeatureChain.hpp"
+#include "luvk/Core/Vulkan.hpp"
 
 namespace
 {
@@ -124,9 +126,14 @@ luvk::BindlessHeap::BindlessHeap(Context& Ctx, const BindlessLimits& Limits)
                                                        .pSetLayouts        = &m_SetLayout};
         Check(vkAllocateDescriptorSets(Device, &AllocateInfo, &m_Set), "vkAllocateDescriptorSets (bindless)");
 
-        const VkPushConstantRange PushRange{.stageFlags = VK_SHADER_STAGE_ALL,
-                                            .offset     = 0U,
-                                            .size       = std::min(PushConstantSize, Ctx.Properties().limits.maxPushConstantsSize)};
+        // PushConstantSize is the spec minimum of maxPushConstantsSize, so the whole block is always available and
+        // CommandList::PushConstants can validate against the same constant.
+        if (Ctx.Properties().limits.maxPushConstantsSize < PushConstantSize)
+        {
+            throw std::runtime_error("[luvk] The device reports maxPushConstantsSize below the 128 bytes required by the specification.");
+        }
+
+        const VkPushConstantRange PushRange{.stageFlags = VK_SHADER_STAGE_ALL, .offset = 0U, .size = PushConstantSize};
 
         const VkPipelineLayoutCreateInfo PipelineLayoutInfo{.sType                  = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
                                                             .setLayoutCount         = 1U,
@@ -214,9 +221,9 @@ void luvk::BindlessHeap::Free(const BindlessSlot Slot, const std::uint32_t Index
     Allocator.FreeList.push_back(Index);
 }
 
-void luvk::BindlessHeap::WriteSampledImage(const std::uint32_t Index, const VkImageView View, const VkImageLayout Layout) const
+void luvk::BindlessHeap::WriteSampledImage(const std::uint32_t Index, const VkImageView View) const
 {
-    Write(BindlessSlot::SampledImage, Index, VkDescriptorImageInfo{.imageView = View, .imageLayout = Layout});
+    Write(BindlessSlot::SampledImage, Index, VkDescriptorImageInfo{.imageView = View, .imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL});
 }
 
 void luvk::BindlessHeap::WriteSampler(const std::uint32_t Index, const VkSampler Sampler) const

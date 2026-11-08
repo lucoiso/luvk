@@ -10,9 +10,9 @@
 #include <luvk/Core/Context.hpp>
 #include <luvk/Render/Renderer.hpp>
 #include "luvk/App/Camera.hpp"
-#include "luvk/App/SceneRenderer.hpp"
+#include <luvk/Frame/SceneRenderer.hpp>
 
-luvk::app::Statistics::Statistics(Context& Ctx, Renderer& TargetRenderer, SceneRenderer* Scene, Camera* Camera, std::string Title)
+luvk::app::Statistics::Statistics(Context& Ctx, Renderer& TargetRenderer, frame::SceneRenderer* Scene, Camera* Camera, std::string Title)
     : m_Context(Ctx),
       m_Renderer(TargetRenderer),
       m_Scene(Scene),
@@ -72,15 +72,15 @@ void luvk::app::Statistics::DrawSummary() const
 {
     const ImGuiIO& IO = ImGui::GetIO();
     ImGui::Text("%.1f FPS (%.2f ms)", IO.Framerate, 1000.F / std::max(IO.Framerate, 0.001F));
-    ImGui::TextDisabled("%s", m_Context.Properties().deviceName);
+    ImGui::TextDisabled("%s", m_Context.Limits().DeviceName);
     if (m_Scene != nullptr)
     {
-        const FrameSettings& Settings = m_Scene->Settings();
+        const frame::FrameSettings& Settings = m_Scene->Settings();
         ImGui::TextDisabled("Output %ux%u  Render %ux%u",
-                            Settings.OutputExtent.width,
-                            Settings.OutputExtent.height,
-                            Settings.RenderExtent.width,
-                            Settings.RenderExtent.height);
+                            Settings.OutputExtent.Width,
+                            Settings.OutputExtent.Height,
+                            Settings.RenderExtent.Width,
+                            Settings.RenderExtent.Height);
     }
     ImGui::TextDisabled("Dear ImGui %s - backend: luvk (bindless)", IMGUI_VERSION);
 }
@@ -160,6 +160,16 @@ void luvk::app::Statistics::DrawProfiling() const
     else
     {
         ImGui::TextDisabled("GPU timings unavailable");
+    }
+
+    if (const GpuProfiler* const Async = m_Renderer.AsyncProfiler(); Async != nullptr && Async->IsSupported() && !std::empty(Async->Results()))
+    {
+        ImGui::Separator();
+        ImGui::Text("%-22s %7.3f ms", m_Context.HasAsyncCompute() ? "Async compute (GPU)" : "Async graph (GPU)", Async->Frame().Average);
+        for (const PassTiming& Timing : Async->Results())
+        {
+            ImGui::Text("  %-20s %7.3f ms", Timing.Name.c_str(), Timing.Average);
+        }
     }
 
     ImGui::Separator();

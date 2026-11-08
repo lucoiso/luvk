@@ -118,8 +118,8 @@ void luvk::imgui::ImGuiRenderer::UpdateTextures()
 
             auto Texture = std::make_unique<Image>(m_Context,
                                                    ImageDesc{.Extent = {static_cast<std::uint32_t>(Data->Width), static_cast<std::uint32_t>(Data->Height), 1U},
-                                                             .Format = VK_FORMAT_R8G8B8A8_UNORM,
-                                                             .Usage  = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                                             .Format = Format::R8G8B8A8Unorm,
+                                                             .Usage  = ImageUsage::Sampled,
                                                              .Name   = "luvk ImGui texture"});
             detail::UploadTexture(*Texture, *Data);
 
@@ -170,9 +170,9 @@ ImTextureID luvk::imgui::ImGuiRenderer::AddTexture(Image& Texture)
         throw std::invalid_argument("[luvk-imgui] UiTexture requires a valid Image.");
     }
 
-    if ((Texture.Usage() & VK_IMAGE_USAGE_SAMPLED_BIT) == 0U || Texture.SampledIndex() == InvalidBindlessIndex)
+    if (!HasFlags(Texture.Usage(), ImageUsage::Sampled) || Texture.SampledIndex() == InvalidBindlessIndex)
     {
-        throw std::logic_error("[luvk-imgui] UiTexture requires an image with VK_IMAGE_USAGE_SAMPLED_BIT.");
+        throw std::logic_error("[luvk-imgui] UiTexture requires an image with sampled usage.");
     }
 
     // Registering an image every frame (e.g. right before ImGui::Image) is cheap: only new images rebuild the list.

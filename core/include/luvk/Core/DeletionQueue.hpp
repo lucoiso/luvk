@@ -14,7 +14,6 @@
 #include <utility>
 #include <vector>
 #include "luvk/Core/Common.hpp"
-#include "luvk/Core/Vma.hpp"
 
 namespace luvk
 {

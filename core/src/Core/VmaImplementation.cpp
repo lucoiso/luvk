@@ -8,4 +8,4 @@
 #define VMA_DYNAMIC_VULKAN_FUNCTIONS 1
 #define VMA_IMPLEMENTATION
 
-#include "luvk/Core/Vma.hpp"
+#include "luvk/Core/Vulkan.hpp"

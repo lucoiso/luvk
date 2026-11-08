@@ -11,16 +11,18 @@
 #include <string>
 #include <vector>
 #include <imgui.h>
+#include <glm/vec2.hpp>
 #include <luvk/Core/Context.hpp>
+#include <luvk/Core/DiagnosticsTypes.hpp>
 #include <luvk/Core/Module.hpp>
-#include "luvk/App/Feature.hpp"
-#include <luvk/Render/Renderer.hpp>
+#include <luvk/Frame/Feature.hpp>
+#include <luvk/Frame/SceneRenderer.hpp>
 #include <luvk/Platform/Input.hpp>
 #include <luvk/Platform/Window.hpp>
+#include <luvk/Render/Renderer.hpp>
 #include <luvk/Resources/Image.hpp>
 #include <luvk/Resources/Sampler.hpp>
 #include "luvk/App/Camera.hpp"
-#include "luvk/App/SceneRenderer.hpp"
 #include "luvk/App/Statistics.hpp"
 
 union SDL_Event;
@@ -59,6 +61,24 @@ namespace luvk::app
         /** Enables Vulkan validation layers and debug messaging when true. */
         bool EnableValidation = false;
 #endif
+
+        /** Validation layer features (GPU-assisted, synchronization, best practices, debug printf), applied with validation.
+         *  Environment variables override it (see Application::Run): LUVK_VALIDATION, LUVK_GPU_AV, LUVK_SYNC_VALIDATION,
+         *  LUVK_DEBUG_PRINTF, LUVK_BEST_PRACTICES (1 enables, 0 disables; any of the last four also enables validation). */
+        ValidationOptions Validation = {};
+
+        /** Adds a luvk::DiagnosticsModule (device fault, breadcrumbs, optional robustness) unless Modules already has one.
+         *  LUVK_DIAGNOSTICS=0/1 overrides it; LUVK_ROBUSTNESS=1 also enables robustBufferAccess2/robustImageAccess2/nullDescriptor. */
+        bool EnableDiagnostics = true;
+
+        /** Options of the DiagnosticsModule added by EnableDiagnostics. */
+        DiagnosticsDesc Diagnostics = {};
+
+        /** Shows a message box with DeviceLostReport::Summary after a GPU crash (never when LUVK_APP_MAX_FRAMES is set). */
+        bool ShowCrashDialog = true;
+
+        /** Extra queues (async compute, present / image-acquire queues for third parties such as FidelityFX). */
+        ExtraQueueDesc ExtraQueues = {};
 
         /** Collects GPU pass timings with the renderer's profiler when true. */
         bool GpuTimings = true;
@@ -102,8 +122,7 @@ namespace luvk::app
 
         /** Main swapchain preferences (Surface, Extent and PreferredPresentModes are filled by the application, the latter
          *  from VSync). The default UNORM backbuffer lets the composite encode sRGB itself, so the UI stays correct. */
-        SwapchainDesc Swapchain{.PreferredFormats = {{VK_FORMAT_B8G8R8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR},
-                                                     {VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR}}};
+        SwapchainDesc Swapchain{.PreferredFormats = {{Format::B8G8R8A8Unorm, ColorSpace::SrgbNonlinear}, {Format::R8G8B8A8Unorm, ColorSpace::SrgbNonlinear}}};
 
         /** Organization folder of the per-user data directory (see luvk::platform::UserDataDirectory). */
         std::string Organization = "luvk";
@@ -140,7 +159,11 @@ namespace luvk::app
         /** Non-copyable. */
         Application& operator=(const Application&) = delete;
 
-        /** Runs until the window closes, then tears the UI down. Returns the process exit code. */
+        /**
+         * Runs until the window closes, then tears the UI down. Returns the process exit code: 0 on success, 1 on a fatal
+         * error, 2 when validation errors were reported, 3 after a GPU crash (VK_ERROR_DEVICE_LOST: OnDeviceLost is called,
+         * the report is written to DataDirectory()/crash-reports and, with ShowCrashDialog, its summary is shown).
+         */
         [[nodiscard]] int Run();
 
         /** Stops the main loop after the current frame; Run() then returns. */
@@ -148,6 +171,19 @@ namespace luvk::app
 
         /** With ApplicationDesc::LowPower, renders the next frames even without input (e.g. while something animates). */
         void RequestRedraw() noexcept;
+
+        /** Sets the scene viewport as a normalized rectangle of the main window (0..1). The scene is rendered only
+         *  in that area and the camera aspect follows it; an empty rect restores full-window rendering. */
+        void SetSceneViewport(float X, float Y, float Width, float Height) noexcept;
+
+        /** Restores full-window scene rendering. */
+        void ClearSceneViewport() noexcept;
+
+        /** Sets the subpixel jitter (in render pixels) applied to the camera projection this frame. */
+        void SetProjectionJitter(const glm::vec2 Jitter) noexcept { m_ProjectionJitter = Jitter; }
+
+        /** Current subpixel projection jitter in render pixels. */
+        [[nodiscard]] glm::vec2 ProjectionJitter() const noexcept { return m_ProjectionJitter; }
 
         /** Returns the Vulkan context (instance, device, queues, resources). */
         [[nodiscard]] luvk::Context& GetContext() const noexcept { return *m_Context; }
@@ -159,10 +195,10 @@ namespace luvk::app
         [[nodiscard]] platform::Window& GetWindow() const noexcept { return *m_Window; }
 
         /** Returns the scene renderer (throws when ApplicationDesc::RenderScene is false). */
-        [[nodiscard]] SceneRenderer& Scene() const;
+        [[nodiscard]] frame::SceneRenderer& Scene() const;
 
         /** Shortcut for Scene().Features(). */
-        [[nodiscard]] FeatureStack& Features() const { return Scene().Features(); }
+        [[nodiscard]] frame::FeatureStack& Features() const { return Scene().Features(); }
 
         /** Returns the keyboard/mouse state fed by SDL events (main window only). */
         [[nodiscard]] platform::Input& GetInput() noexcept { return m_Input; }
@@ -174,7 +210,7 @@ namespace luvk::app
         [[nodiscard]] Statistics& Diagnostics() const noexcept { return *m_Statistics; }
 
         /** Returns the camera matrices of the current frame. */
-        [[nodiscard]] const ViewData& View() const noexcept { return m_View; }
+        [[nodiscard]] const frame::ViewData& View() const noexcept { return m_View; }
 
         /** Returns the shared linear clamp sampler. */
         [[nodiscard]] const Sampler& LinearSampler() const noexcept { return m_LinearSampler; }
@@ -208,6 +244,9 @@ namespace luvk::app
         /** Per-user directory where the application state is persisted (empty when PersistState is off). */
         [[nodiscard]] const std::filesystem::path& DataDirectory() const noexcept { return m_DataDirectory; }
 
+        /** Directory receiving GPU crash reports (DataDirectory()/crash-reports; empty when PersistState is off). */
+        [[nodiscard]] std::filesystem::path CrashReportDirectory() const;
+
     protected:
         /** Called once after initialization, before the first frame; add features and apply the UI style here. */
         virtual void OnInit();
@@ -225,7 +264,13 @@ namespace luvk::app
         virtual void OnGui();
 
         /** Custom scene passes added after the Overlay features and before the Output one (only with RenderScene). */
-        virtual void OnRender(FeatureContext& Frame);
+        virtual void OnRender(frame::FeatureContext& Frame);
+
+        /**
+         * Called once when the GPU device was lost (VK_ERROR_DEVICE_LOST), before the crash dialog and the shutdown. The
+         * device only accepts destruction now: log, save user data, but do not record or submit GPU work.
+         */
+        virtual void OnDeviceLost(const DeviceLostReport& Report);
 
     private:
         /** Creates the window, context, renderer, scene, sampler and ImGui backend. */
@@ -249,8 +294,14 @@ namespace luvk::app
         /** Scales the UI style sizes from the current UI scale to Scale. */
         void ApplyUiScale(float Scale);
 
+        /** Calls OnDeviceLost and shows the crash dialog; returns the exit code of a GPU crash. */
+        int HandleDeviceLost() noexcept;
+
         /** Draws subclasses' UI plus the optional built-in statistics window. */
         void DrawUserInterface();
+
+        /** True when the ImGui mouse is inside the active scene viewport. */
+        [[nodiscard]] bool IsMouseOverSceneViewport() const noexcept;
 
         /** Configuration the application was constructed with. */
         ApplicationDesc m_Desc;
@@ -276,6 +327,15 @@ namespace luvk::app
         /** Elapsed time since startup, in seconds. */
         double m_Time = 0.0;
 
+        /** Normalized scene viewport (x, y, width, height) when m_SceneViewportEnabled. */
+        std::array<float, 4> m_SceneViewport{0.F, 0.F, 1.F, 1.F};
+
+        /** True when SetSceneViewport was called with a non-empty rect. */
+        bool m_SceneViewportEnabled = false;
+
+        /** Subpixel jitter applied to the camera projection (render pixels). */
+        glm::vec2 m_ProjectionJitter{0.F, 0.F};
+
         /** Vulkan instance, device, queues and resources owned by the application. */
         std::unique_ptr<Context> m_Context;
 
@@ -286,7 +346,7 @@ namespace luvk::app
         Sampler m_LinearSampler;
 
         /** Scene renderer (null when RenderScene is false). */
-        std::unique_ptr<SceneRenderer> m_Scene;
+        std::unique_ptr<frame::SceneRenderer> m_Scene;
 
         /** Dear ImGui context and the luvk-based renderer backend. */
         std::unique_ptr<luvk::imgui::ImGuiLayer> m_ImGui;
@@ -307,6 +367,6 @@ namespace luvk::app
         Camera m_Camera;
 
         /** Camera matrices of the current frame. */
-        ViewData m_View;
+        frame::ViewData m_View;
     };
 }

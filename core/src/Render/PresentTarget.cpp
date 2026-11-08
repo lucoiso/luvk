@@ -8,6 +8,8 @@
 #include <string>
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/FeatureChain.hpp"
+#include "luvk/Core/Vulkan.hpp"
 
 luvk::PresentTarget::PresentTarget(Context& Ctx, const PresentTargetDesc& Desc)
     : m_Context(Ctx),
@@ -77,25 +79,72 @@ void luvk::PresentTarget::DestroySemaphores() noexcept
     }
 }
 
-void luvk::PresentTarget::Resize(const VkExtent2D NewExtent) noexcept
+void luvk::PresentTarget::Resize(const Extent2D NewExtent) noexcept
 {
     m_PendingExtent = NewExtent;
     m_NeedsRecreate = true;
 }
 
-VkExtent2D luvk::PresentTarget::Extent() const noexcept
+luvk::Extent2D luvk::PresentTarget::Extent() const noexcept
 {
-    return IsRenderable() ? m_Swapchain->Extent() : VkExtent2D{};
+    return IsRenderable() ? m_Swapchain->Extent() : Extent2D{};
 }
 
-VkFormat luvk::PresentTarget::Format() const noexcept
+luvk::Format luvk::PresentTarget::Format() const noexcept
 {
-    return IsRenderable() ? m_Swapchain->Format() : VK_FORMAT_UNDEFINED;
+    return IsRenderable() ? m_Swapchain->Format() : Format::Undefined;
 }
 
-VkCompositeAlphaFlagBitsKHR luvk::PresentTarget::CompositeAlpha() const noexcept
+VkSwapchainKHR luvk::PresentTarget::SwapchainHandle() const noexcept
 {
-    return m_Swapchain.has_value() ? m_Swapchain->CompositeAlpha() : VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    return m_Swapchain.has_value() ? m_Swapchain->Handle() : VK_NULL_HANDLE;
+}
+
+void luvk::PresentTarget::SetProvider(std::shared_ptr<SwapchainProvider> Provider)
+{
+    if (!m_Swapchain.has_value())
+    {
+        throw std::logic_error("[luvk] PresentTarget::SetProvider: the target has no swapchain.");
+    }
+
+    // The images of every frame slot are either presented or never acquired here: their states restart at UNDEFINED.
+    const bool Created = m_Swapchain->SetProvider(std::move(Provider));
+    m_NeedsRecreate    = !Created;
+    for (ResourceState& State : m_States)
+    {
+        State = ResourceState{};
+    }
+}
+
+bool luvk::PresentTarget::SetVSync(const bool Enabled)
+{
+    if (!m_Swapchain.has_value())
+    {
+        return false;
+    }
+
+    const bool Created = m_Swapchain->SetVSync(Enabled);
+    m_NeedsRecreate    = !Created;
+    for (ResourceState& State : m_States)
+    {
+        State = ResourceState{};
+    }
+    return Created;
+}
+
+std::shared_ptr<luvk::SwapchainProvider> luvk::PresentTarget::Provider() const noexcept
+{
+    return m_Swapchain.has_value() ? m_Swapchain->Provider() : nullptr;
+}
+
+luvk::CompositeAlpha luvk::PresentTarget::CompositeAlpha() const noexcept
+{
+    return m_Swapchain.has_value() ? m_Swapchain->CompositeAlpha() : CompositeAlpha::Opaque;
+}
+
+luvk::PresentMode luvk::PresentTarget::PresentMode() const noexcept
+{
+    return m_Swapchain.has_value() ? m_Swapchain->PresentMode() : PresentMode::Fifo;
 }
 
 bool luvk::PresentTarget::EnsureSwapchain()
@@ -147,7 +196,7 @@ std::optional<luvk::PresentImage> luvk::PresentTarget::Acquire(RenderGraph& Grap
 luvk::TextureHandle luvk::PresentTarget::Reimport(RenderGraph& Graph, const std::uint32_t FrameSlot)
 {
     const std::uint32_t ImageIndex = m_AcquiredImages.at(FrameSlot);
-    const VkExtent2D    Extent     = m_Swapchain->Extent();
+    const Extent2D      Extent     = m_Swapchain->Extent();
 
     // The presentation engine owns the image between frames: its previous content and layout are undefined.
     ResourceState& State = m_States.at(FrameSlot);
@@ -156,7 +205,7 @@ luvk::TextureHandle luvk::PresentTarget::Reimport(RenderGraph& Graph, const std:
     return Graph.ImportExternal({.Image            = m_Swapchain->Image(ImageIndex),
                                  .View             = m_Swapchain->View(ImageIndex),
                                  .Format           = m_Swapchain->Format(),
-                                 .Extent           = {Extent.width, Extent.height, 1U},
+                                 .Extent           = {Extent.Width, Extent.Height, 1U},
                                  .State            = &State,
                                  .WaitsOnSemaphore = true,
                                  .Name             = m_Name});

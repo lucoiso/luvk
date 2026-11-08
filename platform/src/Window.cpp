@@ -102,7 +102,7 @@ std::vector<std::string> luvk::platform::Window::VulkanInstanceExtensions()
 
 VkSurfaceKHR luvk::platform::Window::CreateSurface(const VkInstance Instance) const
 {
-    VkSurfaceKHR Surface = VK_NULL_HANDLE;
+    VkSurfaceKHR Surface = nullptr;
     if (!SDL_Vulkan_CreateSurface(m_Window, Instance, nullptr, &Surface))
     {
         throw std::runtime_error(std::string("[luvk-platform] SDL_Vulkan_CreateSurface failed: ") + SDL_GetError());
@@ -115,7 +115,7 @@ std::uint32_t luvk::platform::Window::Id() const noexcept
     return static_cast<std::uint32_t>(SDL_GetWindowID(m_Window));
 }
 
-VkExtent2D luvk::platform::Window::PixelSize() const
+luvk::Extent2D luvk::platform::Window::PixelSize() const
 {
     int Width  = 0;
     int Height = 0;

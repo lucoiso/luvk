@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
@@ -39,7 +40,7 @@ namespace luvk
         struct Slot
         {
             /** Timestamp query pool (m_MaxQueries queries). */
-            VkQueryPool Pool = VK_NULL_HANDLE;
+            VkQueryPool Pool = nullptr;
 
             /** Names of the passes recorded in the current frame, in query order. */
             std::vector<std::string> Names;
@@ -66,10 +67,10 @@ namespace luvk
         /** Device timestamp period in nanoseconds per tick. */
         double m_PeriodNs = 0.0;
 
-        /** Mask of the timestamp bits the graphics queue writes (the rest is garbage). */
+        /** Mask of the timestamp bits the profiled queue writes (the rest is garbage). */
         std::uint64_t m_TimestampMask = 0U;
 
-        /** False when the graphics queue does not support timestamps. */
+        /** False when the profiled queue family does not support timestamps. */
         bool m_Supported = false;
 
         /** Latest per-pass timings, updated on Collect. */
@@ -79,8 +80,11 @@ namespace luvk
         PassTiming              m_Frame{.Name = "Frame (GPU)"};
 
     public:
-        /** Constructor; creates one query pool per slot (SlotCount should match the frames in flight). */
-        GpuProfiler(Context& Ctx, std::uint32_t SlotCount, std::uint32_t MaxPasses = 128U);
+        /**
+         * Constructor; creates one query pool per slot (SlotCount should match the frames in flight). QueueFamily selects the
+         * family whose command buffers are timed (the graphics family when empty, e.g. the async compute family).
+         */
+        GpuProfiler(Context& Ctx, std::uint32_t SlotCount, std::uint32_t MaxPasses = 128U, std::optional<std::uint32_t> QueueFamily = std::nullopt);
 
         /** Destructor. */
         ~GpuProfiler();
@@ -91,7 +95,7 @@ namespace luvk
         /** Non-copyable. */
         GpuProfiler& operator=(const GpuProfiler&) = delete;
 
-        /** True when the graphics queue supports GPU timestamps. */
+        /** True when the profiled queue family supports GPU timestamps. */
         [[nodiscard]] bool IsSupported() const noexcept { return m_Supported; }
 
         /** Collects the previous results of SlotIndex and starts a new frame in Commands. */

@@ -7,7 +7,7 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <luvk/App/Feature.hpp>
+#include <luvk/Frame/Feature.hpp>
 #include <luvk/Resources/AccelerationStructure.hpp>
 #include <luvk/Resources/Image.hpp>
 #include <luvk/Resources/Pipeline.hpp>
@@ -16,7 +16,7 @@ namespace Example
 {
     /** Hardware ray tracing through ray queries in a compute shader, written into a storage image that the UI
      *  displays (needs luvk::RayTracingModule). The scene is a Cornell box with a rotated cube and a mirror sphere. */
-    class RayTracingPreview final : public luvk::app::RenderFeature
+    class RayTracingPreview final : public luvk::frame::RenderFeature
     {
     private:
         /** CPU-side mirror of the shader push constant block. */
@@ -88,7 +88,7 @@ namespace Example
         [[nodiscard]] std::string_view Name() const override { return "Ray Tracing (Cornell box)"; }
 
         /** Stage in the frame graph (GPU-driven work). */
-        [[nodiscard]] luvk::app::FeatureStage Stage() const override { return luvk::app::FeatureStage::Compute; }
+        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Compute; }
 
         /** Builds the acceleration structures, the output image and the compute pipeline. */
         void OnAttach(luvk::Context& Ctx) override;
@@ -97,7 +97,7 @@ namespace Example
         void Update(float DeltaTime) override;
 
         /** Adds the ray tracing pass for this frame. */
-        void AddPasses(luvk::app::FeatureContext& Frame) override;
+        void AddPasses(luvk::frame::FeatureContext& Frame) override;
 
         /** Draws the explanation and the orbit/exposure controls. */
         void OnGui() override;

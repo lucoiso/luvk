@@ -74,8 +74,8 @@ luvk::scene::Texture luvk::scene::Texture::Create(Context&                      
     Texture Result;
     Result.m_Image = Image(Ctx,
                            ImageDesc{.Extent      = {Width, Height, 1U},
-                                     .Format      = Desc.Srgb ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM,
-                                     .Usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                     .Format      = Desc.Srgb ? Format::R8G8B8A8Srgb : Format::R8G8B8A8Unorm,
+                                     .Usage       = ImageUsage::Sampled,
                                      .MipLevels   = Mips,
                                      .ArrayLayers = Layers,
                                      .Cube        = Cube,

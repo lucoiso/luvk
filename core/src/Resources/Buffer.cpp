@@ -10,6 +10,7 @@
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
 #include "luvk/Core/Upload.hpp"
+#include "luvk/Core/Vulkan.hpp"
 
 namespace
 {
@@ -54,10 +55,7 @@ luvk::Buffer::Buffer(Context& Ctx, const BufferDesc& Desc)
 
     const VkBufferCreateInfo Info{.sType                 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
                                   .size                  = Desc.Size,
-                                  .usage                 = Desc.Usage |
-                                                           VK_BUFFER_USAGE_TRANSFER_SRC_BIT |
-                                                           VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-                                                           VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+                                  .usage                 = Ctx.DefaultBufferUsage(),
                                   .sharingMode           = std::size(Families) > 1U ? VK_SHARING_MODE_CONCURRENT : VK_SHARING_MODE_EXCLUSIVE,
                                   .queueFamilyIndexCount = std::size(Families) > 1U ? static_cast<std::uint32_t>(std::size(Families)) : 0U,
                                   .pQueueFamilyIndices   = std::size(Families) > 1U ? std::data(Families) : nullptr};
@@ -151,7 +149,7 @@ void luvk::Buffer::Release(const TimelinePoint& Point) noexcept
     m_State       = {};
 }
 
-void luvk::Buffer::Write(const std::span<const std::byte> Data, const VkDeviceSize Offset, const UploadOrder Order)
+void luvk::Buffer::Write(const std::span<const std::byte> Data, const VkDeviceSize Offset)
 {
     CheckRange(Offset, std::size(Data));
     if (std::empty(Data))
@@ -169,7 +167,7 @@ void luvk::Buffer::Write(const std::span<const std::byte> Data, const VkDeviceSi
         return;
     }
 
-    m_Context->Uploads().Upload(*this, Data, Offset, Order);
+    m_Context->Uploads().Upload(*this, Data, Offset);
 }
 
 void luvk::Buffer::Flush(const VkDeviceSize Offset, const VkDeviceSize Size) const
@@ -177,6 +175,14 @@ void luvk::Buffer::Flush(const VkDeviceSize Offset, const VkDeviceSize Size) con
     if (m_Mapped != nullptr && !m_Coherent)
     {
         Check(vmaFlushAllocation(m_Context->Allocator(), m_Allocation, Offset, Size), "vmaFlushAllocation");
+    }
+}
+
+void luvk::Buffer::Invalidate(const VkDeviceSize Offset, const VkDeviceSize Size) const
+{
+    if (m_Mapped != nullptr && !m_Coherent)
+    {
+        Check(vmaInvalidateAllocation(m_Context->Allocator(), m_Allocation, Offset, Size), "vmaInvalidateAllocation");
     }
 }
 

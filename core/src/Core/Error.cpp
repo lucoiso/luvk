@@ -2,21 +2,27 @@
 // Year: 2026
 // Repo : https://github.com/lucoiso/luvk
 
+#include "ErrorInternals.hpp"
 #include "luvk/Core/Error.hpp"
+#include <atomic>
 #include <string>
+#include "luvk/Core/Context.hpp"
 
 namespace
 {
-    std::string BuildMessage(const VkResult Result, const std::string_view What, const std::source_location& Location)
+    /** Context receiving device-lost notifications (see SetDeviceLostObserver). */
+    std::atomic<luvk::Context*> g_DeviceLostObserver = nullptr;
+
+    std::string BuildMessage(const std::int32_t Result, const std::string_view What, const std::source_location& Location)
     {
         std::string Message;
         Message.reserve(256);
         Message += "[luvk] ";
         Message += What;
         Message += " failed with ";
-        Message += luvk::ToString(Result);
+        Message += luvk::ResultName(Result);
         Message += " (";
-        Message += std::to_string(static_cast<int>(Result));
+        Message += std::to_string(Result);
         Message += ") at ";
         Message += Location.file_name();
         Message += ':';
@@ -25,21 +31,34 @@ namespace
     }
 }
 
-void luvk::Check(const VkResult Result, const std::string_view What, const std::source_location& Location)
+void luvk::SetDeviceLostObserver(Context* const Observer) noexcept
+{
+    g_DeviceLostObserver.store(Observer, std::memory_order_release);
+}
+
+void luvk::Check(const std::int32_t Result, const std::string_view What, const std::source_location& Location)
 {
     if (Result < 0)
     {
+        if (Result == VK_ERROR_DEVICE_LOST)
+        {
+            // The report is produced before the exception propagates, while the breadcrumbs are still intact.
+            if (Context* const Observer = g_DeviceLostObserver.load(std::memory_order_acquire))
+            {
+                Observer->ReportDeviceLost(std::string(What) + " at " + Location.file_name() + ':' + std::to_string(Location.line()));
+            }
+        }
         throw VulkanError(Result, What, Location);
     }
 }
 
-luvk::VulkanError::VulkanError(const VkResult Result, const std::string_view What, const std::source_location& Location)
+luvk::VulkanError::VulkanError(const std::int32_t Result, const std::string_view What, const std::source_location& Location)
     : std::runtime_error(BuildMessage(Result, What, Location)),
       m_Result(Result) {}
 
-const char* luvk::ToString(const VkResult Result) noexcept
+const char* luvk::ResultName(const std::int32_t Result) noexcept
 {
-    switch (Result)
+    switch (static_cast<VkResult>(Result))
     {
     case VK_SUCCESS: return "VK_SUCCESS";
     case VK_NOT_READY: return "VK_NOT_READY";

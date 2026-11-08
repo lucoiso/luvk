@@ -63,7 +63,7 @@ namespace luvk::imgui
         [[nodiscard]] ImGuiGeometry UploadDrawData(const ImDrawData& DrawData, FrameAllocator& Allocator) const;
 
         /** Records DrawData into the current pass, rendering to TargetExtent with the pipeline for Format. */
-        void RenderDrawData(CommandList& Cmd, const ImDrawData& DrawData, const ImGuiGeometry& Geometry, VkExtent2D TargetExtent, VkFormat Format);
+        void RenderDrawData(CommandList& Cmd, const ImDrawData& DrawData, const ImGuiGeometry& Geometry, Extent2D TargetExtent, Format Format);
 
         /** Every image the current UI samples (backend textures plus user images registered with AddTexture). */
         [[nodiscard]] const std::vector<Image*>& LiveImages() const noexcept { return m_LiveImages; }
@@ -89,9 +89,9 @@ namespace luvk::imgui
         };
 
         /** Returns (creating when missing) the pipeline that renders into Format. */
-        Pipeline& PipelineForFormat(VkFormat Format);
+        Pipeline& PipelineForFormat(Format Format);
 
-        /** ImGui push constant block. */
+        /** Push constants of ImGui.slang (vertices are pulled from the frame allocator). */
         struct PushConstants
         {
             /** Scale applied to pixel coordinates. */
@@ -100,11 +100,14 @@ namespace luvk::imgui
             /** Translation applied after scaling. */
             float Translate[2] = {0.F, 0.F};
 
-            /** Bindless sampled-image index. */
-            std::uint32_t Texture = 0U;
+            /** Device address of the frame's ImDrawVert array. */
+            DeviceAddress Vertices = 0U;
 
-            /** Bindless sampler index. */
-            std::uint32_t Sampler = 0U;
+            /** Bindless sampled texture. */
+            Texture2D Texture;
+
+            /** Bindless sampler. */
+            SamplerHandle Sampler;
         };
 
         /** Rebuilds the immutable list of live images (backend + user textures). */
@@ -129,7 +132,7 @@ namespace luvk::imgui
         std::uint32_t m_WhiteIndex = 0U;
 
         /** One pipeline per color format (main window and secondary viewports may differ). */
-        std::unordered_map<VkFormat, std::unique_ptr<Pipeline>> m_Pipelines;
+        std::unordered_map<Format, std::unique_ptr<Pipeline>> m_Pipelines;
 
         /** Textures created and updated by Dear ImGui itself. */
         std::unordered_map<ImTextureData*, TextureRecord> m_BackendTextures;

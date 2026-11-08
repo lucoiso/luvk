@@ -26,16 +26,16 @@ namespace luvk
         std::byte* Data = nullptr;
 
         /** Buffer containing the range (for vertex/index binding or graph-less copies). */
-        VkBuffer Buffer = VK_NULL_HANDLE;
+        VkBuffer Buffer = nullptr;
 
         /** Byte offset of the range inside Buffer. */
-        VkDeviceSize Offset = 0U;
+        DeviceSize Offset = 0U;
 
         /** Size of the range in bytes. */
-        VkDeviceSize Size = 0U;
+        DeviceSize Size = 0U;
 
         /** Device address of the range start (for shaders reading through buffer device addresses). */
-        VkDeviceAddress Address = 0U;
+        DeviceAddress Address = 0U;
 
         /** True when the range is valid. */
         [[nodiscard]] explicit operator bool() const noexcept { return Data != nullptr; }
@@ -43,7 +43,7 @@ namespace luvk
         template <typename T>
             requires std::is_trivially_copyable_v<T>
         /** Copies Values to the given byte offset of the range (bounds-checked). */
-        void Write(const std::span<const T> Values, const VkDeviceSize ByteOffset = 0U) const
+        void Write(const std::span<const T> Values, const DeviceSize ByteOffset = 0U) const
         {
             if (ByteOffset > Size || Values.size_bytes() > Size - ByteOffset)
             {
@@ -71,14 +71,14 @@ namespace luvk
             Buffer Memory;
 
             /** Bytes handed out from the block this frame. */
-            VkDeviceSize Used = 0U;
+            DeviceSize Used = 0U;
         };
 
         /** Owning context. */
         Context& m_Context;
 
         /** Size of a new block, grown to fit larger requests. */
-        VkDeviceSize m_BlockSize;
+        DeviceSize m_BlockSize;
 
         /** Blocks of each frame slot. */
         std::vector<std::vector<Block>> m_Slots;
@@ -88,7 +88,7 @@ namespace luvk
 
     public:
         /** Constructor. One block set per frame slot; blocks are created on first use. */
-        FrameAllocator(Context& Ctx, std::uint32_t FramesInFlight, VkDeviceSize BlockSize = 4ULL * 1024ULL * 1024ULL);
+        FrameAllocator(Context& Ctx, std::uint32_t FramesInFlight, DeviceSize BlockSize = 4ULL * 1024ULL * 1024ULL);
 
         /** Non-copyable. */
         FrameAllocator(const FrameAllocator&) = delete;
@@ -103,19 +103,19 @@ namespace luvk
         void EndFrame() const;
 
         /** Returns Size bytes aligned to Alignment (a power of two), valid for the current frame only. */
-        [[nodiscard]] FrameAllocation Allocate(VkDeviceSize Size, VkDeviceSize Alignment = 16U);
+        [[nodiscard]] FrameAllocation Allocate(DeviceSize Size, DeviceSize Alignment = 16U);
 
         template <typename T>
             requires std::is_trivially_copyable_v<T>
         /** Allocates room for Values, copies them and returns the range. */
-        [[nodiscard]] FrameAllocation Upload(const std::span<const T> Values, const VkDeviceSize Alignment = 16U)
+        [[nodiscard]] FrameAllocation Upload(const std::span<const T> Values, const DeviceSize Alignment = 16U)
         {
-            const FrameAllocation Range = Allocate(std::max<VkDeviceSize>(1U, Values.size_bytes()), Alignment);
+            const FrameAllocation Range = Allocate(std::max<DeviceSize>(1U, Values.size_bytes()), Alignment);
             Range.Write(Values);
             return Range;
         }
 
         /** Bytes allocated in the current frame. */
-        [[nodiscard]] VkDeviceSize UsedBytes() const noexcept;
+        [[nodiscard]] DeviceSize UsedBytes() const noexcept;
     };
 }

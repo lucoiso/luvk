@@ -86,9 +86,9 @@ namespace luvk::imgui
         /** Adds the main viewport's ImGui pass to the frame graph, rendering into Backbuffer. */
         void AddRenderPass(RenderGraph& Graph,
                            TextureHandle Backbuffer,
-                           VkFormat Format,
+                           Format Format,
                            LoadOp Load,
-                           VkClearColorValue Clear = {});
+                           ClearColorValue Clear = {});
 
         /** Acquires every visible secondary viewport window through the Renderer and adds its ImGui pass. */
         void AddViewportPasses(RenderGraph& Graph);

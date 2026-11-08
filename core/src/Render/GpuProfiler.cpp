@@ -6,6 +6,8 @@
 #include <algorithm>
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/Vulkan.hpp"
+#include "../Core/ErrorInternals.hpp"
 
 namespace
 {
@@ -19,21 +21,20 @@ namespace
     }
 }
 
-luvk::GpuProfiler::GpuProfiler(Context& Ctx, const std::uint32_t SlotCount, const std::uint32_t MaxPasses)
+luvk::GpuProfiler::GpuProfiler(Context& Ctx, const std::uint32_t SlotCount, const std::uint32_t MaxPasses, const std::optional<std::uint32_t> QueueFamily)
     : m_Context(Ctx),
       m_MaxQueries(MaxPasses * 2U + 2U),
       m_PeriodNs(Ctx.Properties().limits.timestampPeriod)
 {
-    const auto Families = Enumerate<VkQueueFamilyProperties>(vkGetPhysicalDeviceQueueFamilyProperties, Ctx.PhysicalDevice());
-    m_Supported         = Ctx.GraphicsQueue().Family() < std::size(Families) &&
-                          Families[Ctx.GraphicsQueue().Family()].timestampValidBits > 0U &&
-                          m_PeriodNs > 0.0;
+    const std::uint32_t Family   = QueueFamily.value_or(Ctx.GraphicsQueue().Family());
+    const auto          Families = Enumerate<VkQueueFamilyProperties>(vkGetPhysicalDeviceQueueFamilyProperties, Ctx.PhysicalDevice());
+    m_Supported                  = Family < std::size(Families) && Families[Family].timestampValidBits > 0U && m_PeriodNs > 0.0;
     if (!m_Supported)
     {
         return;
     }
 
-    const std::uint32_t ValidBits = Families[Ctx.GraphicsQueue().Family()].timestampValidBits;
+    const std::uint32_t ValidBits = Families[Family].timestampValidBits;
     m_TimestampMask               = ValidBits >= 64U ? ~std::uint64_t{0U} : (std::uint64_t{1U} << ValidBits) - 1U;
 
     m_Slots.resize(std::max(1U, SlotCount));

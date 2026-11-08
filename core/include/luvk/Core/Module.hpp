@@ -4,11 +4,13 @@
 
 #pragma once
 
-#include "luvk/Core/FeatureChain.hpp"
+#include "luvk/Core/Common.hpp"
 
 namespace luvk
 {
     class Context;
+    struct InstanceRequirements;
+    struct DeviceRequirements;
 
     /**
      * Extension point of the framework.

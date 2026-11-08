@@ -11,6 +11,8 @@
 #include "luvk/Core/Bindless.hpp"
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/FeatureChain.hpp"
+#include "luvk/Core/Vulkan.hpp"
 #include "luvk/Resources/Image.hpp"
 
 namespace
@@ -59,19 +61,62 @@ namespace
 
     VkStencilOpState ToVulkan(const luvk::StencilFaceDesc& Face, const std::uint32_t Reference) noexcept
     {
-        return VkStencilOpState{.failOp      = Face.Fail,
-                                .passOp      = Face.Pass,
-                                .depthFailOp = Face.DepthFail,
-                                .compareOp   = Face.Compare,
+        return VkStencilOpState{.failOp      = luvk::ToVk(Face.Fail),
+                                .passOp      = luvk::ToVk(Face.Pass),
+                                .depthFailOp = luvk::ToVk(Face.DepthFail),
+                                .compareOp   = luvk::ToVk(Face.Compare),
                                 .compareMask = Face.CompareMask,
                                 .writeMask   = Face.WriteMask,
                                 .reference   = Reference};
+    }
+
+    static_assert(sizeof(luvk::VertexBinding) == sizeof(VkVertexInputBindingDescription) && sizeof(luvk::VertexAttribute) == sizeof(VkVertexInputAttributeDescription));
+    static_assert(sizeof(luvk::Format) == sizeof(VkFormat));
+
+    /** Checks the C++ push struct size against the reflected block (tail padding of up to 15 bytes is allowed). */
+    void CheckPushSize(const std::uint32_t Declared, const std::uint32_t Reflected, const std::string_view Name)
+    {
+        if (Declared > luvk::PushConstantSize)
+        {
+            throw std::invalid_argument("[luvk] Pipeline '" + std::string(Name) + "': push structs are limited to " + std::to_string(luvk::PushConstantSize) +
+                                        " bytes, the struct is " + std::to_string(Declared) + ".");
+        }
+
+        if (Declared == 0U || Reflected == 0U)
+        {
+            return;
+        }
+
+        if (Declared < Reflected || Declared - Reflected >= 16U)
+        {
+            throw std::invalid_argument("[luvk] Pipeline '" + std::string(Name) + "': the push struct is " + std::to_string(Declared) +
+                                        " bytes but the shader declares a push block of " + std::to_string(Reflected) + " bytes.");
+        }
+    }
+}
+
+void luvk::Pipeline::Reflect(const ShaderStage& Stage)
+{
+    if (!Stage.IsSet())
+    {
+        return;
+    }
+
+    ShaderReflection Reflection = ReflectShader(Stage.Code, Stage.EntryPoint);
+    if (Reflection.PushConstantSize > m_PushSize)
+    {
+        m_PushSize   = Reflection.PushConstantSize;
+        m_PushLayout = std::move(Reflection.PushMembers);
+    }
+    if (Reflection.Stage == ShaderStageKind::Compute || Reflection.Stage == ShaderStageKind::Mesh)
+    {
+        m_ThreadGroupSize = Reflection.ThreadGroupSize;
     }
 }
 
 luvk::Pipeline::Pipeline(Context& Ctx, const GraphicsPipelineDesc& Desc)
     : m_Context(&Ctx),
-      m_BindPoint(VK_PIPELINE_BIND_POINT_GRAPHICS)
+      m_Compute(false)
 {
     const bool IsMeshPipeline = Desc.Mesh.IsSet();
 
@@ -94,20 +139,26 @@ luvk::Pipeline::Pipeline(Context& Ctx, const GraphicsPipelineDesc& Desc)
         }
     }
 
-    if (std::empty(Desc.ColorFormats) && Desc.DepthFormat == VK_FORMAT_UNDEFINED)
+    if (std::empty(Desc.ColorFormats) && Desc.DepthFormat == Format::Undefined)
     {
         throw std::invalid_argument("[luvk] A graphics pipeline needs at least one color or depth format.");
     }
 
     if (Desc.Stencil.Enable && !HasStencil(Desc.DepthFormat))
     {
-        throw std::invalid_argument("[luvk] The stencil test needs a DepthFormat with a stencil aspect (e.g. VK_FORMAT_D32_SFLOAT_S8_UINT).");
+        throw std::invalid_argument("[luvk] The stencil test needs a DepthFormat with a stencil aspect (e.g. Format::D32SfloatS8Uint).");
     }
 
     if (Desc.DepthBias.Enable && !Desc.DepthBias.Dynamic && Desc.DepthBias.Clamp != 0.F && Ctx.EnabledFeatures().Core().depthBiasClamp == VK_FALSE)
     {
         throw std::logic_error("[luvk] A depth bias clamp requires the depthBiasClamp device feature.");
     }
+
+    Reflect(Desc.Vertex);
+    Reflect(Desc.Task);
+    Reflect(Desc.Mesh);
+    Reflect(Desc.Fragment);
+    CheckPushSize(Desc.PushSize, m_PushSize, Desc.Name);
 
     const VkDevice Device = Ctx.Device();
 
@@ -130,21 +181,21 @@ luvk::Pipeline::Pipeline(Context& Ctx, const GraphicsPipelineDesc& Desc)
 
     const VkPipelineVertexInputStateCreateInfo VertexInput{.sType                           = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
                                                            .vertexBindingDescriptionCount   = static_cast<std::uint32_t>(std::size(Desc.VertexBindings)),
-                                                           .pVertexBindingDescriptions      = std::data(Desc.VertexBindings),
+                                                           .pVertexBindingDescriptions      = reinterpret_cast<const VkVertexInputBindingDescription*>(std::data(Desc.VertexBindings)),
                                                            .vertexAttributeDescriptionCount = static_cast<std::uint32_t>(std::size(Desc.VertexAttributes)),
-                                                           .pVertexAttributeDescriptions    = std::data(Desc.VertexAttributes)};
+                                                           .pVertexAttributeDescriptions    = reinterpret_cast<const VkVertexInputAttributeDescription*>(std::data(Desc.VertexAttributes))};
 
     const VkPipelineInputAssemblyStateCreateInfo InputAssembly{.sType    = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-                                                               .topology = Desc.Topology};
+                                                               .topology = ToVk(Desc.Topology)};
 
     constexpr VkPipelineViewportStateCreateInfo ViewportState{.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
                                                               .viewportCount = 1U,
                                                               .scissorCount  = 1U};
 
     const VkPipelineRasterizationStateCreateInfo Rasterization{.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-                                                               .polygonMode             = Desc.PolygonMode,
-                                                               .cullMode                = Desc.CullMode,
-                                                               .frontFace               = Desc.FrontFace,
+                                                               .polygonMode             = ToVk(Desc.PolygonMode),
+                                                               .cullMode                = ToVk(Desc.CullMode),
+                                                               .frontFace               = ToVk(Desc.FrontFace),
                                                                .depthBiasEnable         = Desc.DepthBias.Enable ? VK_TRUE : VK_FALSE,
                                                                .depthBiasConstantFactor = Desc.DepthBias.ConstantFactor,
                                                                .depthBiasClamp          = Desc.DepthBias.Clamp,
@@ -152,14 +203,14 @@ luvk::Pipeline::Pipeline(Context& Ctx, const GraphicsPipelineDesc& Desc)
                                                                .lineWidth               = 1.F};
 
     const VkPipelineMultisampleStateCreateInfo Multisample{.sType                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-                                                           .rasterizationSamples = Desc.Samples};
+                                                           .rasterizationSamples = ToVk(Desc.Samples)};
 
-    const bool HasDepth = Desc.DepthFormat != VK_FORMAT_UNDEFINED;
+    const bool HasDepth = Desc.DepthFormat != Format::Undefined;
 
     const VkPipelineDepthStencilStateCreateInfo DepthStencil{.sType             = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
                                                              .depthTestEnable   = HasDepth && Desc.DepthTest ? VK_TRUE : VK_FALSE,
                                                              .depthWriteEnable  = HasDepth && Desc.DepthWrite ? VK_TRUE : VK_FALSE,
-                                                             .depthCompareOp    = Desc.DepthCompare,
+                                                             .depthCompareOp    = ToVk(Desc.DepthCompare),
                                                              .stencilTestEnable = Desc.Stencil.Enable ? VK_TRUE : VK_FALSE,
                                                              .front             = ToVulkan(Desc.Stencil.Front, Desc.Stencil.Reference),
                                                              .back              = ToVulkan(Desc.Stencil.Back, Desc.Stencil.Reference),
@@ -193,9 +244,9 @@ luvk::Pipeline::Pipeline(Context& Ctx, const GraphicsPipelineDesc& Desc)
 
     const VkPipelineRenderingCreateInfo Rendering{.sType                   = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
                                                   .colorAttachmentCount    = static_cast<std::uint32_t>(std::size(Desc.ColorFormats)),
-                                                  .pColorAttachmentFormats = std::data(Desc.ColorFormats),
-                                                  .depthAttachmentFormat   = IsDepthFormat(Desc.DepthFormat) ? Desc.DepthFormat : VK_FORMAT_UNDEFINED,
-                                                  .stencilAttachmentFormat = HasStencil(Desc.DepthFormat) ? Desc.DepthFormat : VK_FORMAT_UNDEFINED};
+                                                  .pColorAttachmentFormats = reinterpret_cast<const VkFormat*>(std::data(Desc.ColorFormats)),
+                                                  .depthAttachmentFormat   = IsDepthFormat(Desc.DepthFormat) ? ToVk(Desc.DepthFormat) : VK_FORMAT_UNDEFINED,
+                                                  .stencilAttachmentFormat = HasStencil(Desc.DepthFormat) ? ToVk(Desc.DepthFormat) : VK_FORMAT_UNDEFINED};
 
     const VkGraphicsPipelineCreateInfo CreateInfo{.sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
                                                   .pNext               = &Rendering,
@@ -218,12 +269,15 @@ luvk::Pipeline::Pipeline(Context& Ctx, const GraphicsPipelineDesc& Desc)
 
 luvk::Pipeline::Pipeline(Context& Ctx, const ComputePipelineDesc& Desc)
     : m_Context(&Ctx),
-      m_BindPoint(VK_PIPELINE_BIND_POINT_COMPUTE)
+      m_Compute(true)
 {
     if (!Desc.Compute.IsSet())
     {
         throw std::invalid_argument("[luvk] A compute pipeline needs a compute shader.");
     }
+
+    Reflect(Desc.Compute);
+    CheckPushSize(Desc.PushSize, m_PushSize, Desc.Name);
 
     const StageSpecialization  Constants = PackSpecialization(Desc.Compute);
     const VkSpecializationInfo Specialization = MakeSpecializationInfo(Constants);
@@ -251,7 +305,10 @@ luvk::Pipeline::~Pipeline()
 luvk::Pipeline::Pipeline(Pipeline&& Other) noexcept
     : m_Context(std::exchange(Other.m_Context, nullptr)),
       m_Pipeline(std::exchange(Other.m_Pipeline, VK_NULL_HANDLE)),
-      m_BindPoint(Other.m_BindPoint) {}
+      m_Compute(Other.m_Compute),
+      m_PushSize(Other.m_PushSize),
+      m_ThreadGroupSize(Other.m_ThreadGroupSize),
+      m_PushLayout(std::move(Other.m_PushLayout)) {}
 
 luvk::Pipeline& luvk::Pipeline::operator=(Pipeline&& Other) noexcept
 {
@@ -259,8 +316,11 @@ luvk::Pipeline& luvk::Pipeline::operator=(Pipeline&& Other) noexcept
     {
         Reset();
         m_Context   = std::exchange(Other.m_Context, nullptr);
-        m_Pipeline  = std::exchange(Other.m_Pipeline, VK_NULL_HANDLE);
-        m_BindPoint = Other.m_BindPoint;
+        m_Pipeline        = std::exchange(Other.m_Pipeline, VK_NULL_HANDLE);
+        m_Compute         = Other.m_Compute;
+        m_PushSize        = Other.m_PushSize;
+        m_ThreadGroupSize = Other.m_ThreadGroupSize;
+        m_PushLayout      = std::move(Other.m_PushLayout);
     }
     return *this;
 }

@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Core/FeatureChain.hpp"
+#include "luvk/Core/Vulkan.hpp"
 #include <algorithm>
 #include <cstring>
 

@@ -33,8 +33,7 @@ void Example::ShaderPlayground::OnAttach(luvk::Context& Ctx)
     m_VertexShader = luvk::CompileShaderOrThrow(VertexSource, "playground_vertex", "main");
     m_Output       = luvk::Image(Ctx,
                                  {.Extent = {PreviewSize, PreviewSize, 1U},
-                                  .Format = VK_FORMAT_R8G8B8A8_UNORM,
-                                  .Usage  = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+                                  .Format = luvk::Format::R8G8B8A8Unorm,
                                   .Name   = "shader playground"});
 
     if (const std::string Error = Compile(DefaultFragmentSource);
@@ -57,9 +56,9 @@ std::string Example::ShaderPlayground::Compile(const std::string_view FragmentSo
 
         m_Pipeline = luvk::Pipeline(*m_Context,
                                     luvk::GraphicsPipelineDesc{.Vertex       = {.Code = m_VertexShader},
-                                                               .Fragment     = {.Code = *Fragment},
-                                                               .ColorFormats = {VK_FORMAT_R8G8B8A8_UNORM},
-                                                               .CullMode     = VK_CULL_MODE_NONE,
+                                                               .Fragment     = {.Code = Fragment->Spirv},
+                                                               .ColorFormats = {luvk::Format::R8G8B8A8Unorm},
+                                                               .CullMode     = luvk::CullMode::None,
                                                                .Name         = "shader playground"});
     }
     catch (const std::exception& Exception)
@@ -71,7 +70,7 @@ std::string Example::ShaderPlayground::Compile(const std::string_view FragmentSo
     return {};
 }
 
-void Example::ShaderPlayground::AddPasses(luvk::app::FeatureContext& Frame)
+void Example::ShaderPlayground::AddPasses(luvk::frame::FeatureContext& Frame)
 {
     const luvk::TextureHandle Output = Frame.Graph.Import(m_Output);
     const float               Time   = m_Time;
@@ -80,7 +79,7 @@ void Example::ShaderPlayground::AddPasses(luvk::app::FeatureContext& Frame)
                         luvk::PassType::Graphics,
                         [&](luvk::PassBuilder& Pass)
                         {
-                            Pass.ColorAttachment(Output, luvk::LoadOp::Clear, {.float32 = {0.F, 0.F, 0.F, 1.F}});
+                            Pass.ColorAttachment(Output, luvk::LoadOp::Clear, luvk::ClearColorValue{.Float = {0.F, 0.F, 0.F, 1.F}});
                         },
                         [this, Time](luvk::CommandList& Cmd)
                         {

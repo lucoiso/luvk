@@ -15,23 +15,23 @@
 #include <luvk/Core/Error.hpp>
 #include <luvk/Render/CommandList.hpp>
 #include <luvk/Resources/Image.hpp>
+#include "ImGuiShaders.hpp"
 #include "ImGuiViewportWindow.hpp"
-#include "Shaders/ImGuiShaders.hpp"
 #include "ImGuiRendererInternals.hpp"
 luvk::imgui::ImGuiRenderer::ImGuiRenderer(Context& Ctx, const std::uint32_t FramesInFlight, const bool EnableViewports)
     : m_Context(Ctx),
       m_FrameCount(std::max(1U, FramesInFlight)),
       m_Viewports(EnableViewports),
       m_Sampler(Ctx,
-                {.AddressU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-                 .AddressV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-                 .AddressW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                {.AddressU = AddressMode::ClampToEdge,
+                 .AddressV = AddressMode::ClampToEdge,
+                 .AddressW = AddressMode::ClampToEdge,
                  .Name     = "luvk ImGui sampler"})
 {
     m_WhiteTexture = std::make_unique<Image>(m_Context,
                                              ImageDesc{.Extent = {1U, 1U, 1U},
-                                                       .Format = VK_FORMAT_R8G8B8A8_UNORM,
-                                                       .Usage  = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                                       .Format = Format::R8G8B8A8Unorm,
+                                                       .Usage  = ImageUsage::Sampled,
                                                        .Name   = "luvk ImGui white"});
 
     constexpr std::array<std::uint8_t, 4> White{255U, 255U, 255U, 255U};
@@ -79,36 +79,21 @@ luvk::imgui::ImGuiRenderer::~ImGuiRenderer()
     }
 }
 
-luvk::Pipeline& luvk::imgui::ImGuiRenderer::PipelineForFormat(const VkFormat Format)
+luvk::Pipeline& luvk::imgui::ImGuiRenderer::PipelineForFormat(const luvk::Format Format)
 {
     if (const auto It = m_Pipelines.find(Format); It != std::end(m_Pipelines))
     {
         return *It->second;
     }
 
-    const GraphicsPipelineDesc Desc{.Vertex       = {.Code = shaders::ImGuiVertexShader()},
-                                    .Fragment     = {.Code = shaders::ImGuiFragmentShader()},
+    const GraphicsPipelineDesc Desc{.Vertex       = {.Code = Shaders::ImGuiVertex()},
+                                    .Fragment     = {.Code = Shaders::ImGuiFragment()},
                                     .ColorFormats = {Format},
                                     .Blend        = {BlendMode::Alpha},
-                                    .DepthFormat  = VK_FORMAT_UNDEFINED,
-                                    .VertexBindings = {{.binding   = 0U,
-                                                        .stride    = static_cast<std::uint32_t>(sizeof(ImDrawVert)),
-                                                        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}},
-                                    .VertexAttributes = {{.location = 0U,
-                                                          .binding  = 0U,
-                                                          .format   = VK_FORMAT_R32G32_SFLOAT,
-                                                          .offset   = static_cast<std::uint32_t>(offsetof(ImDrawVert, pos))},
-                                                         {.location = 1U,
-                                                          .binding  = 0U,
-                                                          .format   = VK_FORMAT_R32G32_SFLOAT,
-                                                          .offset   = static_cast<std::uint32_t>(offsetof(ImDrawVert, uv))},
-                                                         {.location = 2U,
-                                                          .binding  = 0U,
-                                                          .format   = VK_FORMAT_R8G8B8A8_UNORM,
-                                                          .offset   = static_cast<std::uint32_t>(offsetof(ImDrawVert, col))}},
-                                    .CullMode     = VK_CULL_MODE_NONE,
+                                    .CullMode     = CullMode::None,
                                     .DepthTest    = false,
                                     .DepthWrite   = false,
+                                    .PushSize     = sizeof(PushConstants),
                                     .Name         = "luvk ImGui"};
 
     auto            Created = std::make_unique<luvk::Pipeline>(m_Context, Desc);
@@ -125,11 +110,11 @@ luvk::imgui::ImGuiGeometry luvk::imgui::ImGuiRenderer::UploadDrawData(const ImDr
     }
 
     // One allocation per stream for the whole frame: every draw list is a plain memcpy into mapped memory.
-    const ImGuiGeometry Geometry{.Vertices = Allocator.Allocate(static_cast<VkDeviceSize>(DrawData.TotalVtxCount) * sizeof(ImDrawVert)),
-                                 .Indices  = Allocator.Allocate(static_cast<VkDeviceSize>(DrawData.TotalIdxCount) * sizeof(ImDrawIdx))};
+    const ImGuiGeometry Geometry{.Vertices = Allocator.Allocate(static_cast<DeviceSize>(DrawData.TotalVtxCount) * sizeof(ImDrawVert)),
+                                 .Indices  = Allocator.Allocate(static_cast<DeviceSize>(DrawData.TotalIdxCount) * sizeof(ImDrawIdx))};
 
-    VkDeviceSize VertexOffset = 0U;
-    VkDeviceSize IndexOffset  = 0U;
+    DeviceSize VertexOffset = 0U;
+    DeviceSize IndexOffset  = 0U;
     for (const ImDrawList* const List : DrawData.CmdLists)
     {
         const std::span<const ImDrawVert> Vertices(List->VtxBuffer.Data, static_cast<std::size_t>(List->VtxBuffer.Size));
@@ -147,8 +132,8 @@ luvk::imgui::ImGuiGeometry luvk::imgui::ImGuiRenderer::UploadDrawData(const ImDr
 void luvk::imgui::ImGuiRenderer::RenderDrawData(CommandList& Cmd,
                                               const ImDrawData& DrawData,
                                               const ImGuiGeometry& Geometry,
-                                              const VkExtent2D TargetExtent,
-                                              const VkFormat Format)
+                                              const Extent2D TargetExtent,
+                                              const luvk::Format Format)
 {
     static_assert(std::is_trivially_copyable_v<PushConstants>);
     static_assert(sizeof(PushConstants) <= PushConstantSize);
@@ -167,8 +152,7 @@ void luvk::imgui::ImGuiRenderer::RenderDrawData(CommandList& Cmd,
 
     Cmd.SetViewport(TargetExtent);
     Cmd.BindPipeline(PipelineForFormat(Format));
-    Cmd.BindVertexBuffer(0U, Geometry.Vertices);
-    Cmd.BindIndexBuffer(Geometry.Indices, sizeof(ImDrawIdx) == 2U ? VK_INDEX_TYPE_UINT16 : VK_INDEX_TYPE_UINT32);
+    Cmd.BindIndexBuffer(Geometry.Indices, sizeof(ImDrawIdx) == 2U ? IndexType::UInt16 : IndexType::UInt32);
 
     const ImVec2 Scale{2.F / DrawData.DisplaySize.x, 2.F / DrawData.DisplaySize.y};
     const ImVec2 Translate{-1.F - DrawData.DisplayPos.x * Scale.x, -1.F - DrawData.DisplayPos.y * Scale.y};
@@ -209,13 +193,17 @@ void luvk::imgui::ImGuiRenderer::RenderDrawData(CommandList& Cmd,
                     continue;
                 }
 
-                Cmd.SetScissor({.offset = {static_cast<std::int32_t>(ClipMin.x), static_cast<std::int32_t>(ClipMin.y)},
-                                .extent = {static_cast<std::uint32_t>(ClipMax.x - ClipMin.x), static_cast<std::uint32_t>(ClipMax.y - ClipMin.y)}});
+                Cmd.SetScissor({.Offset = {static_cast<std::int32_t>(ClipMin.x), static_cast<std::int32_t>(ClipMin.y)},
+                                .Extent = {static_cast<std::uint32_t>(ClipMax.x - ClipMin.x), static_cast<std::uint32_t>(ClipMax.y - ClipMin.y)}});
 
                 const std::uint32_t Sampled = detail::ToSampledIndex(Command.GetTexID());
                 const std::uint32_t Texture = m_ValidIndices.contains(Sampled) ? Sampled : m_WhiteIndex;
 
-                const PushConstants Push{.Scale = {Scale.x, Scale.y}, .Translate = {Translate.x, Translate.y}, .Texture = Texture, .Sampler = m_Sampler.Index()};
+                const PushConstants Push{.Scale     = {Scale.x, Scale.y},
+                                         .Translate = {Translate.x, Translate.y},
+                                         .Vertices  = Geometry.Vertices.Address,
+                                         .Texture   = {Texture},
+                                         .Sampler   = m_Sampler.Bindless()};
                 Cmd.PushConstants(Push);
                 Cmd.DrawIndexed(Command.ElemCount,
                                 1U,
@@ -229,7 +217,7 @@ void luvk::imgui::ImGuiRenderer::RenderDrawData(CommandList& Cmd,
         GlobalIndexOffset += static_cast<std::uint32_t>(List->IdxBuffer.Size);
     }
 
-    Cmd.SetScissor({.offset = {0, 0}, .extent = TargetExtent});
+    Cmd.SetScissor({.Offset = {0, 0}, .Extent = TargetExtent});
 }
 
 

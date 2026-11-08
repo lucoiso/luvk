@@ -4,6 +4,8 @@
 
 #include "luvk/Core/Module.hpp"
 #include "luvk/Core/Context.hpp"
+#include "luvk/Core/FeatureChain.hpp"
+#include "luvk/Core/Vulkan.hpp"
 
 luvk::Module::~Module() = default;
 

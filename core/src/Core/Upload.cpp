@@ -12,7 +12,10 @@
 #include <utility>
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/Vulkan.hpp"
+#include "luvk/Render/CommandList.hpp"
 #include "luvk/Resources/Buffer.hpp"
+#include "../Resources/ImageInternals.hpp"
 #include "luvk/Resources/Image.hpp"
 
 luvk::UploadManager::UploadManager(Context& Ctx, const std::uint32_t BatchCount)
@@ -96,7 +99,7 @@ luvk::UploadManager::StagedRange luvk::UploadManager::StageLocked(const std::spa
     return Range;
 }
 
-void luvk::UploadManager::Upload(Buffer& Destination, const std::span<const std::byte> Data, const VkDeviceSize Offset, const UploadOrder Order)
+void luvk::UploadManager::Upload(Buffer& Destination, const std::span<const std::byte> Data, const VkDeviceSize Offset)
 {
     if (!Destination)
     {
@@ -117,7 +120,14 @@ void luvk::UploadManager::Upload(Buffer& Destination, const std::span<const std:
     const VkCommandBuffer Commands = BeginLocked();
     const StagedRange     Source   = StageLocked(Data, 16U);
     SerializeCopiesLocked(Commands);
-    m_WaitForGraphics = m_WaitForGraphics || Order == UploadOrder::AfterGraphics;
+    m_WaitGraphicsValue = std::max(m_WaitGraphicsValue, Destination.State().LastGraphicsUse);
+
+#ifndef NDEBUG
+    if (Destination.State().ImportedInFrame != 0U && Destination.State().ImportedInFrame == m_Context.RecordingFrame())
+    {
+        m_Context.EmitMessage(DebugSeverity::Warning, "[luvk] Buffer write after the frame being recorded imported the buffer: that frame sees the new data.");
+    }
+#endif
 
     const VkBufferCopy2 Region{.sType = VK_STRUCTURE_TYPE_BUFFER_COPY_2, .srcOffset = Source.Offset, .dstOffset = Offset, .size = std::size(Data)};
 
@@ -138,9 +148,9 @@ void luvk::UploadManager::Upload(Image& Destination, const std::span<const std::
         throw std::out_of_range("[luvk] Image upload: mip level or array layer out of range.");
     }
 
-    if ((Destination.Usage() & VK_IMAGE_USAGE_TRANSFER_DST_BIT) == 0U)
+    if (!HasFlags(Destination.Usage(), ImageUsage::TransferDst))
     {
-        throw std::logic_error("[luvk] Image upload requires VK_IMAGE_USAGE_TRANSFER_DST_BIT.");
+        throw std::logic_error("[luvk] Image upload requires transfer destination usage.");
     }
 
     if (!Destination.IsSharedWithTransferQueue())
@@ -164,29 +174,29 @@ void luvk::UploadManager::Upload(Image& Destination, const std::span<const std::
         }
     }
 
-    const VkExtent3D MipExtent{std::max(1U, Destination.Extent().width >> Region.MipLevel),
-                               std::max(1U, Destination.Extent().height >> Region.MipLevel),
-                               std::max(1U, Destination.Extent().depth >> Region.MipLevel)};
+    const Extent3D MipExtent{std::max(1U, Destination.Extent().Width >> Region.MipLevel),
+                             std::max(1U, Destination.Extent().Height >> Region.MipLevel),
+                             std::max(1U, Destination.Extent().Depth >> Region.MipLevel)};
 
-    const VkExtent3D Extent = Region.Extent.width == 0U ? MipExtent : Region.Extent;
-    if (Region.Offset.x < 0 || Region.Offset.y < 0 || Region.Offset.z < 0 ||
-        static_cast<std::uint32_t>(Region.Offset.x) + Extent.width > MipExtent.width ||
-        static_cast<std::uint32_t>(Region.Offset.y) + Extent.height > MipExtent.height ||
-        static_cast<std::uint32_t>(Region.Offset.z) + Extent.depth > MipExtent.depth)
+    const Extent3D Extent = Region.Extent.Width == 0U ? MipExtent : Region.Extent;
+    if (Region.Offset.X < 0 || Region.Offset.Y < 0 || Region.Offset.Z < 0 ||
+        static_cast<std::uint32_t>(Region.Offset.X) + Extent.Width > MipExtent.Width ||
+        static_cast<std::uint32_t>(Region.Offset.Y) + Extent.Height > MipExtent.Height ||
+        static_cast<std::uint32_t>(Region.Offset.Z) + Extent.Depth > MipExtent.Depth)
     {
         throw std::out_of_range("[luvk] Image upload: region out of the mip level bounds.");
     }
 
     // Rows may be longer than the region (RowLength, in texels of uncompressed formats): only the last row is shorter.
     const VkDeviceSize TexelSize = FormatRegionSize(Destination.Format(), {1U, 1U, 1U});
-    if (TexelSize == 0U || (Region.RowLength != 0U && Region.RowLength < Extent.width))
+    if (TexelSize == 0U || (Region.RowLength != 0U && Region.RowLength < Extent.Width))
     {
         throw std::invalid_argument("[luvk] Image upload: unsupported format or row length.");
     }
 
-    const VkDeviceSize Rows     = static_cast<VkDeviceSize>(Extent.height) * Extent.depth;
+    const VkDeviceSize Rows     = static_cast<VkDeviceSize>(Extent.Height) * Extent.Depth;
     const VkDeviceSize Expected = Region.RowLength == 0U ? FormatRegionSize(Destination.Format(), Extent)
-                                                         : (Rows - 1U) * Region.RowLength * TexelSize + Extent.width * TexelSize;
+                                                         : (Rows - 1U) * Region.RowLength * TexelSize + Extent.Width * TexelSize;
     if (std::size(Data) != Expected)
     {
         throw std::invalid_argument("[luvk] Image upload: expected " + std::to_string(Expected) + " bytes, got " +
@@ -195,7 +205,8 @@ void luvk::UploadManager::Upload(Image& Destination, const std::span<const std::
 
     std::scoped_lock      Lock(m_Mutex);
     const VkCommandBuffer Commands = BeginLocked();
-    m_WaitForGraphics              = true; // The layout transition covers the whole image, which frames in flight may read.
+    // The layout transition covers the whole image, which the frames that last used it may still read.
+    m_WaitGraphicsValue = std::max(m_WaitGraphicsValue, Destination.State().LastGraphicsUse);
 
     // bufferOffset must be a multiple of 4 and of the texel (block) size.
     const StagedRange Source = StageLocked(Data, std::lcm(VkDeviceSize{16U}, TexelSize));
@@ -209,7 +220,7 @@ void luvk::UploadManager::Upload(Image& Destination, const std::span<const std::
                                            .srcAccessMask       = VK_ACCESS_2_MEMORY_WRITE_BIT,
                                            .dstStageMask        = VK_PIPELINE_STAGE_2_COPY_BIT,
                                            .dstAccessMask       = VK_ACCESS_2_TRANSFER_WRITE_BIT,
-                                           .oldLayout           = State.Layout,
+                                           .oldLayout           = static_cast<VkImageLayout>(State.Layout),
                                            .newLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
@@ -226,8 +237,8 @@ void luvk::UploadManager::Upload(Image& Destination, const std::span<const std::
                                   .bufferRowLength   = Region.RowLength,
                                   .bufferImageHeight = 0U,
                                   .imageSubresource  = {Destination.Aspect(), Region.MipLevel, Region.ArrayLayer, 1U},
-                                  .imageOffset       = Region.Offset,
-                                  .imageExtent       = Extent};
+                                  .imageOffset       = ToVk(Region.Offset),
+                                  .imageExtent       = ToVk(Extent)};
 
     const VkCopyBufferToImageInfo2 CopyInfo{.sType          = VK_STRUCTURE_TYPE_COPY_BUFFER_TO_IMAGE_INFO_2,
                                             .srcBuffer      = Source.Buffer,
@@ -243,7 +254,7 @@ void luvk::UploadManager::Upload(Image& Destination, const std::span<const std::
                                            .dstStageMask        = VK_PIPELINE_STAGE_2_NONE,
                                            .dstAccessMask       = VK_ACCESS_2_NONE,
                                            .oldLayout           = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                           .newLayout           = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL,
+                                           .newLayout           = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                                            .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                            .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
                                            .image               = Destination.Handle(),
@@ -254,19 +265,23 @@ void luvk::UploadManager::Upload(Image& Destination, const std::span<const std::
                                                 .pImageMemoryBarriers    = &ToReadOnly};
     vkCmdPipelineBarrier2(Commands, &ToReadOnlyDependency);
 
-    State = ResourceState{.Layout = VK_IMAGE_LAYOUT_READ_ONLY_OPTIMAL, .WriteStages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT};
+    State = ResourceState{.Layout          = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+                          .WriteStages     = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+                          .LastGraphicsUse = State.LastGraphicsUse,
+                          .ImportedInFrame = State.ImportedInFrame};
     m_PendingCopy = true;
 
     Destination.NoteTransferUse(m_Context.TransferQueue().NextValue());
 }
 
-std::uint64_t luvk::UploadManager::Record(const std::function<void(VkCommandBuffer)>& Commands)
+std::uint64_t luvk::UploadManager::Record(const std::function<void(CommandList&)>& Commands)
 {
     std::scoped_lock      Lock(m_Mutex);
     const VkCommandBuffer Buffer = BeginLocked();
     SerializeCopiesLocked(Buffer);
-    m_WaitForGraphics = true;
-    Commands(Buffer);
+    m_WaitGraphicsValue = m_Context.GraphicsQueue().LastSubmittedValue();
+    CommandList List(m_Context, Buffer);
+    Commands(List);
     m_PendingCopy = true;
     return m_Context.TransferQueue().NextValue();
 }
@@ -284,7 +299,7 @@ std::uint64_t luvk::UploadManager::Flush()
         Check(vkEndCommandBuffer(Current.Commands), "vkEndCommandBuffer (upload)");
 
         Queue&                         Graphics      = m_Context.GraphicsQueue();
-        const std::uint64_t            GraphicsValue = std::exchange(m_WaitForGraphics, false) ? Graphics.LastSubmittedValue() : 0U;
+        const std::uint64_t            GraphicsValue = std::min(std::exchange(m_WaitGraphicsValue, 0U), Graphics.LastSubmittedValue());
         const VkSemaphoreSubmitInfo    Wait{.sType     = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO,
                                             .semaphore = Graphics.Timeline(),
                                             .value     = GraphicsValue,

@@ -98,7 +98,7 @@ namespace luvk::platform
         [[nodiscard]] std::uint32_t Id() const noexcept;
 
         /** Current drawable size in pixels. */
-        [[nodiscard]] VkExtent2D PixelSize() const;
+        [[nodiscard]] Extent2D PixelSize() const;
 
         /** Content scale of the display the window is on (1.0 at 100%, 1.5 at 150%...). */
         [[nodiscard]] float DisplayScale() const noexcept;

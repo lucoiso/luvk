@@ -11,8 +11,9 @@
 #include <imgui.h>
 #include <glm/gtc/constants.hpp>
 #include <luvk/Core/Context.hpp>
+#include <luvk/Frame/Slots.hpp>
 #include <luvk/Render/CommandList.hpp>
-#include "Shaders/EmbeddedShaders.hpp"
+#include "AppShaders.hpp"
 #include "luvk/App/Camera.hpp"
 
 namespace
@@ -23,19 +24,21 @@ namespace
         return Bytes.r | (Bytes.g << 8U) | (Bytes.b << 16U) | (Bytes.a << 24U);
     }
 
+    /** Push constants of DebugDrawVertex (DebugDraw.slang): lines pulled from the frame allocator. */
     struct DebugDrawPushConstants
     {
-        glm::mat4 ViewProjection{1.F};
+        glm::mat4                                    ViewProjection{1.F};
+        luvk::GpuSpan<luvk::app::GpuDebugLineVertex> Vertices;
     };
 
     static_assert(std::is_trivially_copyable_v<DebugDrawPushConstants>);
     static_assert(sizeof(DebugDrawPushConstants) <= luvk::PushConstantSize);
 
-    /** Push constants of DebugDrawGpu.vert. */
+    /** Push constants of DebugDrawGpuVertex (DebugDraw.slang): lines appended by GPU passes. */
     struct DebugDrawGpuPushConstants
     {
-        glm::mat4       ViewProjection{1.F};
-        VkDeviceAddress Lines = 0U;
+        glm::mat4           ViewProjection{1.F};
+        luvk::DeviceAddress Lines = 0U;
     };
 
     static_assert(std::is_trivially_copyable_v<DebugDrawGpuPushConstants>);
@@ -44,29 +47,19 @@ namespace
     constexpr std::array<std::array<std::uint8_t, 2>, 12> BoxEdges{{{0, 1}, {2, 3}, {4, 5}, {6, 7}, {0, 2}, {1, 3}, {4, 6}, {5, 7}, {0, 4}, {1, 5}, {2, 6}, {3, 7}}};
 }
 
-void luvk::app::DebugDraw::CreatePipelines(Context& Ctx, const VkFormat ColorFormat, const VkFormat DepthFormat, const VkCompareOp DepthCompare)
+void luvk::app::DebugDraw::CreatePipelines(Context& Ctx, const Format ColorFormat, const Format DepthFormat, const CompareOp DepthCompare)
 {
-    GraphicsPipelineDesc Desc{.Vertex       = {.Code = shaders::DebugDrawVertexShader()},
-                              .Fragment     = {.Code = shaders::DebugDrawFragmentShader()},
+    GraphicsPipelineDesc Desc{.Vertex       = {.Code = Shaders::DebugDrawVertex()},
+                              .Fragment     = {.Code = Shaders::DebugDrawFragment()},
                               .ColorFormats = {ColorFormat},
                               .Blend        = {BlendMode::Alpha},
                               .DepthFormat  = DepthFormat,
-                              .VertexBindings = {{.binding   = 0U,
-                                                  .stride    = static_cast<std::uint32_t>(sizeof(Vertex)),
-                                                  .inputRate = VK_VERTEX_INPUT_RATE_VERTEX}},
-                              .VertexAttributes = {{.location = 0U,
-                                                    .binding  = 0U,
-                                                    .format   = VK_FORMAT_R32G32B32_SFLOAT,
-                                                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Position))},
-                                                   {.location = 1U,
-                                                    .binding  = 0U,
-                                                    .format   = VK_FORMAT_R8G8B8A8_UNORM,
-                                                    .offset   = static_cast<std::uint32_t>(offsetof(Vertex, Color))}},
-                              .Topology     = VK_PRIMITIVE_TOPOLOGY_LINE_LIST,
-                              .CullMode     = VK_CULL_MODE_NONE,
+                              .Topology     = Topology::LineList,
+                              .CullMode     = CullMode::None,
                               .DepthTest    = true,
                               .DepthWrite   = false,
                               .DepthCompare = DepthCompare,
+                              .PushSize     = sizeof(DebugDrawPushConstants),
                               .Name         = "debug draw (depth tested)"};
     m_Tested = Pipeline(Ctx, Desc);
 
@@ -75,10 +68,9 @@ void luvk::app::DebugDraw::CreatePipelines(Context& Ctx, const VkFormat ColorFor
     m_Overlay      = Pipeline(Ctx, Desc);
 
     // GPU lines: same raster state, vertices pulled from the GPU-written buffer.
-    Desc.Vertex           = {.Code = shaders::DebugDrawGpuVertexShader()};
-    Desc.VertexBindings   = {};
-    Desc.VertexAttributes = {};
-    Desc.DepthTest        = true;
+    Desc.Vertex    = {.Code = Shaders::DebugDrawGpuVertex()};
+    Desc.PushSize  = sizeof(DebugDrawGpuPushConstants);
+    Desc.DepthTest = true;
     Desc.Name             = "debug draw GPU lines (depth tested)";
     m_GpuTested           = Pipeline(Ctx, Desc);
 
@@ -91,12 +83,12 @@ void luvk::app::DebugDraw::CreatePipelines(Context& Ctx, const VkFormat ColorFor
     m_DepthCompare = DepthCompare;
 }
 
-void luvk::app::DebugDraw::AddPasses(FeatureContext& Frame)
+void luvk::app::DebugDraw::AddPasses(frame::FeatureContext& Frame)
 {
     m_LastVertexCount = static_cast<std::uint32_t>(std::size(m_Vertices));
 
-    const ViewData* const View     = Frame.Board.Find<ViewData>(Slots::View);
-    const BufferHandle    GpuLines = Frame.Board.FindBuffer(Slots::DebugLines);
+    const frame::ViewData* const View     = Frame.Board.Find(frame::Slots::View);
+    const BufferHandle           GpuLines = Frame.Board.FindBuffer(frame::Slots::DebugLines);
     m_LastGpuLines                 = GpuLines.IsValid() && View != nullptr;
 
     if (View == nullptr || (std::empty(m_Vertices) && !GpuLines.IsValid()))
@@ -110,13 +102,13 @@ void luvk::app::DebugDraw::AddPasses(FeatureContext& Frame)
         CreatePipelines(Frame.Ctx, Frame.Settings.ColorFormat, Frame.Settings.DepthFormat, Frame.Settings.DepthCompare());
     }
 
-    const TextureHandle Color = Frame.Board.FindTexture(Slots::SceneColor);
-    const TextureHandle Depth = Frame.Board.FindTexture(Slots::SceneDepth);
+    const TextureHandle Color = Frame.Board.FindTexture(frame::Slots::SceneColor);
+    const TextureHandle Depth = Frame.Board.FindTexture(frame::Slots::SceneDepth);
 
     if (!std::empty(m_Vertices))
     {
-        const FrameAllocation        Vertices = Frame.Allocator.Upload(std::span<const Vertex>(m_Vertices));
-        const DebugDrawPushConstants Push{.ViewProjection = View->ViewProjection};
+        const FrameAllocation        Vertices = Frame.Allocator.Upload(std::span<const GpuDebugLineVertex>(m_Vertices));
+        const DebugDrawPushConstants Push{.ViewProjection = View->ViewProjection, .Vertices = {.Address = Vertices.Address, .Count = m_LastVertexCount}};
         const std::uint32_t          Count    = m_LastVertexCount;
         const Pipeline* const        Selected = DepthTest ? &m_Tested : &m_Overlay;
 
@@ -127,10 +119,9 @@ void luvk::app::DebugDraw::AddPasses(FeatureContext& Frame)
                                 Pass.ColorAttachment(Color, LoadOp::Load);
                                 Pass.DepthAttachment(Depth, LoadOp::Load, Frame.Settings.ClearDepth(), false);
                             },
-                            [Push, Count, Selected, Vertices](CommandList& Cmd)
+                            [Push, Count, Selected](CommandList& Cmd)
                             {
                                 Cmd.BindPipeline(*Selected);
-                                Cmd.BindVertexBuffer(0U, Vertices);
                                 Cmd.PushConstants(Push);
                                 Cmd.Draw(Count);
                             });
@@ -162,9 +153,9 @@ void luvk::app::DebugDraw::AddPasses(FeatureContext& Frame)
     m_Vertices.clear();
 }
 
-luvk::BufferHandle luvk::app::DebugDraw::AcquireGpuLines(FeatureContext& Frame, const std::uint32_t MaxLines)
+luvk::BufferHandle luvk::app::DebugDraw::AcquireGpuLines(frame::FeatureContext& Frame, const std::uint32_t MaxLines)
 {
-    if (const BufferHandle Existing = Frame.Board.FindBuffer(Slots::DebugLines); Existing.IsValid())
+    if (const BufferHandle Existing = Frame.Board.FindBuffer(frame::Slots::DebugLines); Existing.IsValid())
     {
         return Existing;
     }
@@ -177,7 +168,7 @@ luvk::BufferHandle luvk::app::DebugDraw::AcquireGpuLines(FeatureContext& Frame, 
     const std::uint32_t       Capacity = MaxLines * 2U;
     const GpuDebugLinesHeader Header{.Capacity = Capacity};
 
-    const BufferHandle Lines = Frame.Graph.CreateBuffer({.Size = sizeof(GpuDebugLinesHeader) + static_cast<VkDeviceSize>(Capacity) * sizeof(GpuDebugLineVertex),
+    const BufferHandle Lines = Frame.Graph.CreateBuffer({.Size = sizeof(GpuDebugLinesHeader) + static_cast<DeviceSize>(Capacity) * sizeof(GpuDebugLineVertex),
                                                          .Name = "DebugLines"});
 
     // Only the header is reset: vertices past VertexCount are never read.
@@ -187,7 +178,7 @@ luvk::BufferHandle luvk::app::DebugDraw::AcquireGpuLines(FeatureContext& Frame, 
                         [&](PassBuilder& Pass) { Pass.Use(Lines, Access::TransferDst); },
                         [Reset, Lines](CommandList& Cmd) { Cmd.CopyBuffer(Reset, Lines); });
 
-    Frame.Board.SetBuffer(Slots::DebugLines, Lines);
+    Frame.Board.Set(frame::Slots::DebugLines, Lines);
     return Lines;
 }
 
@@ -201,8 +192,8 @@ void luvk::app::DebugDraw::OnGui()
 void luvk::app::DebugDraw::Line(const glm::vec3& From, const glm::vec3& To, const glm::vec4& Color)
 {
     const std::uint32_t Packed = Pack(Color);
-    m_Vertices.push_back({From, Packed});
-    m_Vertices.push_back({To, Packed});
+    m_Vertices.push_back({{From.x, From.y, From.z}, Packed});
+    m_Vertices.push_back({{To.x, To.y, To.z}, Packed});
 }
 
 void luvk::app::DebugDraw::Box(const glm::vec3& Min, const glm::vec3& Max, const glm::vec4& Color, const glm::mat4& Transform)

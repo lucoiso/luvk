@@ -37,7 +37,7 @@ glm::mat4 Example::MeshShaderCube::Transform() const
     return glm::rotate(glm::rotate(Placed, m_Angle, glm::vec3{0.F, 1.F, 0.F}), m_Angle * 0.5F, glm::vec3{1.F, 0.F, 0.F});
 }
 
-void Example::MeshShaderCube::AddPasses(luvk::app::FeatureContext& Frame)
+void Example::MeshShaderCube::AddPasses(luvk::frame::FeatureContext& Frame)
 {
     static_assert(std::is_trivially_copyable_v<glm::mat4>);
     static_assert(sizeof(glm::mat4) <= luvk::PushConstantSize);
@@ -58,7 +58,7 @@ void Example::MeshShaderCube::AddPasses(luvk::app::FeatureContext& Frame)
                                         .ColorFormats = {Frame.Settings.ColorFormat},
                                         .DepthFormat  = Frame.Settings.DepthFormat,
                                         .PolygonMode  = Frame.Settings.PolygonMode(),
-                                        .CullMode     = VK_CULL_MODE_NONE,
+                                        .CullMode     = luvk::CullMode::None,
                                         .DepthCompare = Frame.Settings.DepthCompare(),
                                         .Name         = "mesh shader cube"};
         m_Pipeline     = luvk::Pipeline(Frame.Ctx, Desc);
@@ -67,7 +67,7 @@ void Example::MeshShaderCube::AddPasses(luvk::app::FeatureContext& Frame)
         m_ReverseDepth = Frame.Settings.ReverseDepth;
     }
 
-    const auto* const View = Frame.Board.Find<luvk::app::ViewData>(luvk::app::Slots::View);
+    const auto* const View = Frame.Board.Find(luvk::frame::Slots::View);
     if (View == nullptr)
     {
         return;
@@ -76,8 +76,8 @@ void Example::MeshShaderCube::AddPasses(luvk::app::FeatureContext& Frame)
     const glm::mat4             MVP      = View->ViewProjection * Transform();
     const luvk::Pipeline* const Selected = &m_Pipeline;
 
-    const luvk::TextureHandle Color = Frame.Board.FindTexture(luvk::app::Slots::SceneColor);
-    const luvk::TextureHandle Depth = Frame.Board.FindTexture(luvk::app::Slots::SceneDepth);
+    const luvk::TextureHandle Color = Frame.Board.FindTexture(luvk::frame::Slots::SceneColor);
+    const luvk::TextureHandle Depth = Frame.Board.FindTexture(luvk::frame::Slots::SceneDepth);
 
     Frame.Graph.AddPass("Mesh Shader Cube",
                         luvk::PassType::Graphics,

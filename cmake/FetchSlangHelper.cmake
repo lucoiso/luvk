@@ -37,6 +37,25 @@ FUNCTION(DETECT_ARCH TARGET_OR_HOST OUT_VAR)
     SET(${OUT_VAR} ${ARCH} PARENT_SCOPE)
 ENDFUNCTION(DETECT_ARCH)
 
+# SHA-256 of the pinned release archives (from the GitHub release digests): a download that does not match fails the
+# configure instead of running unverified binaries in the build.
+SET(LUVK_SLANG_SHA256_slang-2026.20-windows-x86_64 "e6dd32bbddf1720ebb4e679d55e9635ce792865a5bd84f3d2cd9af28647c0174")
+SET(LUVK_SLANG_SHA256_slang-2026.20-windows-aarch64 "4f18a7e76a59969bc9bf6ea596bd9e496a3c689af173990ae028b18f03e1ac1a")
+SET(LUVK_SLANG_SHA256_slang-2026.20-linux-x86_64 "73681e314bd48c1396daf963a66647724519b152886961d8ca3b1b7e477cf640")
+SET(LUVK_SLANG_SHA256_slang-2026.20-linux-aarch64 "1901efe981900908faba8109bcffaf4df48068bb0e5e42ffadb908af525e7ed8")
+SET(LUVK_SLANG_SHA256_slang-2026.20-macos-x86_64 "a71d4a499d08b6178325a697a5a5c9fddc9eee5914daaf195451b283189e96ce")
+SET(LUVK_SLANG_SHA256_slang-2026.20-macos-aarch64 "ede1865bf086442c8786c5b7c0470ce5f4fd4f032eefe881356726ff9c445f40")
+
+# Declares one release archive, verified against its hash when the version is pinned above.
+FUNCTION(LUVK_DECLARE_SLANG_ARCHIVE NAME URL)
+    IF (DEFINED LUVK_SLANG_SHA256_${NAME})
+        FETCHCONTENT_DECLARE(${NAME} URL ${URL} URL_HASH SHA256=${LUVK_SLANG_SHA256_${NAME}})
+    ELSE ()
+        MESSAGE(WARNING "No pinned hash for '${NAME}': the archive is not verified")
+        FETCHCONTENT_DECLARE(${NAME} URL ${URL})
+    ENDIF ()
+ENDFUNCTION()
+
 FUNCTION(FETCH_SLANG)
     CMAKE_PARSE_ARGUMENTS(
             SLANG_ARGS
@@ -88,7 +107,7 @@ FUNCTION(FETCH_SLANG)
         STRING(TOLOWER "${URL_NAME}" FC_NAME)
         SET(URL "${SLANG_MIRROR_URL}/releases/download/v${SLANG_ARGS_VERSION}/${URL_NAME}.zip")
 
-        FETCHCONTENT_DECLARE(${FC_NAME} URL ${URL})
+        LUVK_DECLARE_SLANG_ARCHIVE(${FC_NAME} ${URL})
         MESSAGE(STATUS "Using Slang target binaries from '${URL}'")
         FETCHCONTENT_MAKEAVAILABLE(${FC_NAME})
         SET(SLANG_ROOT "${${FC_NAME}_SOURCE_DIR}")
@@ -118,7 +137,7 @@ FUNCTION(FETCH_SLANG)
         IF (SLANG_LIB_FOUND AND HOST_URL STREQUAL URL)
             SET(SLANG_HOST_ROOT ${SLANG_ROOT})
         ELSE()
-            FETCHCONTENT_DECLARE(${HOST_FC_NAME} URL ${HOST_URL})
+            LUVK_DECLARE_SLANG_ARCHIVE(${HOST_FC_NAME} ${HOST_URL})
             MESSAGE(STATUS "Using Slang host binaries from '${HOST_URL}'")
             FETCHCONTENT_MAKEAVAILABLE(${HOST_FC_NAME})
             SET(SLANG_HOST_ROOT "${${HOST_FC_NAME}_SOURCE_DIR}")

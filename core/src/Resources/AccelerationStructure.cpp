@@ -11,6 +11,8 @@
 #include "luvk/Core/Bindless.hpp"
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
+#include "luvk/Core/FeatureChain.hpp"
+#include "luvk/Core/Vulkan.hpp"
 
 namespace
 {
@@ -23,7 +25,6 @@ namespace
     {
         luvk::Buffer Input(Ctx,
                            {.Size   = std::size(Data),
-                            .Usage  = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
                             .Memory = luvk::MemoryUsage::Upload,
                             .Name   = Name});
         Input.Write(Data);
@@ -183,7 +184,6 @@ luvk::AccelerationStructure luvk::AccelerationStructure::BuildTopLevel(Context& 
     const std::span<const std::byte> RecordsBytes = std::as_bytes(std::span(Records));
     Buffer InstanceData(Ctx,
                         {.Size   = static_cast<VkDeviceSize>(std::size(RecordsBytes)) + InstanceAlignment,
-                         .Usage  = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR,
                          .Memory = MemoryUsage::Upload,
                          .Name   = "luvk tlas instances"});
     const VkDeviceAddress InstanceAddress = AlignUp(InstanceData.Address(), InstanceAlignment);
@@ -204,7 +204,7 @@ luvk::AccelerationStructure luvk::AccelerationStructure::BuildTopLevel(Context& 
 }
 
 luvk::AccelerationStructure luvk::AccelerationStructure::Build(Context&                                  Ctx,
-                                                               const VkAccelerationStructureTypeKHR      Type,
+                                                               const std::int32_t                        Type,
                                                                const VkAccelerationStructureGeometryKHR& Geometry,
                                                                const std::uint32_t                       PrimitiveCount,
                                                                const std::string_view                    Name)
@@ -217,7 +217,7 @@ luvk::AccelerationStructure luvk::AccelerationStructure::Build(Context&         
     const VkDevice Device = Ctx.Device();
 
     VkAccelerationStructureBuildGeometryInfoKHR BuildInfo{.sType         = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
-                                                          .type          = Type,
+                                                          .type          = static_cast<VkAccelerationStructureTypeKHR>(Type),
                                                           .flags         = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR,
                                                           .mode          = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR,
                                                           .geometryCount = 1U,
@@ -230,13 +230,12 @@ luvk::AccelerationStructure luvk::AccelerationStructure::Build(Context&         
     Result.m_Context = &Ctx;
     Result.m_Storage = Buffer(Ctx,
                               {.Size  = Sizes.accelerationStructureSize,
-                               .Usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR,
                                .Name  = Name});
 
     const VkAccelerationStructureCreateInfoKHR CreateInfo{.sType  = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
                                                           .buffer = Result.m_Storage.Handle(),
                                                           .size   = Sizes.accelerationStructureSize,
-                                                          .type   = Type};
+                                                          .type   = static_cast<VkAccelerationStructureTypeKHR>(Type)};
     Check(vkCreateAccelerationStructureKHR(Device, &CreateInfo, nullptr, &Result.m_Handle), "vkCreateAccelerationStructureKHR");
     Ctx.TrackResource(+1);
     Ctx.SetDebugName(Result.m_Handle, VK_OBJECT_TYPE_ACCELERATION_STRUCTURE_KHR, Name);
@@ -246,7 +245,7 @@ luvk::AccelerationStructure luvk::AccelerationStructure::Build(Context&         
     vkGetPhysicalDeviceProperties2(Ctx.PhysicalDevice(), &Wrapper);
 
     const VkDeviceSize Alignment = Properties.minAccelerationStructureScratchOffsetAlignment;
-    Buffer             Scratch(Ctx, {.Size = Sizes.buildScratchSize + Alignment, .Usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, .Name = "luvk as scratch"});
+    Buffer             Scratch(Ctx, {.Size = Sizes.buildScratchSize + Alignment, .Name = "luvk as scratch"});
 
     BuildInfo.dstAccelerationStructure  = Result.m_Handle;
     BuildInfo.scratchData.deviceAddress = AlignUp(Scratch.Address(), Alignment);

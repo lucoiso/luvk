@@ -13,6 +13,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
 #include <luvk/Core/Context.hpp>
+#include <luvk/Core/FeatureChain.hpp>
 #include <luvk/Render/CommandList.hpp>
 #include <luvk/Shaders/ShaderCompiler.hpp>
 #include "Shaders/RayTracingPreview.hpp"
@@ -154,9 +155,7 @@ void Example::RayTracingPreview::OnAttach(luvk::Context& Ctx)
         // Traced into mip 0, then the mip chain is generated every frame: the gallery screen samples it minified.
         m_Output = luvk::Image(Ctx,
                                {.Extent    = {PreviewSize, PreviewSize, 1U},
-                                .Format    = VK_FORMAT_R8G8B8A8_UNORM,
-                                .Usage     = VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
-                                             VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+                                .Format    = luvk::Format::R8G8B8A8Unorm,
                                 .MipLevels = static_cast<std::uint32_t>(std::bit_width(PreviewSize)),
                                 .Name      = "ray tracing output"});
 
@@ -179,7 +178,7 @@ void Example::RayTracingPreview::Update(const float DeltaTime)
     }
 }
 
-void Example::RayTracingPreview::AddPasses(luvk::app::FeatureContext& Frame)
+void Example::RayTracingPreview::AddPasses(luvk::frame::FeatureContext& Frame)
 {
     static_assert(std::is_trivially_copyable_v<PushData>);
     static_assert(sizeof(PushData) <= luvk::PushConstantSize);

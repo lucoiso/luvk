@@ -10,6 +10,7 @@
 #include <SDL3/SDL_video.h>
 #include <imgui_impl_sdl3.h>
 #include <luvk/Core/Context.hpp>
+#include <luvk/Core/Vulkan.hpp>
 #include <luvk/Platform/Window.hpp>
 #include <luvk/Render/CommandList.hpp>
 #include <luvk/Render/Renderer.hpp>
@@ -144,9 +145,9 @@ void luvk::imgui::ImGuiLayer::UseLiveImages(RenderGraph& Graph, PassBuilder& Pas
 
 void luvk::imgui::ImGuiLayer::AddRenderPass(RenderGraph& Graph,
                                            const TextureHandle Backbuffer,
-                                           const VkFormat Format,
+                                           const luvk::Format Format,
                                            const LoadOp Load,
-                                           const VkClearColorValue Clear)
+                                           const ClearColorValue Clear)
 {
     Graph.AddPass("ImGui",
                   PassType::Graphics,
@@ -163,7 +164,7 @@ void luvk::imgui::ImGuiLayer::AddRenderPass(RenderGraph& Graph,
                           m_Backend->RenderDrawData(Cmd,
                                                     *DrawData,
                                                     *m_Geometry,
-                                                    VkExtent2D{.width = Target.Extent.width, .height = Target.Extent.height},
+                                                    Target.Extent.To2D(),
                                                     Format);
                       }
                   });
@@ -176,8 +177,8 @@ void luvk::imgui::ImGuiLayer::AddViewportPasses(RenderGraph& Graph)
         return;
     }
 
-    VkClearColorValue Clear{};
-    std::copy(std::begin(m_Options.ViewportClearColor), std::end(m_Options.ViewportClearColor), std::begin(Clear.float32));
+    ClearColorValue Clear{};
+    std::copy(std::begin(m_Options.ViewportClearColor), std::end(m_Options.ViewportClearColor), std::begin(Clear.Float));
 
     const ImGuiPlatformIO& PlatformIO = ImGui::GetPlatformIO();
     for (int Index = 1; Index < PlatformIO.Viewports.Size; ++Index)

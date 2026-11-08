@@ -47,6 +47,6 @@ namespace luvk::imgui
         ImGuiGeometry m_Geometry;
 
         /** Framebuffer size last requested from the target, in pixels. */
-        VkExtent2D m_RequestedExtent = {};
+        Extent2D m_RequestedExtent = {};
     };
 }

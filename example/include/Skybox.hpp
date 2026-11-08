@@ -7,14 +7,14 @@
 #include <cstdint>
 #include <string_view>
 #include <glm/glm.hpp>
-#include <luvk/App/Feature.hpp>
+#include <luvk/Frame/Feature.hpp>
 #include <luvk/Resources/Pipeline.hpp>
 #include <luvk/Scene/Texture.hpp>
 
 namespace Example
 {
     /** Procedural sky cubemap (6-layer image, sampled through the bindless heap) drawn behind the scene. */
-    class Skybox final : public luvk::app::RenderFeature
+    class Skybox final : public luvk::frame::RenderFeature
     {
     public:
         /** CPU-side mirror of the shader push constant block. */
@@ -41,7 +41,7 @@ namespace Example
         luvk::Pipeline m_Pipeline;
 
         /** Color format the pipeline was built for (rebuilt when the frame changes it). */
-        VkFormat m_Format = VK_FORMAT_UNDEFINED;
+        luvk::Format m_Format = luvk::Format::Undefined;
 
         /** Bindless index of the sampler used by the sky shader. */
         std::uint32_t m_Sampler = 0U;
@@ -54,12 +54,12 @@ namespace Example
         [[nodiscard]] std::string_view Name() const override { return "Skybox (cubemap)"; }
 
         /** Stage in the frame graph (opaque geometry). */
-        [[nodiscard]] luvk::app::FeatureStage Stage() const override { return luvk::app::FeatureStage::Opaque; }
+        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Opaque; }
 
         /** Generates and uploads the 6 cubemap faces. */
         void OnAttach(luvk::Context& Ctx) override;
 
         /** Adds the sky pass for this frame. */
-        void AddPasses(luvk::app::FeatureContext& Frame) override;
+        void AddPasses(luvk::frame::FeatureContext& Frame) override;
     };
 }

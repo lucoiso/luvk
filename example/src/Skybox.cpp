@@ -80,7 +80,7 @@ void Example::Skybox::OnAttach(luvk::Context& Ctx)
     m_Cubemap = luvk::scene::Texture::CubeFromFaces(Ctx, Faces, Size, {.GenerateMips = false, .Name = "sky cubemap"});
 }
 
-void Example::Skybox::AddPasses(luvk::app::FeatureContext& Frame)
+void Example::Skybox::AddPasses(luvk::frame::FeatureContext& Frame)
 {
     static_assert(std::is_trivially_copyable_v<PushData>);
     static_assert(sizeof(PushData) <= luvk::PushConstantSize);
@@ -92,14 +92,14 @@ void Example::Skybox::AddPasses(luvk::app::FeatureContext& Frame)
                                              luvk::GraphicsPipelineDesc{.Vertex       = {.Code = Vertex},
                                                                         .Fragment     = {.Code = Fragment},
                                                                         .ColorFormats = {Frame.Settings.ColorFormat},
-                                                                        .CullMode     = VK_CULL_MODE_NONE,
+                                                                        .CullMode     = luvk::CullMode::None,
                                                                         .DepthTest    = false,
                                                                         .DepthWrite   = false,
                                                                         .Name         = "skybox"});
         m_Format = Frame.Settings.ColorFormat;
     }
 
-    const auto* const View = Frame.Board.Find<luvk::app::ViewData>(luvk::app::Slots::View);
+    const auto* const View = Frame.Board.Find(luvk::frame::Slots::View);
     if (View == nullptr)
     {
         return;
@@ -110,7 +110,7 @@ void Example::Skybox::AddPasses(luvk::app::FeatureContext& Frame)
                         .Texture               = m_Cubemap.SampledIndex(),
                         .Sampler               = m_Sampler};
 
-    const luvk::TextureHandle Color   = Frame.Board.FindTexture(luvk::app::Slots::SceneColor);
+    const luvk::TextureHandle Color   = Frame.Board.FindTexture(luvk::frame::Slots::SceneColor);
     const luvk::TextureHandle Cubemap = Frame.Graph.Import(m_Cubemap.GetImage());
 
     Frame.Graph.AddPass("Skybox",

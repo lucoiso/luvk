@@ -119,8 +119,8 @@ luvk::scene::Mesh::Mesh(Context& Ctx, const MeshData& Data, const std::string_vi
     }
 
     const std::string Label(Name);
-    m_Vertices = Buffer(Ctx, {.Size = std::size(Data.Vertices) * sizeof(Vertex), .Usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, .Name = Label + " vertices"});
-    m_Indices  = Buffer(Ctx, {.Size = std::size(Data.Indices) * sizeof(std::uint32_t), .Usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT, .Name = Label + " indices"});
+    m_Vertices = Buffer(Ctx, {.Size = std::size(Data.Vertices) * sizeof(Vertex), .Name = Label + " vertices"});
+    m_Indices  = Buffer(Ctx, {.Size = std::size(Data.Indices) * sizeof(std::uint32_t), .Name = Label + " indices"});
     m_Vertices.Write(std::span<const Vertex>(Data.Vertices));
     m_Indices.Write(std::span<const std::uint32_t>(Data.Indices));
 

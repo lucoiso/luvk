@@ -2,12 +2,12 @@
 // Year: 2026
 // Repo: https://github.com/lucoiso/luvk
 
-#include "luvk/Core/Context.hpp"
+#include "ContextInternals.hpp"
 #include <exception>
+#include <mutex>
 #include <string>
 #include "luvk/Core/Bindless.hpp"
 #include "luvk/Core/Error.hpp"
-#include <mutex>
 
 luvk::TimelinePoint luvk::Context::CurrentRetirePoint() const noexcept
 {
@@ -15,28 +15,41 @@ luvk::TimelinePoint luvk::Context::CurrentRetirePoint() const noexcept
     return TimelinePoint{.Graphics = m_FrameRecording ? PendingFrameValue : m_GraphicsQueue.NextValue(), .Transfer = 0U};
 }
 
-void luvk::Context::Retire(RetiredObject&& Object)
+void luvk::Context::Retire(RetiredObject&& Object) noexcept
 {
     Retire(std::move(Object), CurrentRetirePoint());
 }
 
-void luvk::Context::Retire(RetiredObject&& Object, const TimelinePoint& Point)
+void luvk::Context::Retire(RetiredObject&& Object, const TimelinePoint& Point) noexcept
 {
-    if (Point.Graphics != PendingFrameValue)
+    try
     {
-        m_DeletionQueue.Push(std::move(Object), Point);
-        return;
-    }
+        if (Point.Graphics != PendingFrameValue)
+        {
+            m_DeletionQueue.Push(std::move(Object), Point);
+            return;
+        }
 
-    std::scoped_lock Lock(m_FrameRetireMutex);
-    if (m_FrameRecording)
+        std::scoped_lock Lock(m_FrameRetireMutex);
+        if (m_FrameRecording)
+        {
+            m_FrameRetired.emplace_back(std::move(Object), Point.Transfer);
+            return;
+        }
+
+        // The frame was sealed between CurrentRetirePoint() and this call: any later submit covers it.
+        m_DeletionQueue.Push(std::move(Object), TimelinePoint{.Graphics = m_GraphicsQueue.NextValue(), .Transfer = Point.Transfer});
+    }
+    catch (...)
     {
-        m_FrameRetired.emplace_back(std::move(Object), Point.Transfer);
-        return;
+        // Out of memory while queueing: the only safe destruction left is after the device went idle. Resource
+        // destructors are noexcept and reach this path, so it must not throw.
+        if (m_Device != VK_NULL_HANDLE)
+        {
+            vkDeviceWaitIdle(m_Device);
+        }
+        DestroyRetired(Object);
     }
-
-    // The frame was sealed between CurrentRetirePoint() and this call: any later submit covers it.
-    m_DeletionQueue.Push(std::move(Object), TimelinePoint{.Graphics = m_GraphicsQueue.NextValue(), .Transfer = Point.Transfer});
 }
 
 void luvk::Context::BeginFrameRetirement() noexcept

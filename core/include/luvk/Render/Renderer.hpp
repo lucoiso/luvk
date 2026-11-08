@@ -20,10 +20,21 @@ namespace luvk
 {
     class Context;
 
+    /** How the async compute submission of a frame is ordered against the graphics work of the previous frames. */
+    enum class AsyncComputeOrder : std::uint8_t
+    {
+        /** The async submission also waits for the previous graphics submission: it may touch anything (default). */
+        AfterPreviousFrame,
+
+        /** No wait on the previous graphics work, so async compute overlaps the previous frame on the GPU. The caller
+         *  guarantees the async passes do not touch resources (or layouts) the frames in flight still use. */
+        Concurrent,
+    };
+
     /** Renderer creation parameters. */
     struct RendererDesc
     {
-        /** Main window swapchain. Surface may stay VK_NULL_HANDLE: the Context's window surface is taken over, and
+        /** Main window swapchain. Surface may stay nullptr: the Context's window surface is taken over, and
          *  without any surface (headless Context) the renderer records and submits frames without presenting. */
         SwapchainDesc Swapchain = {};
 
@@ -40,6 +51,14 @@ namespace luvk
         /** Render graph of this frame's slot (already reset for a new frame). */
         RenderGraph&  Graph;
 
+        /**
+         * Async compute graph of this frame's slot (GraphQueue::AsyncCompute: PassType::Compute / Transfer passes only).
+         * When it has passes, it is recorded and submitted on Context::ComputeQueue() before Graph, and Graph's submission
+         * waits for it: async work of a frame runs before the graphics work of the same frame. Share data between both
+         * graphs through imported (persistent) resources; the barriers are derived from their tracked state.
+         */
+        RenderGraph&  AsyncGraph;
+
         /** Per-frame CPU-written memory, recycled once the GPU is done with this frame. */
         FrameAllocator& Allocator;
 
@@ -47,10 +66,10 @@ namespace luvk
         TextureHandle Backbuffer = {};
 
         /** Main swapchain extent in pixels ({0, 0} for headless renderers). */
-        VkExtent2D Extent = {};
+        Extent2D Extent = {};
 
         /** Main swapchain image format (VK_FORMAT_UNDEFINED for headless renderers). */
-        VkFormat Format = VK_FORMAT_UNDEFINED;
+        luvk::Format Format = luvk::Format::Undefined;
 
         /** Index of the frame slot in use (0 to FramesInFlight - 1). */
         std::uint32_t FrameSlot = 0U;
@@ -77,6 +96,11 @@ namespace luvk
      * EndFrame records the graph, flushes uploads, submits once (waiting on every acquisition and on the uploads)
      * and presents every acquired target. If recording fails, the frame is still closed (every acquired image is
      * transitioned and presented), so the renderer stays usable; AbortFrame does the same on purpose.
+     *
+     * Async compute: when Frame::AsyncGraph has passes, EndFrame records it first and submits it on the compute queue
+     * (waiting on the pending uploads and, with AsyncComputeOrder::AfterPreviousFrame, on the previous graphics
+     * submission); the frame's graphics submission then waits for it. After VK_ERROR_DEVICE_LOST the frame is abandoned
+     * (nothing is re-submitted) and the error propagates.
      */
     class LUVK_API Renderer
     {
@@ -84,16 +108,28 @@ namespace luvk
         struct FrameSlot
         {
             /** Transient command pool for this slot's command buffer. */
-            VkCommandPool Pool = VK_NULL_HANDLE;
+            VkCommandPool Pool = nullptr;
 
             /** Primary one-shot command buffer recorded every frame. */
-            VkCommandBuffer Commands = VK_NULL_HANDLE;
+            VkCommandBuffer Commands = nullptr;
 
             /** Graphics timeline value to wait for before reusing this slot. */
             std::uint64_t Value = 0U;
 
             /** Render graph exclusive to this slot (one graph per frame in flight). */
             std::unique_ptr<RenderGraph> Graph;
+
+            /** Transient command pool of the async compute command buffer (compute queue family). */
+            VkCommandPool AsyncPool = nullptr;
+
+            /** Async compute command buffer recorded when the async graph has passes. */
+            VkCommandBuffer AsyncCommands = nullptr;
+
+            /** Compute timeline value of the slot's last async submission (0 when none). */
+            std::uint64_t AsyncValue = 0U;
+
+            /** Async compute graph exclusive to this slot. */
+            std::unique_ptr<RenderGraph> AsyncGraph;
         };
 
         /** Owning context. */
@@ -104,6 +140,12 @@ namespace luvk
 
         /** GPU profiler (created when RendererDesc::GpuTimings is set). */
         std::unique_ptr<GpuProfiler> m_Profiler;
+
+        /** GPU profiler of the async compute graphs (created when RendererDesc::GpuTimings is set). */
+        std::unique_ptr<GpuProfiler> m_AsyncProfiler;
+
+        /** Ordering of the async compute submissions. */
+        AsyncComputeOrder m_AsyncOrder = {AsyncComputeOrder::AfterPreviousFrame};
 
         /** Per-frame CPU-written memory, one block set per frame slot. */
         FrameAllocator m_Allocator;
@@ -146,7 +188,25 @@ namespace luvk
         void AbortFrame(const Frame& Current);
 
         /** Requests a new main window size; the swapchain is recreated before the next acquisition. */
-        void Resize(VkExtent2D NewExtent) noexcept;
+        void Resize(Extent2D NewExtent) noexcept;
+
+        /** Ordering of the async compute submissions of the next frames (see AsyncComputeOrder). */
+        void SetAsyncComputeOrder(AsyncComputeOrder Order) noexcept { m_AsyncOrder = Order; }
+
+        /** Switches display VSync by recreating the main swapchain. Must be called outside BeginFrame/EndFrame. */
+        bool SetVSync(bool Enabled);
+
+        /** Present mode currently selected by the main swapchain. */
+        [[nodiscard]] luvk::PresentMode PresentMode() const noexcept;
+
+        /** Ordering of the async compute submissions. */
+        [[nodiscard]] AsyncComputeOrder GetAsyncComputeOrder() const noexcept { return m_AsyncOrder; }
+
+        /**
+         * Installs (or removes, with nullptr) a SwapchainProvider on the main target: waits for every frame in flight, then
+         * recreates the swapchain through the provider. Throws when called during a frame or on a headless renderer.
+         */
+        void SetSwapchainProvider(std::shared_ptr<SwapchainProvider> Provider);
 
         /** False for headless renderers (no window to present to). */
         [[nodiscard]] bool HasMainTarget() const noexcept { return m_MainTarget != nullptr; }
@@ -159,6 +219,9 @@ namespace luvk
 
         /** GPU profiler, or nullptr when RendererDesc::GpuTimings is disabled. */
         [[nodiscard]] GpuProfiler*  Profiler() const noexcept { return m_Profiler.get(); }
+
+        /** GPU profiler of the async compute graphs (compute queue family), or nullptr when GpuTimings is disabled. */
+        [[nodiscard]] GpuProfiler*  AsyncProfiler() const noexcept { return m_AsyncProfiler.get(); }
 
         /** Number of frame slots (frames in flight). */
         [[nodiscard]] std::uint32_t FramesInFlight() const noexcept { return static_cast<std::uint32_t>(std::size(m_Slots)); }
@@ -175,6 +238,12 @@ namespace luvk
 
         /** Closes a frame whose recording failed: re-records only the acquired images' present transitions. */
         void CloseFrame(const Frame& Current) noexcept;
+
+        /** Drops the frame without submitting anything (device lost or unrecoverable failure). */
+        void AbandonFrame() noexcept;
+
+        /** Records the async compute graph of the slot; returns false when it has no passes. */
+        [[nodiscard]] bool RecordAsyncGraph(const Frame& Current, bool Profile);
 
         /** Destroys the per-slot graphs and command pools. */
         void DestroySlots() noexcept;

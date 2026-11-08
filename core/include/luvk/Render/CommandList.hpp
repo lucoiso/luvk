@@ -23,13 +23,13 @@ namespace luvk
     struct BufferCopy
     {
         /** Byte offset in the source buffer. */
-        VkDeviceSize SourceOffset = 0U;
+        DeviceSize SourceOffset = 0U;
 
         /** Byte offset in the destination buffer. */
-        VkDeviceSize DestinationOffset = 0U;
+        DeviceSize DestinationOffset = 0U;
 
         /** Number of bytes to copy. */
-        VkDeviceSize Size = 0U;
+        DeviceSize Size = 0U;
     };
 
     /**
@@ -43,13 +43,19 @@ namespace luvk
         Context* m_Context = nullptr;
 
         /** Command buffer being recorded. */
-        VkCommandBuffer m_Commands = VK_NULL_HANDLE;
+        VkCommandBuffer m_Commands = nullptr;
 
         /** Optional graph used by the graph-aware helpers to resolve resources. */
         const RenderGraph* m_Graph = nullptr;
 
         /** Per bind point (graphics, compute) flag telling whether the global bindless set is already bound. */
         std::array<bool, 2> m_BindlessBound = {false, false};
+
+        /** Workgroup size of the bound compute pipeline (DispatchThreads). */
+        std::array<std::uint32_t, 3> m_ThreadGroupSize = {1U, 1U, 1U};
+
+        /** Reflected push block size of the bound pipeline (0 = unknown or none). */
+        std::uint32_t m_PushSize = 0U;
 
     public:
         /** Constructor; Graph is optional and only required by the graph-aware helpers. */
@@ -77,20 +83,20 @@ namespace luvk
             PushConstants(&Value, static_cast<std::uint32_t>(sizeof(T)), Offset);
         }
 
-        /** Sets the viewport to (0, 0)-(Extent.width, Extent.height) with depth range [0, 1]. */
-        void SetViewport(VkExtent2D Extent);
+        /** Sets the viewport to (0, 0)-(Extent.Width, Extent.Height) with depth range [0, 1]. */
+        void SetViewport(Extent2D Extent);
 
         /** Sets a single viewport at first viewport slot 0. */
-        void SetViewport(const VkViewport& Viewport);
+        void SetViewport(const Viewport& Viewport);
 
         /** Sets a single scissor rectangle at first scissor slot 0. */
-        void SetScissor(const VkRect2D& Scissor);
+        void SetScissor(const Rect2D& Scissor);
 
         /** Sets the depth bias of a pipeline created with DepthBiasDesc::Dynamic (a non-zero Clamp needs depthBiasClamp). */
         void SetDepthBias(float ConstantFactor, float SlopeFactor, float Clamp = 0.F);
 
         /** Sets the stencil reference of a pipeline created with StencilDesc::DynamicReference. */
-        void SetStencilReference(std::uint32_t Reference, VkStencilFaceFlags Faces = VK_STENCIL_FACE_FRONT_AND_BACK);
+        void SetStencilReference(std::uint32_t Reference, StencilFace Faces = StencilFace::FrontAndBack);
 
         /** Non-indexed draw of VertexCount vertices and InstanceCount instances. */
         void Draw(std::uint32_t VertexCount, std::uint32_t InstanceCount = 1U, std::uint32_t FirstVertex = 0U, std::uint32_t FirstInstance = 0U);
@@ -104,45 +110,48 @@ namespace luvk
         /** Compute dispatch of GroupsX x GroupsY x GroupsZ workgroups. */
         void Dispatch(std::uint32_t GroupsX, std::uint32_t GroupsY = 1U, std::uint32_t GroupsZ = 1U);
 
+        /** Compute dispatch covering X x Y x Z threads: the group count is derived from the bound pipeline's [numthreads]. */
+        void DispatchThreads(std::uint32_t X, std::uint32_t Y = 1U, std::uint32_t Z = 1U);
+
         /**
          * GPU-driven work: arguments are read from graph buffers declared with Access::IndirectBuffer (Arguments and
          * Count). The *Count variants draw up to MaxDrawCount records, the actual number being the uint32 at
          * CountOffset in Count; they require drawIndirectCount (enabled when the device supports it).
          */
 
-        /** DrawCount VkDrawIndirectCommand records read from Arguments at Offset. */
-        void DrawIndirect(BufferHandle Arguments, std::uint32_t DrawCount, VkDeviceSize Offset = 0U, std::uint32_t Stride = sizeof(VkDrawIndirectCommand));
+        /** DrawCount DrawIndirectArgs records read from Arguments at Offset. */
+        void DrawIndirect(BufferHandle Arguments, std::uint32_t DrawCount, DeviceSize Offset = 0U, std::uint32_t Stride = sizeof(DrawIndirectArgs));
 
-        /** DrawCount VkDrawIndexedIndirectCommand records read from Arguments at Offset (uses the bound index buffer). */
-        void DrawIndexedIndirect(BufferHandle Arguments, std::uint32_t DrawCount, VkDeviceSize Offset = 0U, std::uint32_t Stride = sizeof(VkDrawIndexedIndirectCommand));
+        /** DrawCount DrawIndexedIndirectArgs records read from Arguments at Offset (uses the bound index buffer). */
+        void DrawIndexedIndirect(BufferHandle Arguments, std::uint32_t DrawCount, DeviceSize Offset = 0U, std::uint32_t Stride = sizeof(DrawIndexedIndirectArgs));
 
-        /** Up to MaxDrawCount VkDrawIndirectCommand records, the count being read from Count. */
-        void DrawIndirectCount(BufferHandle Arguments, BufferHandle Count, std::uint32_t MaxDrawCount, VkDeviceSize Offset = 0U, VkDeviceSize CountOffset = 0U,
-                               std::uint32_t Stride = sizeof(VkDrawIndirectCommand));
+        /** Up to MaxDrawCount DrawIndirectArgs records, the count being read from Count. */
+        void DrawIndirectCount(BufferHandle Arguments, BufferHandle Count, std::uint32_t MaxDrawCount, DeviceSize Offset = 0U, DeviceSize CountOffset = 0U,
+                               std::uint32_t Stride = sizeof(DrawIndirectArgs));
 
-        /** Up to MaxDrawCount VkDrawIndexedIndirectCommand records, the count being read from Count. */
-        void DrawIndexedIndirectCount(BufferHandle Arguments, BufferHandle Count, std::uint32_t MaxDrawCount, VkDeviceSize Offset = 0U,
-                                      VkDeviceSize CountOffset = 0U, std::uint32_t Stride = sizeof(VkDrawIndexedIndirectCommand));
+        /** Up to MaxDrawCount DrawIndexedIndirectArgs records, the count being read from Count. */
+        void DrawIndexedIndirectCount(BufferHandle Arguments, BufferHandle Count, std::uint32_t MaxDrawCount, DeviceSize Offset = 0U,
+                                      DeviceSize CountOffset = 0U, std::uint32_t Stride = sizeof(DrawIndexedIndirectArgs));
 
-        /** DrawCount VkDrawMeshTasksIndirectCommandEXT records read from Arguments (requires the mesh shader module). */
-        void DrawMeshTasksIndirect(BufferHandle Arguments, std::uint32_t DrawCount, VkDeviceSize Offset = 0U,
-                                   std::uint32_t Stride = sizeof(VkDrawMeshTasksIndirectCommandEXT));
+        /** DrawCount DrawMeshTasksIndirectArgs records read from Arguments (requires the mesh shader module). */
+        void DrawMeshTasksIndirect(BufferHandle Arguments, std::uint32_t DrawCount, DeviceSize Offset = 0U,
+                                   std::uint32_t Stride = sizeof(DrawMeshTasksIndirectArgs));
 
         /** Up to MaxDrawCount mesh task records, the count being read from Count (requires the mesh shader module and drawIndirectCount). */
-        void DrawMeshTasksIndirectCount(BufferHandle Arguments, BufferHandle Count, std::uint32_t MaxDrawCount, VkDeviceSize Offset = 0U,
-                                        VkDeviceSize CountOffset = 0U, std::uint32_t Stride = sizeof(VkDrawMeshTasksIndirectCommandEXT));
+        void DrawMeshTasksIndirectCount(BufferHandle Arguments, BufferHandle Count, std::uint32_t MaxDrawCount, DeviceSize Offset = 0U,
+                                        DeviceSize CountOffset = 0U, std::uint32_t Stride = sizeof(DrawMeshTasksIndirectArgs));
 
-        /** One VkDispatchIndirectCommand read from Arguments at Offset. */
-        void DispatchIndirect(BufferHandle Arguments, VkDeviceSize Offset = 0U);
+        /** One DispatchIndirectArgs record read from Arguments at Offset. */
+        void DispatchIndirect(BufferHandle Arguments, DeviceSize Offset = 0U);
 
         /** Binds an index buffer at the given byte offset. */
-        void BindIndexBuffer(const Buffer& Indices, VkIndexType Type, VkDeviceSize Offset = 0U);
+        void BindIndexBuffer(const Buffer& Indices, IndexType Type, DeviceSize Offset = 0U);
 
         /** Binds per-frame index data. */
-        void BindIndexBuffer(const FrameAllocation& Indices, VkIndexType Type);
+        void BindIndexBuffer(const FrameAllocation& Indices, IndexType Type);
 
         /** Binds a vertex buffer at the given binding slot and byte offset. */
-        void BindVertexBuffer(std::uint32_t Binding, const Buffer& Vertices, VkDeviceSize Offset = 0U);
+        void BindVertexBuffer(std::uint32_t Binding, const Buffer& Vertices, DeviceSize Offset = 0U);
 
         /** Binds per-frame vertex data at the given binding slot. */
         void BindVertexBuffer(std::uint32_t Binding, const FrameAllocation& Vertices);
@@ -155,13 +164,16 @@ namespace luvk
          */
 
         /** Clears the selected mips and layers of the graph texture with Color. */
-        void ClearColor(TextureHandle Target, const VkClearColorValue& Color);
+        void ClearColor(TextureHandle Target, const ClearColorValue& Color);
 
-        /** Fills Size bytes (VK_WHOLE_SIZE: up to the end) of the graph buffer from Offset with the 32-bit Value (both multiples of 4). */
-        void FillBuffer(BufferHandle Target, std::uint32_t Value, VkDeviceSize Offset = 0U, VkDeviceSize Size = VK_WHOLE_SIZE);
+        /** Clears the selected mips and layers of the graph texture with a float color. */
+        void ClearColor(TextureHandle Target, float Red, float Green, float Blue, float Alpha);
 
-        /** Copies Size bytes (VK_WHOLE_SIZE: the smaller of both buffer sizes) from Source to Destination. */
-        void CopyBuffer(BufferHandle Source, BufferHandle Destination, VkDeviceSize Size = VK_WHOLE_SIZE);
+        /** Fills Size bytes (WholeSize: up to the end) of the graph buffer from Offset with the 32-bit Value (both multiples of 4). */
+        void FillBuffer(BufferHandle Target, std::uint32_t Value, DeviceSize Offset = 0U, DeviceSize Size = WholeSize);
+
+        /** Copies Size bytes (WholeSize: the smaller of both buffer sizes) from Source to Destination. */
+        void CopyBuffer(BufferHandle Source, BufferHandle Destination, DeviceSize Size = WholeSize);
 
         /** Copies every region (bounds-checked) from Source to Destination in one command, e.g. scattering ranges into a pool. */
         void CopyBuffer(BufferHandle Source, BufferHandle Destination, std::span<const BufferCopy> Regions);
@@ -170,13 +182,13 @@ namespace luvk
          * Copies a frame allocation (written by the CPU this frame) into Destination at DestinationOffset. Only the
          * destination is declared to the graph (Access::TransferDst): host writes are visible at submission.
          */
-        void CopyBuffer(const FrameAllocation& Source, BufferHandle Destination, VkDeviceSize DestinationOffset = 0U);
+        void CopyBuffer(const FrameAllocation& Source, BufferHandle Destination, DeviceSize DestinationOffset = 0U);
 
         /** Copies one mip level / layer of Source into Destination with tightly packed rows. */
         void CopyTextureToBuffer(TextureHandle Source, BufferHandle Destination);
 
         /** Blits one mip level / layer of Source onto one mip level / layer of Destination using the given filter. */
-        void BlitTexture(TextureHandle Source, TextureHandle Destination, VkFilter Filter = VK_FILTER_LINEAR);
+        void BlitTexture(TextureHandle Source, TextureHandle Destination, luvk::Filter Filter = luvk::Filter::Linear);
 
         /** Resolved Vulkan objects of a graph texture or subresource (throws for invalid handles). */
         [[nodiscard]] GraphTexture ResolveTexture(TextureHandle Handle) const;

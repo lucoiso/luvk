@@ -7,13 +7,10 @@
 #include <numeric>
 #include <string>
 #include "luvk/Core/Context.hpp"
+#include "luvk/Core/Vulkan.hpp"
 
 namespace
 {
-    /** Usages per-frame data is consumed with: shader reads (addresses), vertex/index/indirect input and copies. */
-    constexpr VkBufferUsageFlags StreamUsage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
-                                               VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
-                                               VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
 
     VkDeviceSize AlignUp(const VkDeviceSize Value, const VkDeviceSize Alignment)
     {
@@ -45,7 +42,7 @@ void luvk::FrameAllocator::BeginFrame(const std::uint32_t FrameSlot)
         Slot.clear();
         Slot.push_back(Block{.Memory = Buffer(m_Context,
                                               {.Size   = std::bit_ceil(Total),
-                                               .Usage  = StreamUsage,
+
                                                .Memory = MemoryUsage::Stream,
                                                .Name   = "luvk frame allocator " + std::to_string(m_Current)})});
     }
@@ -81,7 +78,7 @@ luvk::FrameAllocation luvk::FrameAllocator::Allocate(const VkDeviceSize Size, co
     {
         Target = &Slot.emplace_back(Block{.Memory = Buffer(m_Context,
                                                            {.Size   = std::max(m_BlockSize, std::bit_ceil(Size)),
-                                                            .Usage  = StreamUsage,
+             
                                                             .Memory = MemoryUsage::Stream,
                                                             .Name   = "luvk frame allocator " + std::to_string(m_Current)})});
     }
