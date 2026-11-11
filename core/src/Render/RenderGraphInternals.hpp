@@ -11,6 +11,7 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <span>
 #include <vector>
 #include "luvk/Core/Vulkan.hpp"
 #include "luvk/Render/RenderGraph.hpp"
@@ -414,8 +415,23 @@ struct luvk::RenderGraph::Implementation
     /** All resources declared for the current frame. */
     std::vector<Resource> Resources;
 
-    /** All passes in declaration order. */
+    /**
+     * Pass records in declaration order. Only the first PassCount are this frame's: Reset keeps the records so their
+     * names, access and attachment vectors reuse their storage (no allocation per pass once warm).
+     */
     std::vector<Pass> Passes;
+
+    /** Passes declared since the last Reset. */
+    std::size_t PassCount = 0U;
+
+    /** Resources the cull pass found needed (reused every frame). */
+    std::vector<bool> CullNeeded;
+
+    /** This frame's passes. */
+    [[nodiscard]] std::span<Pass> ActivePasses() noexcept { return {Passes.data(), PassCount}; }
+
+    /** This frame's passes. */
+    [[nodiscard]] std::span<const Pass> ActivePasses() const noexcept { return {Passes.data(), PassCount}; }
 
     /** Pool of transient textures reused across executions. */
     std::vector<std::unique_ptr<PooledTexture>> TexturePool;
@@ -620,9 +636,10 @@ struct luvk::RenderGraph::Implementation
     /** Marks live passes by walking backwards from the last pass and recomputes the Referenced flags. */
     void Cull()
     {
-        std::vector<bool> Needed(std::size(Resources), false);
+        CullNeeded.assign(std::size(Resources), false);
 
-        for (auto It = std::rbegin(Passes); It != std::rend(Passes); ++It)
+        const std::span<Pass> Live = ActivePasses();
+        for (auto It = Live.rbegin(); It != Live.rend(); ++It)
         {
             Pass& Current = *It;
             Current.Live  = Current.SideEffect;
@@ -630,7 +647,7 @@ struct luvk::RenderGraph::Implementation
             for (const PassAccess& Use : Current.Accesses)
             {
                 const Resource& Res = Resources[Use.Resource];
-                if (Use.Write && (Res.Imported || Needed[Use.Resource]))
+                if (Use.Write && (Res.Imported || CullNeeded[Use.Resource]))
                 {
                     Current.Live = true;
                 }
@@ -642,14 +659,14 @@ struct luvk::RenderGraph::Implementation
                 {
                     if (Use.ReadsContent)
                     {
-                        Needed[Use.Resource] = true;
+                        CullNeeded[Use.Resource] = true;
                     }
                 }
             }
         }
 
         Referenced.assign(std::size(Resources), false);
-        for (const Pass& Current : Passes)
+        for (const Pass& Current : ActivePasses())
         {
             if (Current.Live)
             {

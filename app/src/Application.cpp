@@ -10,11 +10,13 @@
 #include <optional>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <SDL3/SDL.h>
 #include <luvk/Core/Diagnostics.hpp>
 #include <luvk/Core/Vulkan.hpp>
 #include <luvk/ImGui/ImGuiLayer.hpp>
 #include <luvk/Platform/Window.hpp>
+#include <luvk/Render/GpuProfiler.hpp>
 #include "luvk/App/Statistics.hpp"
 
 namespace
@@ -42,6 +44,11 @@ namespace
     }
 }
 
+bool luvk::app::Application::IsAutomated() noexcept
+{
+    return IsAutomatedRun();
+}
+
 luvk::app::Application::Application(ApplicationDesc Desc)
     : m_Desc(std::move(Desc))
 {
@@ -67,6 +74,12 @@ luvk::app::Application::Application(ApplicationDesc Desc)
     if (const std::optional<bool> Diagnostics = EnvironmentFlag("LUVK_DIAGNOSTICS"))
     {
         m_Desc.EnableDiagnostics = *Diagnostics;
+
+        // LUVK_DIAGNOSTICS=2 also keeps the breadcrumbs in device-coherent memory (hang-proof, but see DiagnosticsDesc).
+        if (const char* const Level = std::getenv("LUVK_DIAGNOSTICS"); Level != nullptr && std::string_view(Level) == "2")
+        {
+            m_Desc.Diagnostics.DeviceCoherentMemory = true;
+        }
     }
 
     if (EnvironmentFlag("LUVK_ROBUSTNESS").value_or(false))
@@ -197,7 +210,8 @@ void luvk::app::Application::Initialize()
 {
     if (m_Desc.PersistState)
     {
-        m_DataDirectory = platform::UserDataDirectory(m_Desc.Organization, std::empty(m_Desc.AppName) ? m_Desc.Title : m_Desc.AppName);
+        m_DataDirectory = !std::empty(m_Desc.DataDirectory) ? m_Desc.DataDirectory
+                                                             : platform::UserDataDirectory(m_Desc.Organization, std::empty(m_Desc.AppName) ? m_Desc.Title : m_Desc.AppName);
     }
 
     m_Window = std::make_unique<platform::Window>(platform::WindowDesc{.Title       = m_Desc.Title,
@@ -242,6 +256,18 @@ void luvk::app::Application::Initialize()
     }
 
     m_Renderer = std::make_unique<Renderer>(*m_Context, RendererDesc{.Swapchain = Swapchain, .GpuTimings = m_Desc.GpuTimings});
+
+    // LUVK_PASS_TIMINGS=0 keeps only the frame timestamps, to measure what ~two timestamps per pass cost.
+    if (!EnvironmentFlag("LUVK_PASS_TIMINGS").value_or(true))
+    {
+        for (GpuProfiler* const Profiler : {m_Renderer->Profiler(), m_Renderer->AsyncProfiler()})
+        {
+            if (Profiler != nullptr)
+            {
+                Profiler->SetPassTimings(false);
+            }
+        }
+    }
 
     m_TransparentActive = WantsTransparency && m_Window->IsTransparent() &&
                           m_Renderer->MainTarget().CompositeAlpha() != CompositeAlpha::Opaque;

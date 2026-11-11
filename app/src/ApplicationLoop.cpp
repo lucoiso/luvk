@@ -37,12 +37,12 @@ bool luvk::app::Application::PumpEvents()
         switch (Event.type)
         {
         case SDL_EVENT_QUIT:
-            m_Running = false;
+            m_Running = m_Running && !OnCloseRequested();
             break;
         case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
             if (Source == MainWindow)
             {
-                m_Running = false;
+                m_Running = m_Running && !OnCloseRequested();
             }
             break;
         case SDL_EVENT_WINDOW_PIXEL_SIZE_CHANGED:
@@ -85,7 +85,11 @@ void luvk::app::Application::ApplyUiScale(const float Scale)
 
 void luvk::app::Application::RenderFrame(const float DeltaTime)
 {
-    auto Start = std::chrono::steady_clock::now();
+    using Clock = std::chrono::steady_clock;
+    const auto Elapsed = [](const Clock::time_point From, const Clock::time_point To) { return std::chrono::duration<double, std::milli>(To - From).count(); };
+    const auto Stage   = [this](const CpuStage Which) -> double& { return m_CpuStageTimes[static_cast<std::size_t>(Which)]; };
+
+    auto Start = Clock::now();
 
     const ImGuiIO& IO = ImGui::GetIO();
     const bool     SceneHover = IsMouseOverSceneViewport();
@@ -103,8 +107,10 @@ void luvk::app::Application::RenderFrame(const float DeltaTime)
     {
         m_Statistics->RecordCpuTime(0U, Start);
     }
+    auto Now = Clock::now();
+    Stage(CpuStage::Update) = Elapsed(Start, Now);
 
-    Start = std::chrono::steady_clock::now();
+    Start = Now;
     m_ImGui->NewFrame();
     DrawUserInterface();
     m_ImGui->Render();
@@ -112,14 +118,21 @@ void luvk::app::Application::RenderFrame(const float DeltaTime)
     {
         m_Statistics->RecordCpuTime(1U, Start);
     }
+    Now = Clock::now();
+    Stage(CpuStage::Interface) = Elapsed(Start, Now);
 
+    // Waiting for the frame slot (fence) and the swapchain image is not CPU work, but it is where a GPU-bound frame
+    // spends its idle time: a benchmark reports it separately from the stages that do work.
+    Start = Now;
     const std::optional<Frame> Current = m_Renderer->BeginFrame();
+    Now = Clock::now();
+    Stage(CpuStage::Acquire) = Elapsed(Start, Now);
     if (!Current)
     {
         return;
     }
 
-    Start = std::chrono::steady_clock::now();
+    Start = Now;
     try
     {
         RecordFrame(*Current, DeltaTime);
@@ -134,13 +147,16 @@ void luvk::app::Application::RenderFrame(const float DeltaTime)
     {
         m_Statistics->RecordCpuTime(2U, Start);
     }
+    Now = Clock::now();
+    Stage(CpuStage::Record) = Elapsed(Start, Now);
 
-    Start = std::chrono::steady_clock::now();
+    Start = Now;
     m_Renderer->EndFrame(*Current);
     if (m_Statistics)
     {
         m_Statistics->RecordCpuTime(3U, Start);
     }
+    Stage(CpuStage::Submit) = Elapsed(Start, Clock::now());
 }
 
 void luvk::app::Application::RecordFrame(const Frame& Current, const float DeltaTime)
@@ -312,6 +328,11 @@ void luvk::app::Application::OnShutdown()
 
 void luvk::app::Application::OnEvent(const SDL_Event&)
 {
+}
+
+bool luvk::app::Application::OnCloseRequested()
+{
+    return true;
 }
 
 void luvk::app::Application::OnUpdate(const float)

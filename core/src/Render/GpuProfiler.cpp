@@ -3,6 +3,7 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "luvk/Render/GpuProfiler.hpp"
+#include <span>
 #include <algorithm>
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
@@ -70,8 +71,8 @@ void luvk::GpuProfiler::BeginFrame(const VkCommandBuffer Commands, const std::ui
     Collect(Current);
 
     vkCmdResetQueryPool(Commands, Current.Pool, 0U, m_MaxQueries);
-    Current.Names.clear();
-    Current.Queries = 2U;
+    Current.NameCount = 0U;
+    Current.Queries   = 2U;
     vkCmdWriteTimestamp2(Commands, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, Current.Pool, 0U);
 }
 
@@ -89,7 +90,7 @@ void luvk::GpuProfiler::EndFrame(const VkCommandBuffer Commands)
 
 std::uint32_t luvk::GpuProfiler::BeginPass(const VkCommandBuffer Commands, const std::string_view Name)
 {
-    if (!m_Supported)
+    if (!m_Supported || !m_PassTimings)
     {
         return InvalidToken;
     }
@@ -102,7 +103,15 @@ std::uint32_t luvk::GpuProfiler::BeginPass(const VkCommandBuffer Commands, const
 
     const std::uint32_t Query = Current.Queries;
     Current.Queries += 2U;
-    Current.Names.emplace_back(Name);
+    if (Current.NameCount < std::size(Current.Names))
+    {
+        Current.Names[Current.NameCount].assign(Name);
+    }
+    else
+    {
+        Current.Names.emplace_back(Name);
+    }
+    ++Current.NameCount;
     vkCmdWriteTimestamp2(Commands, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, Current.Pool, Query);
     return Query;
 }
@@ -124,7 +133,8 @@ void luvk::GpuProfiler::Collect(Slot& Target)
     }
     Target.Pending = false;
 
-    std::vector<std::uint64_t> Values(Target.Queries);
+    std::vector<std::uint64_t>& Values = m_Values;
+    Values.resize(Target.Queries);
     const VkResult             Result = vkGetQueryPoolResults(m_Context.Device(),
                                                   Target.Pool,
                                                   0U,
@@ -147,35 +157,35 @@ void luvk::GpuProfiler::Collect(Slot& Target)
     Accumulate(m_Frame, ToMs(Values[0], Values[1]));
 
     // Passes sharing a name (e.g. one pass per UI window) are summed into one entry, then averaged once per frame.
-    std::vector<PassTiming> FrameTimings;
-    for (std::size_t Index = 0U; Index < std::size(Target.Names); ++Index)
+    // The names are pointed at, not copied (the slot's strings live until the next BeginFrame of this slot).
+    const std::span<const std::string> Names(Target.Names.data(), std::min(Target.NameCount, std::size(Target.Names)));
+    m_FrameTimings.clear();
+    for (std::size_t Index = 0U; Index < std::size(Names); ++Index)
     {
-        const std::string& Name   = Target.Names[Index];
-        const double       Millis = ToMs(Values[2U + Index * 2U], Values[3U + Index * 2U]);
-
-        auto It = std::ranges::find(FrameTimings, Name, &PassTiming::Name);
-        if (It == std::end(FrameTimings))
+        const double Millis = ToMs(Values[2U + Index * 2U], Values[3U + Index * 2U]);
+        auto         It     = std::ranges::find_if(m_FrameTimings, [&](const auto& Entry) { return *Entry.first == Names[Index]; });
+        if (It == std::end(m_FrameTimings))
         {
-            FrameTimings.push_back(PassTiming{.Name = Name});
-            It = std::prev(std::end(FrameTimings));
+            m_FrameTimings.emplace_back(&Names[Index], 0.0);
+            It = std::prev(std::end(m_FrameTimings));
         }
-        It->Milliseconds += Millis;
+        It->second += Millis;
     }
 
-    for (const PassTiming& Timing : FrameTimings)
+    for (const auto& [Name, Milliseconds] : m_FrameTimings)
     {
-        auto It = std::ranges::find(m_Results, Timing.Name, &PassTiming::Name);
+        auto It = std::ranges::find(m_Results, *Name, &PassTiming::Name);
         if (It == std::end(m_Results))
         {
-            m_Results.push_back(PassTiming{.Name = Timing.Name});
+            m_Results.push_back(PassTiming{.Name = *Name});
             It = std::prev(std::end(m_Results));
         }
-        Accumulate(*It, Timing.Milliseconds);
+        Accumulate(*It, Milliseconds);
     }
 
     std::erase_if(m_Results,
                   [&](const PassTiming& Timing)
                   {
-                      return std::ranges::find(Target.Names, Timing.Name) == std::end(Target.Names);
+                      return std::ranges::find(Names, Timing.Name) == std::end(Names);
                   });
 }

@@ -132,6 +132,9 @@ namespace luvk::app
 
         /** Persists the Dear ImGui layout (imgui.ini) and the Vulkan pipeline cache in the per-user data directory. */
         bool PersistState = true;
+
+        /** Directory of the persisted state instead of the per-user one (a portable install keeps it next to itself). */
+        std::filesystem::path DataDirectory;
     };
 
     /**
@@ -165,6 +168,9 @@ namespace luvk::app
          * the report is written to DataDirectory()/crash-reports and, with ShowCrashDialog, its summary is shown).
          */
         [[nodiscard]] int Run();
+
+        /** True for automated runs (LUVK_APP_MAX_FRAMES set): nothing may wait for a person. */
+        [[nodiscard]] static bool IsAutomated() noexcept;
 
         /** Stops the main loop after the current frame; Run() then returns. */
         void RequestExit() noexcept;
@@ -241,6 +247,20 @@ namespace luvk::app
         /** Display scale the UI style is currently scaled by (1.0 when ScaleUiWithDisplay is off). */
         [[nodiscard]] float UiScale() const noexcept { return m_UiScale; }
 
+        /** CPU stages of one frame, in the order RenderFrame runs them. */
+        enum class CpuStage : std::uint8_t
+        {
+            Update,
+            Interface,
+            Acquire,
+            Record,
+            Submit,
+            Count
+        };
+
+        /** Milliseconds each CPU stage took in the last rendered frame (unsmoothed; a benchmark takes percentiles). */
+        [[nodiscard]] const std::array<double, static_cast<std::size_t>(CpuStage::Count)>& CpuStageTimes() const noexcept { return m_CpuStageTimes; }
+
         /** Per-user directory where the application state is persisted (empty when PersistState is off). */
         [[nodiscard]] const std::filesystem::path& DataDirectory() const noexcept { return m_DataDirectory; }
 
@@ -256,6 +276,12 @@ namespace luvk::app
 
         /** Called for every SDL event of the main window (or of no window, e.g. quit) not consumed by ImGui. */
         virtual void OnEvent(const SDL_Event& Event);
+
+        /**
+         * Called when the user asks to close the main window (or the system sends quit). Returning false keeps the
+         * application running (for example to ask about unsaved work); RequestExit() then ends it. Default: true.
+         */
+        virtual bool OnCloseRequested();
 
         /** Called every frame with the clamped delta time in seconds, before the features update. */
         virtual void OnUpdate(float DeltaTime);
@@ -323,6 +349,9 @@ namespace luvk::app
 
         /** Display scale the style sizes are currently scaled by. */
         float m_UiScale = 1.F;
+
+        /** CPU stage durations of the last rendered frame, in milliseconds. */
+        std::array<double, static_cast<std::size_t>(CpuStage::Count)> m_CpuStageTimes{};
 
         /** Elapsed time since startup, in seconds. */
         double m_Time = 0.0;

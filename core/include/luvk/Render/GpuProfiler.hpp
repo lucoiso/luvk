@@ -9,6 +9,7 @@
 #include <span>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 #include "luvk/Core/Common.hpp"
 
@@ -42,8 +43,12 @@ namespace luvk
             /** Timestamp query pool (m_MaxQueries queries). */
             VkQueryPool Pool = nullptr;
 
-            /** Names of the passes recorded in the current frame, in query order. */
+            /** Names of the passes recorded in the current frame, in query order (the first NameCount; the strings keep
+             *  their storage from frame to frame). */
             std::vector<std::string> Names;
+
+            /** Passes recorded in the current frame. */
+            std::size_t NameCount = 0U;
 
             /** Number of queries used in the current frame (two per pass plus two for the frame). */
             std::uint32_t Queries = 0U;
@@ -73,8 +78,15 @@ namespace luvk
         /** False when the profiled queue family does not support timestamps. */
         bool m_Supported = false;
 
+        /** False: only the whole frame is timed (measures what the per-pass timestamps cost). */
+        bool m_PassTimings = true;
+
         /** Latest per-pass timings, updated on Collect. */
         std::vector<PassTiming> m_Results;
+
+        /** Collect scratch, reused: query values, and one frame's time per distinct pass name. */
+        std::vector<std::uint64_t>                       m_Values;
+        std::vector<std::pair<const std::string*, double>> m_FrameTimings;
 
         /** Whole-frame timing (first to last command of the frame). */
         PassTiming              m_Frame{.Name = "Frame (GPU)"};
@@ -97,6 +109,9 @@ namespace luvk
 
         /** True when the profiled queue family supports GPU timestamps. */
         [[nodiscard]] bool IsSupported() const noexcept { return m_Supported; }
+
+        /** Enables or disables the per-pass timestamps; the frame timing stays (LUVK_PASS_TIMINGS=0 in the app layer). */
+        void SetPassTimings(const bool Enabled) noexcept { m_PassTimings = Enabled; }
 
         /** Collects the previous results of SlotIndex and starts a new frame in Commands. */
         void BeginFrame(VkCommandBuffer Commands, std::uint32_t SlotIndex);

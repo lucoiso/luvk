@@ -157,6 +157,10 @@ namespace
         OptionalV12.vulkanMemoryModelDeviceScope             = VK_TRUE;
         OptionalV12.hostQueryReset                           = VK_TRUE;
 
+        // Shader compilers targeting SPIR-V 1.6 lower discard to OpDemoteToHelperInvocation, which keeps derivatives
+        // valid next to discarded pixels; the module is rejected without this feature.
+        Requirements.OptionalFeatures.Vulkan13().shaderDemoteToHelperInvocation = VK_TRUE;
+
         AddUnique(Requirements.OptionalExtensions, VK_EXT_MEMORY_BUDGET_EXTENSION_NAME);
         AddUnique(Requirements.OptionalExtensions, VK_EXT_MEMORY_PRIORITY_EXTENSION_NAME);
         Requirements.OptionalFeatures

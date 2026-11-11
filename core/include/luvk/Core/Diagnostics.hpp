@@ -39,8 +39,12 @@ namespace luvk
             /** True once a frame was recorded in this slot. */
             bool Recorded = false;
 
-            /** Names of the executed passes, by breadcrumb pass index. */
+            /** Names of the executed passes, by breadcrumb pass index (the first PassCount are this record's; the strings
+             *  keep their storage from frame to frame). */
             std::vector<std::string> Passes;
+
+            /** Passes recorded for this frame. */
+            std::size_t PassCount = 0U;
         };
 
         /** Options requested by the application. */

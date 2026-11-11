@@ -238,7 +238,12 @@ luvk::RenderGraph& luvk::RenderGraph::operator=(RenderGraph&&) noexcept = defaul
 void luvk::RenderGraph::Reset()
 {
     m_Impl->Resources.clear();
-    m_Impl->Passes.clear();
+    // The pass records stay for the next frame (their storage is reused); the callbacks and what they capture go now.
+    for (Implementation::Pass& Old : m_Impl->ActivePasses())
+    {
+        Old.Execute = nullptr;
+    }
+    m_Impl->PassCount = 0U;
     m_Impl->Generation = NextGraphGeneration();
     m_ExecutedPasses   = 0U;
 
@@ -394,8 +399,24 @@ luvk::PassBuilder luvk::RenderGraph::BeginPass(const std::string_view Name, cons
                                "': the async compute graph only accepts PassType::Compute and PassType::Transfer passes (add graphics passes to Frame::Graph).");
     }
 
-    m_Impl->Passes.push_back(Implementation::Pass{.Name = std::string(Name), .Type = Type, .Execute = std::move(Execute)});
-    return PassBuilder(*this, static_cast<std::uint32_t>(std::size(m_Impl->Passes) - 1U));
+    if (m_Impl->PassCount < std::size(m_Impl->Passes))
+    {
+        Implementation::Pass& Reused = m_Impl->Passes[m_Impl->PassCount];
+        Reused.Name.assign(Name);
+        Reused.Type    = Type;
+        Reused.Execute = std::move(Execute);
+        Reused.Accesses.clear();
+        Reused.Colors.clear();
+        Reused.Depth.reset();
+        Reused.SideEffect = false;
+        Reused.Live       = false;
+    }
+    else
+    {
+        m_Impl->Passes.push_back(Implementation::Pass{.Name = std::string(Name), .Type = Type, .Execute = std::move(Execute)});
+    }
+    ++m_Impl->PassCount;
+    return PassBuilder(*this, static_cast<std::uint32_t>(m_Impl->PassCount - 1U));
 }
 
 void luvk::RenderGraph::SetFinalAccess(const TextureHandle Texture, const Access Usage)
@@ -435,7 +456,7 @@ void luvk::RenderGraph::Execute(const VkCommandBuffer Commands)
         m_Breadcrumbs->BeginBreadcrumbs(m_BreadcrumbSlot, m_BreadcrumbStream, m_BreadcrumbFrame);
     }
 
-    for (Implementation::Pass& Current : Impl.Passes)
+    for (Implementation::Pass& Current : Impl.ActivePasses())
     {
         if (!Current.Live)
         {
@@ -636,7 +657,7 @@ std::size_t luvk::RenderGraph::BarrierCount() const noexcept
 
 std::size_t luvk::RenderGraph::PassCount() const noexcept
 {
-    return std::size(m_Impl->Passes);
+    return m_Impl->PassCount;
 }
 
 std::size_t luvk::RenderGraph::PooledTextureCount() const noexcept

@@ -33,6 +33,12 @@ namespace luvk
          *  passes the GPU was executing. */
         bool Breadcrumbs = true;
 
+        /** Keeps the breadcrumbs in VK_AMD_device_coherent_memory (uncached) so they survive a hang. Off by default:
+         *  enabling the deviceCoherentMemory feature exposes uncached memory types that other libraries (the
+         *  FidelityFX Vulkan backend) may pick for their own resources, which made FSR 2.3x slower. Ordinary
+         *  host-visible memory still names the passes of a device lost in most cases. */
+        bool DeviceCoherentMemory = false;
+
         /** Frame slots with breadcrumb storage (frames in flight beyond this are not tracked). */
         std::uint32_t MaxFramesInFlight = 4U;
 

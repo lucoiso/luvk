@@ -8,6 +8,7 @@
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <span>
 #include <string>
 #include "luvk/Core/Context.hpp"
 #include "luvk/Core/Error.hpp"
@@ -127,11 +128,15 @@ void luvk::DiagnosticsModule::ConfigureDevice(DeviceRequirements& Requirements)
         AddOptional(VK_NV_DEVICE_DIAGNOSTIC_CHECKPOINTS_EXTENSION_NAME);
 
         // Device-coherent, uncached memory keeps the markers readable after a hang (the GPU caches are not flushed then).
-        AddOptional(VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME);
-        Requirements.OptionalFeatures
-                    .Get<VkPhysicalDeviceCoherentMemoryFeaturesAMD>(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD,
-                                                                    VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME)
-                    .deviceCoherentMemory = VK_TRUE;
+        // Only on request: the feature changes the memory types every other allocator of the device sees.
+        if (m_Desc.DeviceCoherentMemory)
+        {
+            AddOptional(VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME);
+            Requirements.OptionalFeatures
+                        .Get<VkPhysicalDeviceCoherentMemoryFeaturesAMD>(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_COHERENT_MEMORY_FEATURES_AMD,
+                                                                        VK_AMD_DEVICE_COHERENT_MEMORY_EXTENSION_NAME)
+                        .deviceCoherentMemory = VK_TRUE;
+        }
     }
 }
 
@@ -287,7 +292,7 @@ void luvk::DiagnosticsModule::BeginBreadcrumbs(const std::uint32_t Slot, const B
     StreamRecord&    Record = m_Records.at(Index);
     Record.Frame            = Frame;
     Record.Recorded         = true;
-    Record.Passes.clear();
+    Record.PassCount        = 0U;
 }
 
 void luvk::DiagnosticsModule::MarkPass(const VkCommandBuffer  Commands,
@@ -307,12 +312,14 @@ void luvk::DiagnosticsModule::MarkPass(const VkCommandBuffer  Commands,
     if (!End)
     {
         std::scoped_lock Lock(m_Mutex);
-        std::vector<std::string>& Passes = m_Records.at(Index).Passes;
+        StreamRecord&             Record = m_Records.at(Index);
+        std::vector<std::string>& Passes = Record.Passes;
         if (std::size(Passes) <= PassIndex)
         {
             Passes.resize(static_cast<std::size_t>(PassIndex) + 1U);
         }
-        Passes[PassIndex] = std::string(Name);
+        Passes[PassIndex].assign(Name);
+        Record.PassCount = std::max(Record.PassCount, static_cast<std::size_t>(PassIndex) + 1U);
     }
 
     if (m_Backend == BreadcrumbBackend::BufferMarkerAMD)
@@ -448,7 +455,8 @@ luvk::DeviceLostReport luvk::DiagnosticsModule::DescribeBreadcrumbs() const
 
     for (const Entry& Current : Entries)
     {
-        const std::vector<std::string>& Passes = m_Records[Current.Record].Passes;
+        const std::vector<std::string>& AllPasses = m_Records[Current.Record].Passes;
+        const std::span<const std::string> Passes(AllPasses.data(), std::min(m_Records[Current.Record].PassCount, std::size(AllPasses)));
 
         std::size_t Begun = 0U;
         std::size_t Ended = 0U;
