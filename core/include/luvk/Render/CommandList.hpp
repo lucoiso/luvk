@@ -74,9 +74,11 @@ namespace luvk
         void PushConstants(const void* Data, std::uint32_t Size, std::uint32_t Offset = 0U);
 
         template <typename T>
-            requires std::is_trivially_copyable_v<T>
+            requires (std::is_trivially_copyable_v<T> && !std::is_pointer_v<T>)
 
-        /** Convenience overload writing any trivially copyable value at the 4-byte aligned byte offset. */
+        /** Convenience overload writing any trivially copyable value at the 4-byte aligned byte offset. A pointer is never
+         *  such a value: without the constraint, PushConstants(&Push, sizeof(Push)) would pick this overload (an exact match
+         *  beats the conversion to const void*) and push the pointer's own 8 bytes at offset sizeof(Push). */
         void PushConstants(const T& Value, const std::uint32_t Offset = 0U)
         {
             static_assert(sizeof(T) <= PushConstantSize, "Push constants are limited to luvk::PushConstantSize bytes");
