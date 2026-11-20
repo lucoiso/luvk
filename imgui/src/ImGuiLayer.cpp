@@ -94,9 +94,13 @@ void luvk::imgui::ImGuiLayer::ProcessEvent(const SDL_Event& Event)
     ImGui_ImplSDL3_ProcessEvent(&Event);
 }
 
-void luvk::imgui::ImGuiLayer::NewFrame()
+void luvk::imgui::ImGuiLayer::NewPlatformFrame()
 {
     ImGui_ImplSDL3_NewFrame();
+}
+
+void luvk::imgui::ImGuiLayer::NewFrame()
+{
     ImGui::NewFrame();
 }
 

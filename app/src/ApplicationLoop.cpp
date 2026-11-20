@@ -111,6 +111,8 @@ void luvk::app::Application::RenderFrame(const float DeltaTime)
     Stage(CpuStage::Update) = Elapsed(Start, Now);
 
     Start = Now;
+    m_ImGui->NewPlatformFrame();
+    OnGuiInput();
     m_ImGui->NewFrame();
     DrawUserInterface();
     m_ImGui->Render();
@@ -336,6 +338,10 @@ bool luvk::app::Application::OnCloseRequested()
 }
 
 void luvk::app::Application::OnUpdate(const float)
+{
+}
+
+void luvk::app::Application::OnGuiInput()
 {
 }
 

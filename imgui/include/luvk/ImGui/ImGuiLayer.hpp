@@ -74,7 +74,10 @@ namespace luvk::imgui
         /** Forwards one SDL event to the ImGui platform backend (main and secondary windows). */
         void ProcessEvent(const SDL_Event& Event);
 
-        /** Starts a new ImGui frame (platform new-frame + ImGui::NewFrame). */
+        /** Queues the platform's input for the next ImGui frame (ImGui_ImplSDL3_NewFrame); NewFrame follows. */
+        void NewPlatformFrame();
+
+        /** Starts the ImGui frame (ImGui::NewFrame), which reads the input queued so far. Call NewPlatformFrame first. */
         void NewFrame();
 
         /** Ends the ImGui frame: builds the draw data and updates the secondary OS windows. */

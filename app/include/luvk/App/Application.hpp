@@ -286,6 +286,12 @@ namespace luvk::app
         /** Called every frame with the clamped delta time in seconds, before the features update. */
         virtual void OnUpdate(float DeltaTime);
 
+        /**
+         * Called every frame after the platform backend queued its input and before ImGui::NewFrame reads it. Synthetic
+         * input queued here (io.AddMousePosEvent...: automation, replays) comes after the OS mouse, so it wins.
+         */
+        virtual void OnGuiInput();
+
         /** Called every frame inside the ImGui new-frame/render scope. */
         virtual void OnGui();
 
