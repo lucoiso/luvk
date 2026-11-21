@@ -3,7 +3,7 @@
 # Repo: https://github.com/lucoiso/luvk
 
 INCLUDE(FetchContent)
-INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/FetchGlm.cmake")
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/FetchGlm.cmake")
 
 SET(SDL_SHARED OFF CACHE BOOL "" FORCE)
 SET(SDL_STATIC ON CACHE BOOL "" FORCE)

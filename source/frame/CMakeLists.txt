@@ -5,7 +5,7 @@
 # luvk-frame: render features, named phases, typed blackboard slots and the scene frame (scene color/depth, clear,
 # composite). Depends only on luvk-core (plus header-only glm): no window, no UI.
 
-INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/FetchGlm.cmake")
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/FetchGlm.cmake")
 
 FILE(GLOB_RECURSE LUVK_FRAME_SOURCES CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"

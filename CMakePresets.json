@@ -10,7 +10,7 @@
                                  "name":  "base",
                                  "hidden":  true,
                                  "generator":  "Ninja",
-                                 "binaryDir":  "${sourceDir}/../luvk-build/${presetName}",
+                                 "binaryDir":  "${sourceDir}/build/cmake/${presetName}",
                                  "cacheVariables":  {
                                                         "CMAKE_EXPORT_COMPILE_COMMANDS":  "ON"
                                                     }

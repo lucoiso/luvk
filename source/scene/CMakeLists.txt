@@ -3,7 +3,7 @@
 # Repo: https://github.com/lucoiso/luvk
 
 INCLUDE(FetchContent)
-INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../cmake/FetchGlm.cmake")
+INCLUDE("${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/FetchGlm.cmake")
 
 FILE(GLOB_RECURSE LUVK_SCENE_SOURCES CONFIGURE_DEPENDS
      "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"

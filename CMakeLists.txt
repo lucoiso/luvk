@@ -34,39 +34,47 @@ IF (LUVK_BUILD_IMGUI)
     SET(LUVK_BUILD_PLATFORM ON)
 ENDIF ()
 
-SET(LUVK_OUTPUT_DIR "${CMAKE_BINARY_DIR}" CACHE PATH "Root output directory: binaries go to <dir>/bin, libraries to <dir>/lib")
+# Standalone builds share the engine's build/ layout; inside a parent project its own settings stay in charge.
+IF (PROJECT_IS_TOP_LEVEL)
+    SET(LUVK_DEFAULT_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/binaries")
+    SET(FETCHCONTENT_BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake-deps" CACHE PATH "FetchContent download and build root")
+ELSE ()
+    SET(LUVK_DEFAULT_OUTPUT_DIR "${CMAKE_BINARY_DIR}")
+ENDIF ()
+
+SET(LUVK_OUTPUT_DIR "${LUVK_DEFAULT_OUTPUT_DIR}" CACHE PATH "Root output directory: binaries go to <dir>/bin, libraries to <dir>/lib")
 
 # Dependencies and helper functions are declared before the targets so that the targets can link them.
 ADD_SUBDIRECTORY(cmake)
 
-ADD_SUBDIRECTORY(core)
+ADD_SUBDIRECTORY(source/core)
 
 IF (LUVK_INCLUDE_SLANG_COMPILER)
-    ADD_SUBDIRECTORY(shaders)
+    ADD_SUBDIRECTORY(source/shaders)
 ENDIF ()
 
 IF (LUVK_BUILD_FRAME)
-    ADD_SUBDIRECTORY(frame)
+    ADD_SUBDIRECTORY(source/frame)
 ENDIF ()
 
 IF (LUVK_BUILD_SCENE)
-    ADD_SUBDIRECTORY(scene)
+    ADD_SUBDIRECTORY(source/scene)
 ENDIF ()
 
 IF (LUVK_BUILD_PLATFORM)
-    ADD_SUBDIRECTORY(platform)
+    ADD_SUBDIRECTORY(source/platform)
 ENDIF ()
 
 IF (LUVK_BUILD_IMGUI)
-    ADD_SUBDIRECTORY(imgui)
+    ADD_SUBDIRECTORY(source/imgui)
 ENDIF ()
 
 IF (LUVK_BUILD_APP)
-    ADD_SUBDIRECTORY(app)
+    ADD_SUBDIRECTORY(source/app)
 ENDIF ()
 
 IF (LUVK_BUILD_EXAMPLE)
-    ADD_SUBDIRECTORY(example)
+    ADD_SUBDIRECTORY(examples/example)
 ENDIF ()
 
 IF (LUVK_BUILD_TESTS AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/CMakeLists.txt")

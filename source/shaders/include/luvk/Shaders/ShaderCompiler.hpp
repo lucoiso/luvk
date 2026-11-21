@@ -18,7 +18,7 @@
 namespace luvk
 {
     /**
-     * Source of the luvk Slang module (core/shaders/luvk.slang): the bindless arrays, the typed handles, luvk::Span<T> and
+     * Source of the luvk Slang module (source/core/shaders/luvk.slang): the bindless arrays, the typed handles, luvk::Span<T> and
      * the reflection attributes. It is loaded in every compile session, so shaders simply `import luvk;`.
      */
     [[nodiscard]] LUVK_API std::string_view LuvkShaderModule() noexcept;

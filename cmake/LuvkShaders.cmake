@@ -10,12 +10,12 @@
 #                    SOURCE_DIR <directory of the .slang files>
 #                    SHADERS   <File.slang:Entry:stage>...)
 #
-# Every entry is compiled by slangc (the luvk module of core/shaders on the include path) into <build>/luvk-shaders/,
+# Every entry is compiled by slangc (the luvk module of source/core/shaders on the include path) into <build>/luvk-shaders/,
 # then a script turns the SPIR-V into a generated source with one accessor per entry point:
 #     std::span<const std::uint32_t> <NAMESPACE>::<Entry>() noexcept;
 # The header goes to a private include directory of the target.
 
-SET(LUVK_SHADER_MODULE_DIR "${CMAKE_CURRENT_LIST_DIR}/../core/shaders" CACHE INTERNAL "Directory of luvk.slang")
+SET(LUVK_SHADER_MODULE_DIR "${CMAKE_CURRENT_LIST_DIR}/../source/core/shaders" CACHE INTERNAL "Directory of luvk.slang")
 SET(LUVK_EMBED_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/EmbedSpirv.cmake" CACHE INTERNAL "SPIR-V embedding script")
 
 IF (NOT SLANGC)

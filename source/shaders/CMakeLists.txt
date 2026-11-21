@@ -21,8 +21,8 @@ TARGET_LINK_LIBRARIES(luvk-shaders PUBLIC luvk::core slang)
 SET(LUVK_MODULE_HEADER "${CMAKE_CURRENT_BINARY_DIR}/generated/LuvkModuleSource.hpp")
 ADD_CUSTOM_COMMAND(OUTPUT "${LUVK_MODULE_HEADER}"
                    COMMAND "${CMAKE_COMMAND}" "-DINPUT=${LUVK_SHADER_MODULE_DIR}/luvk.slang" "-DOUTPUT=${LUVK_MODULE_HEADER}" -DNAME=LuvkModuleSource
-                           -P "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/EmbedText.cmake"
-                   DEPENDS "${LUVK_SHADER_MODULE_DIR}/luvk.slang" "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/EmbedText.cmake"
+                           -P "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/EmbedText.cmake"
+                   DEPENDS "${LUVK_SHADER_MODULE_DIR}/luvk.slang" "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/EmbedText.cmake"
                    COMMENT "Embedding the luvk Slang module"
                    VERBATIM)
 TARGET_SOURCES(luvk-shaders PRIVATE "${LUVK_MODULE_HEADER}")

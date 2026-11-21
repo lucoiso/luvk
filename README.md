@@ -10,20 +10,20 @@ The project is split into layers so that you can use only what you need:
 
 | Target / folder       | Alias            | What it is                                                                                                  |
 |-----------------------|------------------|-------------------------------------------------------------------------------------------------------------|
-| `core/`               | `luvk::core`     | Vulkan without the verbosity: context, queues, bindless heap, uploads, deletion queue, resources, render graph, frame allocator, readback, renderer. Vulkan-free public headers. No policy. |
+| `source/core/`              | `luvk::core`     | Vulkan without the verbosity: context, queues, bindless heap, uploads, deletion queue, resources, render graph, frame allocator, readback, renderer. Vulkan-free public headers. No policy. |
 | (interface)           | `luvk::vulkan`   | Interop: adds volk and VMA to `luvk::core` for code that includes `luvk/Core/Vulkan.hpp` and calls Vulkan directly. |
-| `frame/`              | `luvk::frame`    | Render features ordered by phases, typed blackboard slots, `SceneRenderer` (scene color/depth, clear, composite). No window, no UI. |
-| `platform/`           | `luvk::platform` | SDL3 window (surface, hit-testing, display scale), per-user data directory, event input. No ImGui.          |
-| `imgui/`              | `luvk::imgui`    | Dear ImGui rendered through luvk: layer, renderer backend, layout persistence and multi-viewport windows.    |
-| `shaders/`            | `luvk::shaders`  | Optional runtime Slang → SPIR-V compiler with reflection, a disk cache and a file watcher. Not linked by any other library. |
-| `scene/`              | `luvk::scene`    | Optional: Texture, Mesh/MeshData, Material and MeshRenderer on top of the core (no window, no UI).           |
-| `app/`                | `luvk::app`      | Application loop on top of `luvk::frame`: camera, debug draw, statistics, MeshFeature (with scene).          |
-| `example/`            | `luvk-example`   | The gallery: every feature as an exhibit of one 3D scene, inspected through a single tabbed panel.          |
+| `source/frame/`             | `luvk::frame`    | Render features ordered by phases, typed blackboard slots, `SceneRenderer` (scene color/depth, clear, composite). No window, no UI. |
+| `source/platform/`          | `luvk::platform` | SDL3 window (surface, hit-testing, display scale), per-user data directory, event input. No ImGui.          |
+| `source/imgui/`             | `luvk::imgui`    | Dear ImGui rendered through luvk: layer, renderer backend, layout persistence and multi-viewport windows.    |
+| `source/shaders/`           | `luvk::shaders`  | Optional runtime Slang → SPIR-V compiler with reflection, a disk cache and a file watcher. Not linked by any other library. |
+| `source/scene/`             | `luvk::scene`    | Optional: Texture, Mesh/MeshData, Material and MeshRenderer on top of the core (no window, no UI).           |
+| `source/app/`               | `luvk::app`      | Application loop on top of `luvk::frame`: camera, debug draw, statistics, MeshFeature (with scene).          |
+| `examples/example/`          | `luvk-example`   | The gallery: every feature as an exhibit of one 3D scene, inspected through a single tabbed panel.          |
 
 Every library module (`core`, `frame`, `platform`, `imgui`, `scene`, `app`, `shaders`) has its own `include/` and `src/`.
-All luvk shaders are Slang: modules that ship shaders keep them next to the code that uses them (`frame/shaders/`,
-`app/shaders/`, `imgui/shaders/`, `scene/shaders/`), and the build compiles them with `slangc` and embeds the SPIR-V
-(see *Build-time shaders*). The shared Slang module is `core/shaders/luvk.slang`. `example/` is an executable.
+All luvk shaders are Slang: modules that ship shaders keep them next to the code that uses them (`source/frame/shaders/`,
+`source/app/shaders/`, `source/imgui/shaders/`, `source/scene/shaders/`), and the build compiles them with `slangc` and embeds the SPIR-V
+(see *Build-time shaders*). The shared Slang module is `source/core/shaders/luvk.slang`. `examples/example/` is an executable.
 
 The starter lives in its own repository:
 [`luvk-imgui-template`](https://github.com/lucoiso/luvk-imgui-template) — a tiny, pure Dear ImGui
@@ -53,7 +53,7 @@ includes every Vulkan-free core header.
 ```bash
 cmake --preset debug-apps
 cmake --build --preset debug-apps
-../luvk-build/debug-apps/bin/luvk-example
+build/binaries/bin/luvk-example
 ```
 
 | Preset         | Builds                                                          |
@@ -63,7 +63,7 @@ cmake --build --preset debug-apps
 | `debug-apps`   | core + frame + platform + imgui + scene + shaders + app + example |
 | `release-apps` | core + frame + platform + imgui + scene + shaders + app + example |
 
-Build trees go to `../luvk-build/<preset>`. **Binaries go to `<build>/bin/`, libraries to `<build>/lib/` and PDBs to `<build>/pdb/`** (multi-config generators add `debug/`/`release/` below them). Options:
+Build trees go to `build/cmake/<preset>`, FetchContent downloads to `build/cmake-deps` (standalone only; inside a parent project its settings apply). **Binaries go to `build/binaries/bin/`, libraries to `build/binaries/lib/` and PDBs to `build/binaries/pdb/`** (multi-config generators add `debug/`/`release/` below them). Options:
 
 | Option | Effect |
 |--------|--------|
@@ -78,7 +78,7 @@ Build trees go to `../luvk-build/<preset>`. **Binaries go to `<build>/bin/`, lib
 | `LUVK_SLANG_FROM_VULKAN_SDK` | Default `ON`: uses the Slang shipped with the Vulkan SDK (`$VULKAN_SDK`: `Include/slang/slang.h` + `Lib/slang.lib` on Windows, `include/slang` + `lib/libslang.so` elsewhere); falls back to downloading Slang 2026.20 when the SDK has none. |
 | `LUVK_IMGUI_DEMO` | Compiles Dear ImGui's demo window (stubbed out otherwise); implied by the example. |
 | `LUVK_WARNINGS_AS_ERRORS` | `/WX` on MSVC, `-Werror` elsewhere. |
-| `LUVK_OUTPUT_DIR` | Root for `bin/`, `lib/` and `pdb/`; defaults to the build directory. |
+| `LUVK_OUTPUT_DIR` | Root for `bin/`, `lib/` and `pdb/`; defaults to `build/binaries` standalone and to the build directory inside a parent project. |
 
 `luvk-core` is always built. With no extra option the result is core only; each option above adds its layer
 (and its dependencies).
@@ -112,7 +112,7 @@ LUVK_EMBED_SHADERS(luvk-frame
 ```
 
 Each `File.slang:Entry:stage` is compiled by `slangc` (`-O2 -matrix-layout-column-major`, the source directory and
-`core/shaders` on the include path, so `import luvk;` works) into `<build>/luvk-shaders/<target>/`. `EmbedSpirv.cmake`
+`source/core/shaders` on the include path, so `import luvk;` works) into `<build>/luvk-shaders/<target>/`. `EmbedSpirv.cmake`
 then writes a generated header with one accessor per entry point, `std::span<const std::uint32_t> <NAMESPACE>::<Entry>()`,
 on a private include directory of the target. `EmbedText.cmake` embeds a text file as a `char` array (used to compile
 `luvk.slang` into `luvk-shaders`). It is a plain CMake function, so a project that adds luvk with `add_subdirectory` can
@@ -247,8 +247,8 @@ backend used is `imgui_impl_sdl3` for windowing/input; rendering goes through lu
 Docking and multi-viewport are enabled by default and can be turned off per application through
 `ApplicationDesc`.
 
-The library shaders (composite, debug lines, ImGui and meshes) are Slang sources in `frame/shaders/`, `app/shaders/`,
-`imgui/shaders/` and `scene/shaders/`, compiled and embedded at build time (see *Build-time shaders*).
+The library shaders (composite, debug lines, ImGui and meshes) are Slang sources in `source/frame/shaders/`, `source/app/shaders/`,
+`source/imgui/shaders/` and `source/scene/shaders/`, compiled and embedded at build time (see *Build-time shaders*).
 
 ### Transparent windows
 
@@ -565,7 +565,7 @@ themselves. Their slots come as typed 4-byte handles (`luvk/Core/Handles.hpp`): 
 remain available (`SampledIndex()`, `StorageIndex()`, `Sampler::Index()`). Buffers are passed as `Buffer::Address()`
 or `Buffer::Span<T>()`, a `GpuSpan<T>` (address + element count, 16 bytes).
 
-`import luvk;` (`core/shaders/luvk.slang`) declares the same handles with matching accessors, so a push struct
+`import luvk;` (`source/core/shaders/luvk.slang`) declares the same handles with matching accessors, so a push struct
 written with them has one layout on both sides:
 
 ```slang
