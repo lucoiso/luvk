@@ -12,7 +12,8 @@
                                  "generator":  "Ninja",
                                  "binaryDir":  "${sourceDir}/build/cmake/${presetName}",
                                  "cacheVariables":  {
-                                                        "CMAKE_EXPORT_COMPILE_COMMANDS":  "ON"
+                                                        "CMAKE_EXPORT_COMPILE_COMMANDS":  "ON",
+                                                        "LUVK_OUTPUT_DIR":  "${sourceDir}/build/binaries/${presetName}"
                                                     }
                              },
                              {

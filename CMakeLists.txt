@@ -34,10 +34,11 @@ IF (LUVK_BUILD_IMGUI)
     SET(LUVK_BUILD_PLATFORM ON)
 ENDIF ()
 
-# Standalone builds share the engine's build/ layout; inside a parent project its own settings stay in charge.
-IF (PROJECT_IS_TOP_LEVEL)
+# Standalone builds write under build/; inside a parent project its own settings stay in charge. A single-config tree
+# (the Ninja presets) gets no per-config output folder and builds its dependencies in its own _deps, so its outputs stay
+# in its own tree unless LUVK_OUTPUT_DIR names a folder of its own (the presets use build/binaries/<preset>).
+IF (PROJECT_IS_TOP_LEVEL AND CMAKE_CONFIGURATION_TYPES)
     SET(LUVK_DEFAULT_OUTPUT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/binaries")
-    SET(FETCHCONTENT_BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/build/cmake-deps" CACHE PATH "FetchContent download and build root")
 ELSE ()
     SET(LUVK_DEFAULT_OUTPUT_DIR "${CMAKE_BINARY_DIR}")
 ENDIF ()

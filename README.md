@@ -53,7 +53,7 @@ includes every Vulkan-free core header.
 ```bash
 cmake --preset debug-apps
 cmake --build --preset debug-apps
-build/binaries/bin/luvk-example
+build/binaries/debug-apps/bin/luvk-example
 ```
 
 | Preset         | Builds                                                          |
@@ -63,7 +63,7 @@ build/binaries/bin/luvk-example
 | `debug-apps`   | core + frame + platform + imgui + scene + shaders + app + example |
 | `release-apps` | core + frame + platform + imgui + scene + shaders + app + example |
 
-Build trees go to `build/cmake/<preset>`, FetchContent downloads to `build/cmake-deps` (standalone only; inside a parent project its settings apply). **Binaries go to `build/binaries/bin/`, libraries to `build/binaries/lib/` and PDBs to `build/binaries/pdb/`** (multi-config generators add `debug/`/`release/` below them). Options:
+Build trees go to `build/cmake/<preset>`, and each tree fetches and builds its dependencies in its own `_deps` folder, so presets never share objects. **Each preset writes binaries to `build/binaries/<preset>/bin/`, libraries to `build/binaries/<preset>/lib/` and PDBs to `build/binaries/<preset>/pdb/`** (multi-config generators add `debug/`/`release/` below them). Options:
 
 | Option | Effect |
 |--------|--------|
@@ -78,7 +78,7 @@ Build trees go to `build/cmake/<preset>`, FetchContent downloads to `build/cmake
 | `LUVK_SLANG_FROM_VULKAN_SDK` | Default `ON`: uses the Slang shipped with the Vulkan SDK (`$VULKAN_SDK`: `Include/slang/slang.h` + `Lib/slang.lib` on Windows, `include/slang` + `lib/libslang.so` elsewhere); falls back to downloading Slang 2026.20 when the SDK has none. |
 | `LUVK_IMGUI_DEMO` | Compiles Dear ImGui's demo window (stubbed out otherwise); implied by the example. |
 | `LUVK_WARNINGS_AS_ERRORS` | `/WX` on MSVC, `-Werror` elsewhere. |
-| `LUVK_OUTPUT_DIR` | Root for `bin/`, `lib/` and `pdb/`; defaults to `build/binaries` standalone and to the build directory inside a parent project. |
+| `LUVK_OUTPUT_DIR` | Root for `bin/`, `lib/` and `pdb/`; the presets set `build/binaries/<preset>`; without a preset it defaults to `build/binaries` for a standalone multi-config generator and to the build directory otherwise (single-config trees, or inside a parent project). |
 
 `luvk-core` is always built. With no extra option the result is core only; each option above adds its layer
 (and its dependencies).
