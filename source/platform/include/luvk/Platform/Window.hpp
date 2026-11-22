@@ -40,6 +40,9 @@ namespace luvk::platform
 
         /** Requests a high pixel density (HiDPI) window. */
         bool HighPixelDensity = true;
+
+        /** Creates the window hidden (SDL_WINDOW_HIDDEN): it never appears or takes focus unless shown later. */
+        bool Hidden = false;
     };
 
     /** What a point of a window does when clicked (see Window::SetHitTest). */

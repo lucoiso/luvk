@@ -38,6 +38,10 @@ luvk::platform::Window::Window(const WindowDesc& Desc)
     {
         Flags |= SDL_WINDOW_TRANSPARENT;
     }
+    if (Desc.Hidden)
+    {
+        Flags |= SDL_WINDOW_HIDDEN;
+    }
 
     m_Window = SDL_CreateWindow(Desc.Title.c_str(), static_cast<int>(Desc.Width), static_cast<int>(Desc.Height), Flags);
 

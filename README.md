@@ -206,6 +206,7 @@ Environment variables (read by `Application`'s constructor, so any build can be 
 | `LUVK_DIAGNOSTICS=0` / `1` | Overrides `EnableDiagnostics`. |
 | `LUVK_ROBUSTNESS=1` | Enables robustBufferAccess2, robustImageAccess2 and nullDescriptor in the diagnostics module. |
 | `LUVK_APP_MAX_FRAMES=N` | Renders N frames and exits; no message box is ever shown (automated runs). |
+| `LUVK_HIDDEN_WINDOW=1` | Creates the window hidden (`SDL_WINDOW_HIDDEN`): it never appears or takes focus; rendering, presenting and captures go on. |
 
 `Run()` returns 0 on success, 1 on a fatal error, 2 when validation errors were reported and 3 after a GPU crash.
 

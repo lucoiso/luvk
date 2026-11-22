@@ -218,7 +218,9 @@ void luvk::app::Application::Initialize()
                                                                         .Width       = m_Desc.Width,
                                                                         .Height      = m_Desc.Height,
                                                                         .Borderless  = m_Desc.Borderless,
-                                                                        .Transparent = m_Desc.Transparent});
+                                                                        .Transparent = m_Desc.Transparent,
+                                                                        // Automated runs beside someone's work must never show a window or take focus.
+                                                                        .Hidden = EnvironmentFlag("LUVK_HIDDEN_WINDOW").value_or(false)});
 
     std::vector<std::shared_ptr<Module>> Modules = m_Desc.Modules;
     if (m_Desc.EnableDiagnostics && std::ranges::none_of(Modules,
