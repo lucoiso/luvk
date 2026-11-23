@@ -43,7 +43,13 @@ namespace luvk::platform
 
         /** Creates the window hidden (SDL_WINDOW_HIDDEN): it never appears or takes focus unless shown later. */
         bool Hidden = false;
+
+        /** Shown without taking focus: not focusable, a utility window (no taskbar entry), placed at the bottom of the window order. */
+        bool Background = false;
     };
+
+    /** The SDL_WindowFlags bits a window created from Desc asks for (an SDL_WindowFlags value). */
+    [[nodiscard]] std::uint64_t WindowFlagsOf(const WindowDesc& Desc);
 
     /** What a point of a window does when clicked (see Window::SetHitTest). */
     enum class HitTest : std::uint8_t

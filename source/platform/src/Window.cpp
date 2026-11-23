@@ -10,17 +10,14 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_vulkan.h>
 
-luvk::platform::Window::Window(const WindowDesc& Desc)
-{
-    if (SDL_WasInit(SDL_INIT_VIDEO) == 0U)
-    {
-        if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
-        {
-            throw std::runtime_error(std::string("[luvk-platform] SDL_InitSubSystem(SDL_INIT_VIDEO) failed: ") + SDL_GetError());
-        }
-        m_OwnsVideoSubsystem = true;
-    }
+#ifdef _WIN32
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <Windows.h>
+#endif
 
+std::uint64_t luvk::platform::WindowFlagsOf(const WindowDesc& Desc)
+{
     SDL_WindowFlags Flags = SDL_WINDOW_VULKAN;
     if (Desc.Resizable)
     {
@@ -41,6 +38,33 @@ luvk::platform::Window::Window(const WindowDesc& Desc)
     if (Desc.Hidden)
     {
         Flags |= SDL_WINDOW_HIDDEN;
+    }
+
+    if (Desc.Background)
+    {
+        Flags |= SDL_WINDOW_NOT_FOCUSABLE | SDL_WINDOW_UTILITY;
+    }
+    return Flags;
+}
+
+luvk::platform::Window::Window(const WindowDesc& Desc)
+{
+    if (SDL_WasInit(SDL_INIT_VIDEO) == 0U)
+    {
+        if (!SDL_InitSubSystem(SDL_INIT_VIDEO))
+        {
+            throw std::runtime_error(std::string("[luvk-platform] SDL_InitSubSystem(SDL_INIT_VIDEO) failed: ") + SDL_GetError());
+        }
+        m_OwnsVideoSubsystem = true;
+    }
+
+    SDL_WindowFlags Flags = WindowFlagsOf(Desc);
+    if (Desc.Background)
+    {
+        // Shown later, once it sits at the bottom of the window order; the hints are process-wide, so only set here.
+        Flags |= SDL_WINDOW_HIDDEN;
+        SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
+        SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_RAISED, "0");
     }
 
     m_Window = SDL_CreateWindow(Desc.Title.c_str(), static_cast<int>(Desc.Width), static_cast<int>(Desc.Height), Flags);
@@ -76,6 +100,17 @@ luvk::platform::Window::Window(const WindowDesc& Desc)
     }
 
     SDL_SetWindowPosition(m_Window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
+
+    if (Desc.Background && !Desc.Hidden)
+    {
+#ifdef _WIN32
+        if (void* const Handle = SDL_GetPointerProperty(SDL_GetWindowProperties(m_Window), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr))
+        {
+            SetWindowPos(static_cast<HWND>(Handle), HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
+        }
+#endif
+        SDL_ShowWindow(m_Window);
+    }
 }
 
 luvk::platform::Window::~Window()
