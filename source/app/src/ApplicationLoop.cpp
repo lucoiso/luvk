@@ -23,8 +23,12 @@ bool luvk::app::Application::PumpEvents()
     ++m_IdleFrames;
     while (SDL_PollEvent(&Event))
     {
-        // An off-screen run takes no input from the person at the computer: only quit and close still count.
-        if (m_Desc.Offscreen && Event.type != SDL_EVENT_QUIT && Event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+        // An off-screen run takes no input from the person at the computer (keyboard, text, mouse, touch, pen); window
+        // events, such as the size changes its own scripts make, still count.
+        const bool IsPersonInput = (Event.type >= SDL_EVENT_KEY_DOWN && Event.type < SDL_EVENT_JOYSTICK_AXIS_MOTION) ||
+                                   (Event.type >= SDL_EVENT_FINGER_DOWN && Event.type < SDL_EVENT_CLIPBOARD_UPDATE) ||
+                                   (Event.type >= SDL_EVENT_PEN_PROXIMITY_IN && Event.type < SDL_EVENT_CAMERA_DEVICE_ADDED);
+        if (m_Desc.Offscreen && IsPersonInput)
         {
             continue;
         }

@@ -54,7 +54,8 @@ namespace luvk::app
 
         /**
          * Renders into an image of the window's pixel size instead of presenting to the window (luvk::RendererDesc::
-         * OffscreenExtent): the window stays hidden, no surface or swapchain exists, the OS mouse and keyboard are
+         * OffscreenExtent; it follows the window's size changes): the window stays hidden (so a maximize or full screen
+         * request only takes effect once shown), no surface or swapchain exists, the OS mouse, keyboard, touch and pen are
          * ignored (input comes only from OnGuiInput and OnEvent callers) and Dear ImGui viewports stay inside it.
          * OnFrameRecorded receives that image, so captures are the same whatever covers the screen.
          */

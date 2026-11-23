@@ -152,6 +152,9 @@ namespace luvk
         /** Backbuffer of an off-screen renderer (empty otherwise); its state carries over between frames. */
         Image m_Offscreen;
 
+        /** Size requested through Resize for the off-screen image, applied at the next BeginFrame ({0, 0}: none). */
+        Extent2D m_OffscreenPending = {};
+
         /** GPU profiler (created when RendererDesc::GpuTimings is set). */
         std::unique_ptr<GpuProfiler> m_Profiler;
 
@@ -201,7 +204,7 @@ namespace luvk
         /** Drops the frame's passes but still closes it (acquired images are presented unchanged). */
         void AbortFrame(const Frame& Current);
 
-        /** Requests a new main window size; the swapchain is recreated before the next acquisition. */
+        /** Requests a new main window size; the swapchain (or the off-screen image) is recreated before the next frame. */
         void Resize(Extent2D NewExtent) noexcept;
 
         /** Ordering of the async compute submissions of the next frames (see AsyncComputeOrder). */
@@ -250,6 +253,9 @@ namespace luvk
         [[nodiscard]] bool IsFrameActive() const noexcept { return m_FrameActive; }
 
     private:
+        /** Creates the off-screen image (the previous one is retired once the frames using it completed). */
+        void CreateOffscreen(Extent2D Size, luvk::Format ImageFormat);
+
         /** Records the slot's graph (optionally with the profiler), submits once and presents every acquired target. */
         void SubmitAndPresent(const Frame& Current, bool Profile);
 

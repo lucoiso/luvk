@@ -105,13 +105,7 @@ luvk::Renderer::Renderer(Context& Ctx, const RendererDesc& Desc)
 
     if (WantsOffscreen(Desc))
     {
-        // Graphics only, like a swapchain image: the window capture copies it after the interface passes.
-        m_Offscreen = Image(Ctx,
-                            ImageDesc{.Extent            = {Desc.OffscreenExtent.Width, Desc.OffscreenExtent.Height, 1U},
-                                      .Format            = Desc.OffscreenFormat,
-                                      .Usage             = ImageUsage::ColorAttachment | ImageUsage::TransferSrc | ImageUsage::TransferDst,
-                                      .GraphicsQueueOnly = true,
-                                      .Name              = "offscreen backbuffer"});
+        CreateOffscreen(Desc.OffscreenExtent, Desc.OffscreenFormat);
     }
 
     if (Desc.GpuTimings)
@@ -138,6 +132,17 @@ luvk::Renderer::~Renderer()
 
     DestroySlots();
     m_MainTarget.reset();
+}
+
+void luvk::Renderer::CreateOffscreen(const Extent2D Size, const luvk::Format ImageFormat)
+{
+    // Graphics only, like a swapchain image: the window capture copies it after the interface passes.
+    m_Offscreen = Image(m_Context,
+                        ImageDesc{.Extent            = {Size.Width, Size.Height, 1U},
+                                  .Format            = ImageFormat,
+                                  .Usage             = ImageUsage::ColorAttachment | ImageUsage::TransferSrc | ImageUsage::TransferDst,
+                                  .GraphicsQueueOnly = true,
+                                  .Name              = "offscreen backbuffer"});
 }
 
 void luvk::Renderer::DestroySlots() noexcept
@@ -183,6 +188,15 @@ std::optional<luvk::Frame> luvk::Renderer::BeginFrame()
     // Headless renderers record frames without any window: the frame simply has no backbuffer. Off-screen renderers
     // import their own image, which nothing presents.
     std::optional<PresentImage> Main;
+    if (m_Offscreen && m_OffscreenPending.Width != 0U)
+    {
+        const Extent3D Current = m_Offscreen.Extent();
+        if (Current.Width != m_OffscreenPending.Width || Current.Height != m_OffscreenPending.Height)
+        {
+            CreateOffscreen(m_OffscreenPending, m_Offscreen.Format());
+        }
+        m_OffscreenPending = {};
+    }
     if (m_Offscreen)
     {
         const Extent3D Size = m_Offscreen.Extent();
@@ -493,6 +507,10 @@ void luvk::Renderer::Resize(const Extent2D NewExtent) noexcept
     if (m_MainTarget)
     {
         m_MainTarget->Resize(NewExtent);
+    }
+    else if (m_Offscreen && NewExtent.Width != 0U && NewExtent.Height != 0U)
+    {
+        m_OffscreenPending = NewExtent;
     }
 }
 
