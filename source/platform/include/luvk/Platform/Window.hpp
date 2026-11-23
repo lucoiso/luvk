@@ -118,6 +118,9 @@ namespace luvk::platform
         /** True when the window was created with a transparent framebuffer. */
         [[nodiscard]] bool IsTransparent() const noexcept { return m_Transparent; }
 
+        /** True when the window was created as a background window (WindowDesc::Background). */
+        [[nodiscard]] bool IsBackground() const noexcept { return m_Background; }
+
         /** Changes the window title. */
         void SetTitle(const std::string& Title) const;
 
@@ -143,6 +146,9 @@ namespace luvk::platform
 
         /** True when the window was created with SDL_WINDOW_TRANSPARENT. */
         bool m_Transparent = false;
+
+        /** True when the window was created from a WindowDesc with Background set. */
+        bool m_Background = false;
 
         /** Hit-test classifier installed with SetHitTest. */
         HitTestFunction m_HitTest;

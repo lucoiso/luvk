@@ -18,6 +18,22 @@
 #include "ImGuiRenderer.hpp"
 #include "ImGuiViewportWindow.hpp"
 
+namespace
+{
+    /** The SDL3 backend's Platform_ShowWindow, called by ShowWindowWithoutFocus. */
+    void (*g_BackendShowWindow)(ImGuiViewport*) = nullptr;
+
+    /**
+     * Shows a secondary viewport window of a background main window without activating it: the backend sets the
+     * process-wide SDL activate-when-shown hint from this viewport flag on every show.
+     */
+    void ShowWindowWithoutFocus(ImGuiViewport* const Viewport)
+    {
+        Viewport->Flags |= ImGuiViewportFlags_NoFocusOnAppearing | ImGuiViewportFlags_NoTaskBarIcon;
+        g_BackendShowWindow(Viewport);
+    }
+}
+
 luvk::imgui::ImGuiLayer::ImGuiLayer(Context& Ctx, luvk::Renderer& TargetRenderer, platform::Window& Window, const Options& Options)
     : m_Context(&Ctx),
       m_Renderer(&TargetRenderer),
@@ -50,6 +66,16 @@ luvk::imgui::ImGuiLayer::ImGuiLayer(Context& Ctx, luvk::Renderer& TargetRenderer
     {
         ImGui::DestroyContext();
         throw std::runtime_error("[luvk-imgui] ImGui_ImplSDL3_InitForVulkan failed.");
+    }
+
+    if (Window.IsBackground() && m_Options.Viewports)
+    {
+        // Secondary windows of a background window never take the focus nor add a taskbar entry either.
+        IO.ConfigViewportsNoTaskBarIcon = true;
+        ImGuiPlatformIO& PlatformIO     = ImGui::GetPlatformIO();
+        g_BackendShowWindow             = PlatformIO.Platform_ShowWindow;
+        PlatformIO.Platform_ShowWindow  = ShowWindowWithoutFocus;
+        PlatformIO.Platform_SetWindowFocus = nullptr;
     }
 
     try

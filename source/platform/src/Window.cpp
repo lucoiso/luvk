@@ -86,6 +86,7 @@ luvk::platform::Window::Window(const WindowDesc& Desc)
     }
 
     m_Transparent = Desc.Transparent && (SDL_GetWindowFlags(m_Window) & SDL_WINDOW_TRANSPARENT) != 0U;
+    m_Background  = Desc.Background;
 
     // Width/Height are logical units. Where window coordinates are pixels (Windows, X11) the display scale is not
     // applied by the OS, so scale the window here; where they are already points (macOS, Wayland) the pixel density
