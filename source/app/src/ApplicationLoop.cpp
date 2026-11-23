@@ -235,6 +235,11 @@ void luvk::app::Application::RecordFrame(const Frame& Current, const float Delta
 
     // Secondary OS windows of Dear ImGui are presented in the same submission as the main window.
     m_ImGui->AddViewportPasses(Current.Graph);
+
+    if (Current.Backbuffer.IsValid())
+    {
+        OnFrameRecorded(Current.Graph, Current.Backbuffer, Current.Extent, Current.Format, Current.Number);
+    }
 }
 
 void luvk::app::Application::DrawUserInterface()
@@ -350,6 +355,10 @@ void luvk::app::Application::OnGui()
 }
 
 void luvk::app::Application::OnRender(frame::FeatureContext&)
+{
+}
+
+void luvk::app::Application::OnFrameRecorded(RenderGraph&, TextureHandle, Extent2D, luvk::Format, std::uint64_t)
 {
 }
 

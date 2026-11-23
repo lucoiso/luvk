@@ -35,8 +35,11 @@ namespace luvk
         /** First supported entry wins; FIFO (always available) is the fallback. */
         std::vector<luvk::PresentMode> PreferredPresentModes = {luvk::PresentMode::Mailbox, luvk::PresentMode::Fifo};
 
-        /** Image usage for the swapchain images (intersected with the surface's supported usages). */
-        ImageUsage Usage = ImageUsage::ColorAttachment | ImageUsage::TransferDst;
+        /**
+         * Image usage for the swapchain images (intersected with the surface's supported usages). TransferSrc lets a
+         * pass read the presented image back (window captures with the UI).
+         */
+        ImageUsage Usage = ImageUsage::ColorAttachment | ImageUsage::TransferDst | ImageUsage::TransferSrc;
 
         /** Preferred composite alpha mode; when unsupported, the first mode of the same alpha class is used. */
         luvk::CompositeAlpha PreferredCompositeAlpha = luvk::CompositeAlpha::Opaque;

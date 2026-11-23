@@ -299,6 +299,12 @@ namespace luvk::app
         virtual void OnRender(frame::FeatureContext& Frame);
 
         /**
+         * Called every frame after the interface passes, with the main window's swapchain image: passes added to Graph
+         * here see the final image of the window, UI included (a readback works even while the window is hidden).
+         */
+        virtual void OnFrameRecorded(RenderGraph& Graph, TextureHandle Backbuffer, Extent2D Extent, luvk::Format Format, std::uint64_t FrameNumber);
+
+        /**
          * Called once when the GPU device was lost (VK_ERROR_DEVICE_LOST), before the crash dialog and the shutdown. The
          * device only accepts destruction now: log, save user data, but do not record or submit GPU work.
          */
