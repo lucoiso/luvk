@@ -15,6 +15,7 @@
 #include "luvk/Render/PresentTarget.hpp"
 #include "luvk/Render/RenderGraph.hpp"
 #include "luvk/Render/Swapchain.hpp"
+#include "luvk/Resources/Image.hpp"
 
 namespace luvk
 {
@@ -43,6 +44,15 @@ namespace luvk
 
         /** Times every render graph pass (see Renderer::Profiler()). */
         bool GpuTimings = false;
+
+        /**
+         * Non-zero: every frame renders into a renderer-owned image of this size instead of a window (no surface, no
+         * swapchain, nothing presented, so nothing on the desktop can cover or disturb it). Swapchain is then ignored.
+         */
+        Extent2D OffscreenExtent = {};
+
+        /** Format of the off-screen image: the 8-bit UNORM of the default window backbuffer, so both look the same. */
+        luvk::Format OffscreenFormat = luvk::Format::B8G8R8A8Unorm;
     };
 
     /** Everything needed to build one frame. Valid until Renderer::EndFrame / Renderer::AbortFrame. */
@@ -62,13 +72,13 @@ namespace luvk
         /** Per-frame CPU-written memory, recycled once the GPU is done with this frame. */
         FrameAllocator& Allocator;
 
-        /** Main window swapchain image to render into (invalid for headless renderers). */
+        /** Main window swapchain image, or the off-screen image, to render into (invalid for headless renderers). */
         TextureHandle Backbuffer = {};
 
-        /** Main swapchain extent in pixels ({0, 0} for headless renderers). */
+        /** Backbuffer extent in pixels ({0, 0} for headless renderers). */
         Extent2D Extent = {};
 
-        /** Main swapchain image format (VK_FORMAT_UNDEFINED for headless renderers). */
+        /** Backbuffer format (VK_FORMAT_UNDEFINED for headless renderers). */
         luvk::Format Format = luvk::Format::Undefined;
 
         /** Index of the frame slot in use (0 to FramesInFlight - 1). */
@@ -92,7 +102,8 @@ namespace luvk
      *     }
      *
      * BeginFrame waits for the frame slot on the graphics timeline, collects garbage and acquires the main target
-     * (headless renderers, created from a Context without a surface, skip the acquisition and the presentation).
+     * (headless renderers, created from a Context without a surface, skip the acquisition and the presentation;
+     * off-screen renderers, RendererDesc::OffscreenExtent, import their own image as the backbuffer instead).
      * EndFrame records the graph, flushes uploads, submits once (waiting on every acquisition and on the uploads)
      * and presents every acquired target. If recording fails, the frame is still closed (every acquired image is
      * transitioned and presented), so the renderer stays usable; AbortFrame does the same on purpose.
@@ -135,8 +146,11 @@ namespace luvk
         /** Owning context. */
         Context&                     m_Context;
 
-        /** Main window target (null for headless renderers). */
+        /** Main window target (null for headless and off-screen renderers). */
         std::unique_ptr<PresentTarget> m_MainTarget;
+
+        /** Backbuffer of an off-screen renderer (empty otherwise); its state carries over between frames. */
+        Image m_Offscreen;
 
         /** GPU profiler (created when RendererDesc::GpuTimings is set). */
         std::unique_ptr<GpuProfiler> m_Profiler;
@@ -208,13 +222,16 @@ namespace luvk
          */
         void SetSwapchainProvider(std::shared_ptr<SwapchainProvider> Provider);
 
-        /** False for headless renderers (no window to present to). */
+        /** True when frames render into the off-screen image (RendererDesc::OffscreenExtent) instead of a window. */
+        [[nodiscard]] bool IsOffscreen() const noexcept { return static_cast<bool>(m_Offscreen); }
+
+        /** False for headless and off-screen renderers (no window to present to). */
         [[nodiscard]] bool HasMainTarget() const noexcept { return m_MainTarget != nullptr; }
 
-        /** Main window target (check HasMainTarget for headless renderers). */
+        /** Main window target (check HasMainTarget for headless and off-screen renderers). */
         [[nodiscard]] PresentTarget& MainTarget() noexcept { return *m_MainTarget; }
 
-        /** Main window target (check HasMainTarget for headless renderers). */
+        /** Main window target (check HasMainTarget for headless and off-screen renderers). */
         [[nodiscard]] const PresentTarget& MainTarget() const noexcept { return *m_MainTarget; }
 
         /** GPU profiler, or nullptr when RendererDesc::GpuTimings is disabled. */

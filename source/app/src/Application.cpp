@@ -11,6 +11,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <SDL3/SDL.h>
 #include <luvk/Core/Diagnostics.hpp>
 #include <luvk/Core/Vulkan.hpp>
@@ -114,7 +115,13 @@ int luvk::app::Application::Run()
         const char* const   MaxFramesValue = std::getenv("LUVK_APP_MAX_FRAMES");
         const std::uint64_t MaxFrames      = MaxFramesValue != nullptr ? std::strtoull(MaxFramesValue, nullptr, 10) : 0U;
 
-        auto Previous = std::chrono::steady_clock::now();
+        // Off screen nothing waits for a display: VSync becomes a fixed frame rate, so timed scripts see the same pace.
+        const bool PaceOffscreen = m_Desc.Offscreen && m_Desc.VSync && m_Desc.OffscreenFrameRate > 0.F;
+        const auto FramePeriod   = std::chrono::duration_cast<std::chrono::steady_clock::duration>(
+            std::chrono::duration<double>(PaceOffscreen ? 1.0 / static_cast<double>(m_Desc.OffscreenFrameRate) : 0.0));
+
+        auto Previous  = std::chrono::steady_clock::now();
+        auto NextFrame = Previous;
         while (m_Running && PumpEvents())
         {
             if (MaxFrames != 0U && m_Renderer->FrameNumber() >= MaxFrames)
@@ -142,6 +149,12 @@ int luvk::app::Application::Run()
             m_Time += DeltaTime;
 
             RenderFrame(DeltaTime);
+
+            if (PaceOffscreen)
+            {
+                NextFrame = std::max(NextFrame + FramePeriod, std::chrono::steady_clock::now() - FramePeriod);
+                std::this_thread::sleep_until(NextFrame);
+            }
         }
     }
     catch (const std::exception& Exception)
@@ -214,15 +227,21 @@ void luvk::app::Application::Initialize()
                                                              : platform::UserDataDirectory(m_Desc.Organization, std::empty(m_Desc.AppName) ? m_Desc.Title : m_Desc.AppName);
     }
 
+    // An off-screen run keeps its window only for the platform layer (size, display scale, Dear ImGui's backend).
+    if (m_Desc.Offscreen)
+    {
+        m_Desc.EnableViewports = false;
+    }
+
     m_Window = std::make_unique<platform::Window>(platform::WindowDesc{.Title       = m_Desc.Title,
                                                                         .Width       = m_Desc.Width,
                                                                         .Height      = m_Desc.Height,
                                                                         .Borderless  = m_Desc.Borderless,
-                                                                        .Transparent = m_Desc.Transparent,
+                                                                        .Transparent = m_Desc.Transparent && !m_Desc.Offscreen,
                                                                         // An automated run goes on beside someone's work: it never shows a window unless
                                                                         // LUVK_HIDDEN_WINDOW=0 asks for one, and never takes focus or a taskbar entry.
-                                                                        .Hidden     = EnvironmentFlag("LUVK_HIDDEN_WINDOW").value_or(IsAutomatedRun()),
-                                                                        .Background = IsAutomatedRun()});
+                                                                        .Hidden     = m_Desc.Offscreen || EnvironmentFlag("LUVK_HIDDEN_WINDOW").value_or(IsAutomatedRun()),
+                                                                        .Background = m_Desc.Offscreen || IsAutomatedRun()});
 
     std::vector<std::shared_ptr<Module>> Modules = m_Desc.Modules;
     if (m_Desc.EnableDiagnostics && std::ranges::none_of(Modules,
@@ -237,10 +256,11 @@ void luvk::app::Application::Initialize()
     m_Context = std::make_unique<Context>(ContextDesc{.ApplicationName      = m_Desc.Title,
                                                       .EnableValidation     = m_Desc.EnableValidation,
                                                       .InstanceExtensions   = platform::Window::VulkanInstanceExtensions(),
-                                                      .CreateSurface        = [this](const VkInstance Instance)
-                                                      {
-                                                          return m_Window->CreateSurface(Instance);
-                                                      },
+                                                      .CreateSurface        = m_Desc.Offscreen ? SurfaceFactory{}
+                                                                                                   : [this](const VkInstance Instance)
+                                                                                                     {
+                                                                                                         return m_Window->CreateSurface(Instance);
+                                                                                                     },
                                                       .Modules              = std::move(Modules),
                                                       .PipelineCachePath    = std::empty(m_DataDirectory) ? std::filesystem::path{}
                                                                                                           : m_DataDirectory / "pipeline_cache.bin",
@@ -259,7 +279,12 @@ void luvk::app::Application::Initialize()
         Swapchain.PreferredCompositeAlpha = CompositeAlpha::PreMultiplied;
     }
 
-    m_Renderer = std::make_unique<Renderer>(*m_Context, RendererDesc{.Swapchain = Swapchain, .GpuTimings = m_Desc.GpuTimings});
+    m_Renderer = std::make_unique<Renderer>(*m_Context,
+                                            RendererDesc{.Swapchain       = Swapchain,
+                                                         .GpuTimings      = m_Desc.GpuTimings,
+                                                         .OffscreenExtent = m_Desc.Offscreen ? Swapchain.Extent : Extent2D{},
+                                                         .OffscreenFormat = Swapchain.PreferredFormats.empty() ? Format::B8G8R8A8Unorm
+                                                                                                                : Swapchain.PreferredFormats.front().Format});
 
     // LUVK_PASS_TIMINGS=0 keeps only the frame timestamps, to measure what ~two timestamps per pass cost.
     if (!EnvironmentFlag("LUVK_PASS_TIMINGS").value_or(true))
@@ -273,7 +298,7 @@ void luvk::app::Application::Initialize()
         }
     }
 
-    m_TransparentActive = WantsTransparency && m_Window->IsTransparent() &&
+    m_TransparentActive = WantsTransparency && m_Renderer->HasMainTarget() && m_Window->IsTransparent() &&
                           m_Renderer->MainTarget().CompositeAlpha() != CompositeAlpha::Opaque;
     if (m_Desc.Transparent && !m_TransparentActive)
     {

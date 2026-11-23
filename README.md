@@ -184,6 +184,8 @@ int main() { return MyApp{}.Run(); }
 | `EnableViewports`  | `true`  | Dear ImGui multi-viewport (windows can leave the main OS window into their own swap chains). |
 | `Borderless`       | `false` | Creates the OS window without a native title bar/frame.                                    |
 | `Transparent`      | `false` | Requests a per-pixel transparent window (only with `RenderScene = false`). See below.      |
+| `Offscreen`        | `false` | Renders into an image of the window's pixel size: hidden window, no surface or swapchain, no OS input, no viewports (see Off-screen rendering). |
+| `OffscreenFrameRate` | `60`  | Frame rate of an off-screen run with `VSync` (no display paces it); `0` runs as fast as possible. |
 | `BackgroundColor`  | dark    | Clear color used when `RenderScene` is `false` (and by secondary UI windows).              |
 | `ScaleUiWithDisplay` | `true` | Window size, fonts and style follow the display scale (and monitor changes).              |
 | `Swapchain`        | UNORM BGRA/RGBA | Main swapchain preferences (surface, extent and present modes are filled by the application). |
@@ -750,6 +752,14 @@ A `Context` created without a surface and a `Renderer` on it record and submit f
 (`Renderer::HasMainTarget()` is false, `Frame::Backbuffer` is invalid): bakes, tests, screenshots and tools use the
 same graph, allocator and deletion queue as windowed apps. `SetFinalAccess(Buffer, Access::HostRead)` plus a wait on
 the graphics timeline makes results readable from the CPU; `ReadbackRing` does it without waiting.
+
+### Off-screen rendering
+
+`RendererDesc::OffscreenExtent` (non-zero) makes the renderer import its own image (`OffscreenFormat`, default
+`B8G8R8A8Unorm`, graphics queue only) as `Frame::Backbuffer` every frame instead of acquiring a swapchain image: no
+surface, nothing presented, `IsOffscreen()` true, `HasMainTarget()` false. `ApplicationDesc::Offscreen` uses it at the
+window's pixel size, so the UI lays out exactly as in the window; `OnFrameRecorded` receives the image, which makes
+captures independent of what covers the screen. Test runs use it so no window ever appears.
 
 ### Scene module
 

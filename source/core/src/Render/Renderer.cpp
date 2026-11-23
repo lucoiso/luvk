@@ -44,9 +44,20 @@ namespace
                                      .stageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT};
     }
 
-    /** Main window target: the explicit surface, else the Context's window surface, else none (headless). */
+    /** True when the renderer draws into its own image instead of a window. */
+    bool WantsOffscreen(const luvk::RendererDesc& Desc) noexcept
+    {
+        return Desc.OffscreenExtent.Width != 0U && Desc.OffscreenExtent.Height != 0U;
+    }
+
+    /** Main window target: the explicit surface, else the Context's window surface, else none (headless, off-screen). */
     std::unique_ptr<luvk::PresentTarget> CreateMainTarget(luvk::Context& Ctx, const luvk::RendererDesc& Desc)
     {
+        if (WantsOffscreen(Desc))
+        {
+            return nullptr;
+        }
+
         const bool         Explicit = Desc.Swapchain.Surface != VK_NULL_HANDLE;
         const VkSurfaceKHR Surface  = Explicit ? Desc.Swapchain.Surface : Ctx.ReleaseSurface();
         if (Surface == VK_NULL_HANDLE)
@@ -90,6 +101,17 @@ luvk::Renderer::Renderer(Context& Ctx, const RendererDesc& Desc)
     {
         DestroySlots();
         throw;
+    }
+
+    if (WantsOffscreen(Desc))
+    {
+        // Graphics only, like a swapchain image: the window capture copies it after the interface passes.
+        m_Offscreen = Image(Ctx,
+                            ImageDesc{.Extent            = {Desc.OffscreenExtent.Width, Desc.OffscreenExtent.Height, 1U},
+                                      .Format            = Desc.OffscreenFormat,
+                                      .Usage             = ImageUsage::ColorAttachment | ImageUsage::TransferSrc | ImageUsage::TransferDst,
+                                      .GraphicsQueueOnly = true,
+                                      .Name              = "offscreen backbuffer"});
     }
 
     if (Desc.GpuTimings)
@@ -158,9 +180,15 @@ std::optional<luvk::Frame> luvk::Renderer::BeginFrame()
     Graph.Reset();
     Slot.AsyncGraph->Reset();
 
-    // Headless renderers record frames without any window: the frame simply has no backbuffer.
+    // Headless renderers record frames without any window: the frame simply has no backbuffer. Off-screen renderers
+    // import their own image, which nothing presents.
     std::optional<PresentImage> Main;
-    if (m_MainTarget)
+    if (m_Offscreen)
+    {
+        const Extent3D Size = m_Offscreen.Extent();
+        Main                = PresentImage{.Texture = Graph.Import(m_Offscreen), .Extent = {Size.Width, Size.Height}, .Format = m_Offscreen.Format()};
+    }
+    else if (m_MainTarget)
     {
         Main = m_MainTarget->Acquire(Graph, SlotIndex);
         if (!Main)
@@ -173,7 +201,7 @@ std::optional<luvk::Frame> luvk::Renderer::BeginFrame()
     Check(vkResetCommandPool(m_Context.Device(), Slot.AsyncPool, 0U), "vkResetCommandPool (async compute)");
 
     m_Acquired.clear();
-    if (Main)
+    if (Main && m_MainTarget)
     {
         m_Acquired.emplace_back(m_MainTarget.get(), Main->Texture);
     }

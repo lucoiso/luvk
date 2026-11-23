@@ -52,6 +52,17 @@ namespace luvk::app
         /** Requests a per-pixel transparent window (only meaningful with RenderScene = false). */
         bool Transparent = false;
 
+        /**
+         * Renders into an image of the window's pixel size instead of presenting to the window (luvk::RendererDesc::
+         * OffscreenExtent): the window stays hidden, no surface or swapchain exists, the OS mouse and keyboard are
+         * ignored (input comes only from OnGuiInput and OnEvent callers) and Dear ImGui viewports stay inside it.
+         * OnFrameRecorded receives that image, so captures are the same whatever covers the screen.
+         */
+        bool Offscreen = false;
+
+        /** Frames per second of an off-screen run with VSync, which no display paces (0: as fast as possible). */
+        float OffscreenFrameRate = 60.F;
+
 #ifdef LUVK_APP_VALIDATION_DEFAULT
 
         /** Enables Vulkan validation layers and debug messaging when true. */
@@ -240,6 +251,9 @@ namespace luvk::app
 
         /** True when the application renders the scene under the UI. */
         [[nodiscard]] bool IsSceneEnabled() const noexcept { return m_Scene != nullptr; }
+
+        /** True when frames render into an image instead of the window (ApplicationDesc::Offscreen). */
+        [[nodiscard]] bool IsOffscreen() const noexcept { return m_Desc.Offscreen; }
 
         /** True when a transparent window was requested AND both the window and the swapchain support it. */
         [[nodiscard]] bool IsTransparent() const noexcept { return m_TransparentActive; }

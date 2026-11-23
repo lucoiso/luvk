@@ -23,6 +23,12 @@ bool luvk::app::Application::PumpEvents()
     ++m_IdleFrames;
     while (SDL_PollEvent(&Event))
     {
+        // An off-screen run takes no input from the person at the computer: only quit and close still count.
+        if (m_Desc.Offscreen && Event.type != SDL_EVENT_QUIT && Event.type != SDL_EVENT_WINDOW_CLOSE_REQUESTED)
+        {
+            continue;
+        }
+
         m_IdleFrames = 0U;
         m_ImGui->ProcessEvent(Event);
 
