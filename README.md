@@ -43,6 +43,8 @@ tools and demos.
 
 ### Header/source organization
 
+Code style, folders, class size and the front end / back end split: [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
 Every class has a declaration header and a `.cpp` with its definitions. Inline code in headers is limited to
 trivial getters and to the few templates that cannot live in a `.cpp` (`FeatureStack::Add<T>`,
 `Blackboard::Set/Find<T>`, `Buffer::Write`, `RenderGraph::AddPass`, `ReadbackRing<T>`, ...). `luvk/luvk.hpp`
