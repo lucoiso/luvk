@@ -8,12 +8,12 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <luvk/Core/Render/RenderGraph.hpp>
 #include <memory>
 #include <new>
 #include <string_view>
 #include <type_traits>
 #include <vector>
-#include <luvk/Render/RenderGraph.hpp>
 
 namespace luvk::frame
 {
@@ -43,8 +43,8 @@ namespace luvk::frame
 
         /** Constructor. */
         constexpr explicit SlotKey(const std::string_view SlotName) noexcept
-            : Name(SlotName),
-              Hash(HashSlotName(SlotName))
+            : Name(SlotName)
+            , Hash(HashSlotName(SlotName))
         {
         }
     };
@@ -96,6 +96,7 @@ namespace luvk::frame
         [[nodiscard]] const Entry* Locate(std::uint64_t Hash, const void* Type) const noexcept;
 
     public:
+
         /** Removes every value (the storage blocks are kept). */
         void Clear() noexcept;
 

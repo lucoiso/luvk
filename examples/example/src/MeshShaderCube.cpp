@@ -2,16 +2,17 @@
 // Year: 2026
 // Repo : https://github.com/lucoiso/luvk
 
-#include <type_traits>
+#include "Shaders/MeshShaderCube.hpp"
+
+#include "MeshShaderCube.hpp"
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
-#include <luvk/App/Camera.hpp>
-#include <luvk/Core/Context.hpp>
+#include <luvk/App/Camera/Camera.hpp>
+#include <luvk/Core/Device/Context.hpp>
 #include <luvk/Core/Module.hpp>
-#include <luvk/Render/CommandList.hpp>
+#include <luvk/Core/Render/CommandList.hpp>
 #include <luvk/Shaders/ShaderCompiler.hpp>
-#include "Shaders/MeshShaderCube.hpp"
-#include "MeshShaderCube.hpp"
+#include <type_traits>
 
 namespace
 {
@@ -21,8 +22,8 @@ namespace
 void Example::MeshShaderCube::OnAttach(luvk::Context& Ctx)
 {
     m_Available = luvk::MeshShaderModule::IsAvailable(Ctx);
-    m_Status    = m_Available ? "ready: 1 task group -> 6 mesh groups (4 vertices, 2 triangles each)"
-                                             : "unavailable: VK_EXT_mesh_shader is not supported by this device";
+    m_Status = m_Available ? "ready: 1 task group -> 6 mesh groups (4 vertices, 2 triangles each)"
+                           : "unavailable: VK_EXT_mesh_shader is not supported by this device";
     SetEnabled(m_Available);
 }
 
@@ -48,22 +49,22 @@ void Example::MeshShaderCube::AddPasses(luvk::frame::FeatureContext& Frame)
 
     if (m_Format != Frame.Settings.ColorFormat || m_Wireframe != Frame.Settings.Wireframe || m_ReverseDepth != Frame.Settings.ReverseDepth)
     {
-        const auto Task     = luvk::CompileShaderOrThrow(Shader, "mesh_cube", "TaskMain");
-        const auto Mesh     = luvk::CompileShaderOrThrow(Shader, "mesh_cube", "MeshMain");
+        const auto Task = luvk::CompileShaderOrThrow(Shader, "mesh_cube", "TaskMain");
+        const auto Mesh = luvk::CompileShaderOrThrow(Shader, "mesh_cube", "MeshMain");
         const auto Fragment = luvk::CompileShaderOrThrow(Shader, "mesh_cube", "FragmentMain");
 
-        luvk::GraphicsPipelineDesc Desc{.Task         = {.Code = Task},
-                                        .Mesh         = {.Code = Mesh},
-                                        .Fragment     = {.Code = Fragment},
+        luvk::GraphicsPipelineDesc Desc{.Task = {.Code = Task},
+                                        .Mesh = {.Code = Mesh},
+                                        .Fragment = {.Code = Fragment},
                                         .ColorFormats = {Frame.Settings.ColorFormat},
-                                        .DepthFormat  = Frame.Settings.DepthFormat,
-                                        .PolygonMode  = Frame.Settings.PolygonMode(),
-                                        .CullMode     = luvk::CullMode::None,
+                                        .DepthFormat = Frame.Settings.DepthFormat,
+                                        .PolygonMode = Frame.Settings.PolygonMode(),
+                                        .CullMode = luvk::CullMode::None,
                                         .DepthCompare = Frame.Settings.DepthCompare(),
-                                        .Name         = "mesh shader cube"};
-        m_Pipeline     = luvk::Pipeline(Frame.Ctx, Desc);
-        m_Format       = Frame.Settings.ColorFormat;
-        m_Wireframe    = Frame.Settings.Wireframe;
+                                        .Name = "mesh shader cube"};
+        m_Pipeline = luvk::Pipeline(Frame.Ctx, Desc);
+        m_Format = Frame.Settings.ColorFormat;
+        m_Wireframe = Frame.Settings.Wireframe;
         m_ReverseDepth = Frame.Settings.ReverseDepth;
     }
 
@@ -73,25 +74,26 @@ void Example::MeshShaderCube::AddPasses(luvk::frame::FeatureContext& Frame)
         return;
     }
 
-    const glm::mat4             MVP      = View->ViewProjection * Transform();
+    const glm::mat4 MVP = View->ViewProjection * Transform();
     const luvk::Pipeline* const Selected = &m_Pipeline;
 
     const luvk::TextureHandle Color = Frame.Board.FindTexture(luvk::frame::Slots::SceneColor);
     const luvk::TextureHandle Depth = Frame.Board.FindTexture(luvk::frame::Slots::SceneDepth);
 
-    Frame.Graph.AddPass("Mesh Shader Cube",
-                        luvk::PassType::Graphics,
-                        [&](luvk::PassBuilder& Pass)
-                        {
-                            Pass.ColorAttachment(Color, luvk::LoadOp::Load);
-                            Pass.DepthAttachment(Depth, luvk::LoadOp::Load);
-                        },
-                        [Selected, MVP](luvk::CommandList& Cmd)
-                        {
-                            Cmd.BindPipeline(*Selected);
-                            Cmd.PushConstants(MVP);
-                            Cmd.DrawMeshTasks(1U);
-                        });
+    Frame.Graph.AddPass(
+        "Mesh Shader Cube",
+        luvk::PassType::Graphics,
+        [&](luvk::PassBuilder& Pass)
+        {
+            Pass.ColorAttachment(Color, luvk::LoadOp::Load);
+            Pass.DepthAttachment(Depth, luvk::LoadOp::Load);
+        },
+        [Selected, MVP](luvk::CommandList& Cmd)
+        {
+            Cmd.BindPipeline(*Selected);
+            Cmd.PushConstants(MVP);
+            Cmd.DrawMeshTasks(1U);
+        });
 }
 
 void Example::MeshShaderCube::OnGui()

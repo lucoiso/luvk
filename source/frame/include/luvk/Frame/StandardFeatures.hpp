@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <array>
-#include <luvk/Resources/Pipeline.hpp>
 #include "luvk/Frame/Feature.hpp"
+#include <array>
+#include <luvk/Core/Resources/Pipeline.hpp>
 
 namespace luvk
 {
@@ -20,14 +20,21 @@ namespace luvk::frame
     class SceneClearFeature final : public RenderFeature
     {
     public:
+
         /** Color SceneColor is cleared to. */
         std::array<float, 4> Color = {0.F, 0.F, 0.F, 1.F};
 
         /** Feature name. */
-        [[nodiscard]] std::string_view Name() const override { return "luvk.SceneClear"; }
+        [[nodiscard]] std::string_view Name() const override
+        {
+            return "luvk.SceneClear";
+        }
 
         /** Runs first: SceneRenderer adds it before any other feature, and ties keep the insertion order. */
-        [[nodiscard]] std::string_view Phase() const override { return Phases::Prepare; }
+        [[nodiscard]] std::string_view Phase() const override
+        {
+            return Phases::Prepare;
+        }
 
         /** Adds the clear pass. */
         void AddPasses(FeatureContext& Frame) override;
@@ -41,14 +48,21 @@ namespace luvk::frame
     class CompositeFeature final : public RenderFeature
     {
     public:
+
         /** Constructor. Sampler must outlive the feature. */
         explicit CompositeFeature(const Sampler& LinearSampler);
 
         /** Feature name. */
-        [[nodiscard]] std::string_view Name() const override { return "luvk.Composite"; }
+        [[nodiscard]] std::string_view Name() const override
+        {
+            return "luvk.Composite";
+        }
 
         /** Runs last: it produces the output image. */
-        [[nodiscard]] std::string_view Phase() const override { return Phases::Output; }
+        [[nodiscard]] std::string_view Phase() const override
+        {
+            return Phases::Output;
+        }
 
         /** Keeps the context used to build the pipeline. */
         void OnAttach(Context& Ctx) override;
@@ -60,6 +74,7 @@ namespace luvk::frame
         void AddPasses(FeatureContext& Frame) override;
 
     private:
+
         /** Owning context. */
         Context* m_Context = nullptr;
 

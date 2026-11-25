@@ -5,12 +5,12 @@
 #pragma once
 
 #include <cstdint>
+#include <luvk/Core/Resources/AccelerationStructure.hpp>
+#include <luvk/Core/Resources/Image.hpp>
+#include <luvk/Core/Resources/Pipeline.hpp>
+#include <luvk/Frame/Feature.hpp>
 #include <string>
 #include <string_view>
-#include <luvk/Frame/Feature.hpp>
-#include <luvk/Resources/AccelerationStructure.hpp>
-#include <luvk/Resources/Image.hpp>
-#include <luvk/Resources/Pipeline.hpp>
 
 namespace Example
 {
@@ -19,6 +19,7 @@ namespace Example
     class RayTracingPreview final : public luvk::frame::RenderFeature
     {
     private:
+
         /** CPU-side mirror of the shader push constant block. */
         struct PushData
         {
@@ -84,11 +85,18 @@ namespace Example
         std::string m_Status = "not attached";
 
     public:
+
         /** Name shown in the debug window. */
-        [[nodiscard]] std::string_view Name() const override { return "Ray Tracing (Cornell box)"; }
+        [[nodiscard]] std::string_view Name() const override
+        {
+            return "Ray Tracing (Cornell box)";
+        }
 
         /** Stage in the frame graph (GPU-driven work). */
-        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Compute; }
+        [[nodiscard]] std::string_view Phase() const override
+        {
+            return luvk::frame::Phases::Compute;
+        }
 
         /** Builds the acceleration structures, the output image and the compute pipeline. */
         void OnAttach(luvk::Context& Ctx) override;
@@ -103,12 +111,21 @@ namespace Example
         void OnGui() override;
 
         /** Storage image the UI can display. */
-        [[nodiscard]] luvk::Image& Output() noexcept { return m_Output; }
+        [[nodiscard]] luvk::Image& Output() noexcept
+        {
+            return m_Output;
+        }
 
         /** Whether the device supports ray queries and storage image writes. */
-        [[nodiscard]] bool IsAvailable() const noexcept { return m_Available; }
+        [[nodiscard]] bool IsAvailable() const noexcept
+        {
+            return m_Available;
+        }
 
         /** Human-readable capability status. */
-        [[nodiscard]] const std::string& Status() const noexcept { return m_Status; }
+        [[nodiscard]] const std::string& Status() const noexcept
+        {
+            return m_Status;
+        }
     };
 }

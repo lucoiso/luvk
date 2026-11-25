@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include <memory>
-#include <vector>
 #include <glm/glm.hpp>
 #include <luvk/App/Application.hpp>
 #include <luvk/Scene/Mesh.hpp>
 #include <luvk/Scene/Texture.hpp>
+#include <memory>
+#include <vector>
 
 namespace luvk::app
 {
@@ -34,6 +34,7 @@ namespace Example
     class ExampleApp final : public luvk::app::Application
     {
     public:
+
         /** Constructor: configures the window and the optional mesh shader / ray tracing modules. */
         ExampleApp();
 
@@ -41,6 +42,7 @@ namespace Example
         ~ExampleApp() override;
 
     protected:
+
         /** Creates the exhibits, the scene content and the panel. */
         void OnInit() override;
 
@@ -54,6 +56,7 @@ namespace Example
         void OnGui() override;
 
     private:
+
         /** Queues every mesh of the gallery (floor, pedestals, screens, spheres, instanced ring, glass). */
         void DrawMeshes();
 

@@ -7,10 +7,10 @@
 #include <array>
 #include <cstdint>
 #include <filesystem>
+#include <imgui.h>
+#include <luvk/Core/Render/RenderGraph.hpp>
 #include <memory>
 #include <string>
-#include <imgui.h>
-#include <luvk/Render/RenderGraph.hpp>
 
 struct SDL_Window;
 union SDL_Event;
@@ -43,6 +43,7 @@ namespace luvk::imgui
     class ImGuiLayer
     {
     public:
+
         /** UI options. */
         struct Options
         {
@@ -87,11 +88,7 @@ namespace luvk::imgui
         void PrepareFrame(FrameAllocator& Allocator);
 
         /** Adds the main viewport's ImGui pass to the frame graph, rendering into Backbuffer. */
-        void AddRenderPass(RenderGraph& Graph,
-                           TextureHandle Backbuffer,
-                           Format Format,
-                           LoadOp Load,
-                           ClearColorValue Clear = {});
+        void AddRenderPass(RenderGraph& Graph, TextureHandle Backbuffer, Format Format, LoadOp Load, ClearColorValue Clear = {});
 
         /** Acquires every visible secondary viewport window through the Renderer and adds its ImGui pass. */
         void AddViewportPasses(RenderGraph& Graph);
@@ -106,9 +103,13 @@ namespace luvk::imgui
         [[nodiscard]] float DisplayScale() const noexcept;
 
         /** True when the context and backends were initialized. */
-        [[nodiscard]] bool IsInitialized() const noexcept { return m_Initialized; }
+        [[nodiscard]] bool IsInitialized() const noexcept
+        {
+            return m_Initialized;
+        }
 
     private:
+
         /** Imports every image the UI samples and declares it as sampled by Pass. */
         void UseLiveImages(RenderGraph& Graph, PassBuilder& Pass) const;
 

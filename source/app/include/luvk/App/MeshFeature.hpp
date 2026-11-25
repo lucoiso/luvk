@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
+#include <luvk/Frame/Feature.hpp>
+#include <luvk/Scene/MeshRenderer.hpp>
 #include <memory>
 #include <span>
-#include <glm/glm.hpp>
-#include <luvk/Scene/MeshRenderer.hpp>
-#include <luvk/Frame/Feature.hpp>
 
 namespace luvk::app
 {
@@ -22,11 +22,18 @@ namespace luvk::app
     class MeshFeature final : public frame::RenderFeature
     {
     public:
+
         /** Feature name. */
-        [[nodiscard]] std::string_view Name() const override { return "Meshes"; }
+        [[nodiscard]] std::string_view Name() const override
+        {
+            return "Meshes";
+        }
 
         /** Draws with the opaque geometry (transparent materials are ordered after the opaque ones inside the pass). */
-        [[nodiscard]] std::string_view Phase() const override { return frame::Phases::Opaque; }
+        [[nodiscard]] std::string_view Phase() const override
+        {
+            return frame::Phases::Opaque;
+        }
 
         /** Creates the mesh renderer. */
         void OnAttach(Context& Ctx) override;
@@ -47,9 +54,13 @@ namespace luvk::app
         void DrawInstanced(const scene::Mesh& Target, const scene::Material& Surface, std::span<const glm::mat4> Transforms);
 
         /** The underlying renderer (light, statistics). */
-        [[nodiscard]] scene::MeshRenderer& Renderer() noexcept { return *m_Renderer; }
+        [[nodiscard]] scene::MeshRenderer& Renderer() noexcept
+        {
+            return *m_Renderer;
+        }
 
     private:
+
         /** Mesh renderer created on attach. */
         std::unique_ptr<scene::MeshRenderer> m_Renderer;
     };

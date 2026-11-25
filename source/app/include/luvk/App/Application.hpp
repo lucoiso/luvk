@@ -4,26 +4,27 @@
 
 #pragma once
 
+#include "luvk/App/Camera/Camera.hpp"
+#include "luvk/App/Debug/Statistics.hpp"
 #include <array>
 #include <cstdint>
 #include <filesystem>
-#include <memory>
-#include <string>
-#include <vector>
-#include <imgui.h>
 #include <glm/vec2.hpp>
-#include <luvk/Core/Context.hpp>
-#include <luvk/Core/DiagnosticsTypes.hpp>
+#include <imgui.h>
+#include <luvk/Core/Device/Context.hpp>
+#include <luvk/Core/Diagnostics/DiagnosticsTypes.hpp>
 #include <luvk/Core/Module.hpp>
+#include <luvk/Core/Render/Renderer.hpp>
+#include <luvk/Core/Resources/Image.hpp>
+#include <luvk/Core/Resources/Sampler.hpp>
 #include <luvk/Frame/Feature.hpp>
 #include <luvk/Frame/SceneRenderer.hpp>
 #include <luvk/Platform/Input.hpp>
 #include <luvk/Platform/Window.hpp>
-#include <luvk/Render/Renderer.hpp>
-#include <luvk/Resources/Image.hpp>
-#include <luvk/Resources/Sampler.hpp>
-#include "luvk/App/Camera.hpp"
-#include "luvk/App/Statistics.hpp"
+#include <memory>
+#include <optional>
+#include <string>
+#include <vector>
 
 union SDL_Event;
 
@@ -134,7 +135,8 @@ namespace luvk::app
 
         /** Main swapchain preferences (Surface, Extent and PreferredPresentModes are filled by the application, the latter
          *  from VSync). The default UNORM backbuffer lets the composite encode sRGB itself, so the UI stays correct. */
-        SwapchainDesc Swapchain{.PreferredFormats = {{Format::B8G8R8A8Unorm, ColorSpace::SrgbNonlinear}, {Format::R8G8B8A8Unorm, ColorSpace::SrgbNonlinear}}};
+        SwapchainDesc Swapchain{
+            .PreferredFormats = {{Format::B8G8R8A8Unorm, ColorSpace::SrgbNonlinear}, {Format::R8G8B8A8Unorm, ColorSpace::SrgbNonlinear}}};
 
         /** Organization folder of the per-user data directory (see luvk::platform::UserDataDirectory). */
         std::string Organization = "luvk";
@@ -147,6 +149,10 @@ namespace luvk::app
 
         /** Directory of the persisted state instead of the per-user one (a portable install keeps it next to itself). */
         std::filesystem::path DataDirectory;
+
+        /** Where the Dear ImGui layout (imgui.ini) is persisted instead of DataDirectory/"imgui.ini": an engaged value
+         *  names that file, an engaged empty path keeps no layout at all, nullopt keeps the default. */
+        std::optional<std::filesystem::path> IniPath;
     };
 
     /**
@@ -162,6 +168,7 @@ namespace luvk::app
     class Application
     {
     public:
+
         /** Constructor. Stores the configuration; startup happens in Run(). */
         explicit Application(ApplicationDesc Desc);
 
@@ -187,6 +194,9 @@ namespace luvk::app
         /** Stops the main loop after the current frame; Run() then returns. */
         void RequestExit() noexcept;
 
+        /** Makes Run() return Code instead of 0 (a failing script run): a fatal error or GPU crash keeps theirs. */
+        void SetExitCode(int Code) noexcept;
+
         /** With ApplicationDesc::LowPower, renders the next frames even without input (e.g. while something animates). */
         void RequestRedraw() noexcept;
 
@@ -198,43 +208,79 @@ namespace luvk::app
         void ClearSceneViewport() noexcept;
 
         /** Sets the subpixel jitter (in render pixels) applied to the camera projection this frame. */
-        void SetProjectionJitter(const glm::vec2 Jitter) noexcept { m_ProjectionJitter = Jitter; }
+        void SetProjectionJitter(const glm::vec2 Jitter) noexcept
+        {
+            m_ProjectionJitter = Jitter;
+        }
 
         /** Current subpixel projection jitter in render pixels. */
-        [[nodiscard]] glm::vec2 ProjectionJitter() const noexcept { return m_ProjectionJitter; }
+        [[nodiscard]] glm::vec2 ProjectionJitter() const noexcept
+        {
+            return m_ProjectionJitter;
+        }
 
         /** Returns the Vulkan context (instance, device, queues, resources). */
-        [[nodiscard]] luvk::Context& GetContext() const noexcept { return *m_Context; }
+        [[nodiscard]] luvk::Context& GetContext() const noexcept
+        {
+            return *m_Context;
+        }
 
         /** Returns the renderer driving the frame submissions and presentation. */
-        [[nodiscard]] luvk::Renderer& GetRenderer() const noexcept { return *m_Renderer; }
+        [[nodiscard]] luvk::Renderer& GetRenderer() const noexcept
+        {
+            return *m_Renderer;
+        }
 
         /** Returns the platform window that hosts the main viewport (use Native() for the SDL handle). */
-        [[nodiscard]] platform::Window& GetWindow() const noexcept { return *m_Window; }
+        [[nodiscard]] platform::Window& GetWindow() const noexcept
+        {
+            return *m_Window;
+        }
 
         /** Returns the scene renderer (throws when ApplicationDesc::RenderScene is false). */
         [[nodiscard]] frame::SceneRenderer& Scene() const;
 
         /** Shortcut for Scene().Features(). */
-        [[nodiscard]] frame::FeatureStack& Features() const { return Scene().Features(); }
+        [[nodiscard]] frame::FeatureStack& Features() const
+        {
+            return Scene().Features();
+        }
 
         /** Returns the keyboard/mouse state fed by SDL events (main window only). */
-        [[nodiscard]] platform::Input& GetInput() noexcept { return m_Input; }
+        [[nodiscard]] platform::Input& GetInput() noexcept
+        {
+            return m_Input;
+        }
 
         /** Returns the fly camera driven by the input state. */
-        [[nodiscard]] luvk::app::Camera& GetCamera() noexcept { return m_Camera; }
+        [[nodiscard]] luvk::app::Camera& GetCamera() noexcept
+        {
+            return m_Camera;
+        }
 
         /** Built-in diagnostics, drawable inside any window of the application's UI. */
-        [[nodiscard]] Statistics& Diagnostics() const noexcept { return *m_Statistics; }
+        [[nodiscard]] Statistics& Diagnostics() const noexcept
+        {
+            return *m_Statistics;
+        }
 
         /** Returns the camera matrices of the current frame. */
-        [[nodiscard]] const frame::ViewData& View() const noexcept { return m_View; }
+        [[nodiscard]] const frame::ViewData& View() const noexcept
+        {
+            return m_View;
+        }
 
         /** Returns the shared linear clamp sampler. */
-        [[nodiscard]] const Sampler& LinearSampler() const noexcept { return m_LinearSampler; }
+        [[nodiscard]] const Sampler& LinearSampler() const noexcept
+        {
+            return m_LinearSampler;
+        }
 
         /** Returns the elapsed application time in seconds. */
-        [[nodiscard]] double Time() const noexcept { return m_Time; }
+        [[nodiscard]] double Time() const noexcept
+        {
+            return m_Time;
+        }
 
         /** Exposes an Image (SAMPLED usage) to ImGui::Image through the luvk bindless heap (cheap to call every frame).
          *  The image is transitioned to a sampleable layout before the UI passes; call ReleaseUiTexture before
@@ -248,19 +294,34 @@ namespace luvk::app
         [[nodiscard]] bool IsImGuiReady() const noexcept;
 
         /** True when the application owns a fly camera and publishes Slots::View. */
-        [[nodiscard]] bool IsCameraEnabled() const noexcept { return m_Desc.EnableCamera && m_Desc.RenderScene; }
+        [[nodiscard]] bool IsCameraEnabled() const noexcept
+        {
+            return m_Desc.EnableCamera && m_Desc.RenderScene;
+        }
 
         /** True when the application renders the scene under the UI. */
-        [[nodiscard]] bool IsSceneEnabled() const noexcept { return m_Scene != nullptr; }
+        [[nodiscard]] bool IsSceneEnabled() const noexcept
+        {
+            return m_Scene != nullptr;
+        }
 
         /** True when frames render into an image instead of the window (ApplicationDesc::Offscreen). */
-        [[nodiscard]] bool IsOffscreen() const noexcept { return m_Desc.Offscreen; }
+        [[nodiscard]] bool IsOffscreen() const noexcept
+        {
+            return m_Desc.Offscreen;
+        }
 
         /** True when a transparent window was requested AND both the window and the swapchain support it. */
-        [[nodiscard]] bool IsTransparent() const noexcept { return m_TransparentActive; }
+        [[nodiscard]] bool IsTransparent() const noexcept
+        {
+            return m_TransparentActive;
+        }
 
         /** Display scale the UI style is currently scaled by (1.0 when ScaleUiWithDisplay is off). */
-        [[nodiscard]] float UiScale() const noexcept { return m_UiScale; }
+        [[nodiscard]] float UiScale() const noexcept
+        {
+            return m_UiScale;
+        }
 
         /** CPU stages of one frame, in the order RenderFrame runs them. */
         enum class CpuStage : std::uint8_t
@@ -274,15 +335,22 @@ namespace luvk::app
         };
 
         /** Milliseconds each CPU stage took in the last rendered frame (unsmoothed; a benchmark takes percentiles). */
-        [[nodiscard]] const std::array<double, static_cast<std::size_t>(CpuStage::Count)>& CpuStageTimes() const noexcept { return m_CpuStageTimes; }
+        [[nodiscard]] const std::array<double, static_cast<std::size_t>(CpuStage::Count)>& CpuStageTimes() const noexcept
+        {
+            return m_CpuStageTimes;
+        }
 
         /** Per-user directory where the application state is persisted (empty when PersistState is off). */
-        [[nodiscard]] const std::filesystem::path& DataDirectory() const noexcept { return m_DataDirectory; }
+        [[nodiscard]] const std::filesystem::path& DataDirectory() const noexcept
+        {
+            return m_DataDirectory;
+        }
 
         /** Directory receiving GPU crash reports (DataDirectory()/crash-reports; empty when PersistState is off). */
         [[nodiscard]] std::filesystem::path CrashReportDirectory() const;
 
     protected:
+
         /** Called once after initialization, before the first frame; add features and apply the UI style here. */
         virtual void OnInit();
 
@@ -326,6 +394,7 @@ namespace luvk::app
         virtual void OnDeviceLost(const DeviceLostReport& Report);
 
     private:
+
         /** Creates the window, context, renderer, scene, sampler and ImGui backend. */
         void Initialize();
 
@@ -367,6 +436,9 @@ namespace luvk::app
 
         /** False once a quit was requested, ending the main loop. */
         bool m_Running = true;
+
+        /** Exit code SetExitCode asked Run() to return when nothing failed harder. */
+        int m_ExitCode = 0;
 
         /** True once OnInit() returned (OnShutdown() is only called then). */
         bool m_UserInitialized = false;

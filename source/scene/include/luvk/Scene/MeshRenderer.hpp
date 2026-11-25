@@ -4,17 +4,17 @@
 
 #pragma once
 
+#include "luvk/Scene/Material.hpp"
 #include <cstdint>
+#include <glm/glm.hpp>
+#include <luvk/Core/Memory/FrameAllocator.hpp>
+#include <luvk/Core/Render/RenderGraph.hpp>
+#include <luvk/Core/Resources/Pipeline.hpp>
+#include <luvk/Core/Resources/Sampler.hpp>
 #include <memory>
 #include <span>
 #include <utility>
 #include <vector>
-#include <glm/glm.hpp>
-#include <luvk/Render/FrameAllocator.hpp>
-#include <luvk/Render/RenderGraph.hpp>
-#include <luvk/Resources/Pipeline.hpp>
-#include <luvk/Resources/Sampler.hpp>
-#include "luvk/Scene/Material.hpp"
 
 namespace luvk
 {
@@ -75,6 +75,7 @@ namespace luvk::scene
     class MeshRenderer
     {
     public:
+
         /** Constructor. Creates the default linear repeat sampler. */
         explicit MeshRenderer(Context& Ctx);
 
@@ -97,12 +98,19 @@ namespace luvk::scene
         DirectionalLight Light;
 
         /** Draw calls recorded by the last AddPasses. */
-        [[nodiscard]] std::uint32_t LastDrawCount() const noexcept { return m_LastDrawCount; }
+        [[nodiscard]] std::uint32_t LastDrawCount() const noexcept
+        {
+            return m_LastDrawCount;
+        }
 
         /** Instances recorded by the last AddPasses. */
-        [[nodiscard]] std::uint32_t LastInstanceCount() const noexcept { return m_LastInstanceCount; }
+        [[nodiscard]] std::uint32_t LastInstanceCount() const noexcept
+        {
+            return m_LastInstanceCount;
+        }
 
     private:
+
         /** One queued Draw / DrawInstanced call. */
         struct DrawRequest
         {

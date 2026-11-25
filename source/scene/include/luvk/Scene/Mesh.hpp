@@ -5,11 +5,11 @@
 #pragma once
 
 #include <cstdint>
+#include <glm/glm.hpp>
+#include <luvk/Core/Resources/Buffer.hpp>
 #include <span>
 #include <string_view>
 #include <vector>
-#include <glm/glm.hpp>
-#include <luvk/Resources/Buffer.hpp>
 
 namespace luvk
 {
@@ -88,6 +88,7 @@ namespace luvk::scene
     class Mesh
     {
     public:
+
         /** Empty mesh. */
         Mesh() = default;
 
@@ -95,24 +96,43 @@ namespace luvk::scene
         Mesh(Context& Ctx, const MeshData& Data, std::string_view Name = {});
 
         /** True when the mesh holds geometry. */
-        [[nodiscard]] explicit operator bool() const noexcept { return static_cast<bool>(m_Vertices); }
+        [[nodiscard]] explicit operator bool() const noexcept
+        {
+            return static_cast<bool>(m_Vertices);
+        }
 
         /** Vertex buffer (luvk::scene::Vertex records). */
-        [[nodiscard]] const Buffer& Vertices() const noexcept { return m_Vertices; }
+        [[nodiscard]] const Buffer& Vertices() const noexcept
+        {
+            return m_Vertices;
+        }
 
         /** Index buffer (uint32 triangle list). */
-        [[nodiscard]] const Buffer& Indices() const noexcept { return m_Indices; }
+        [[nodiscard]] const Buffer& Indices() const noexcept
+        {
+            return m_Indices;
+        }
 
         /** Number of indices. */
-        [[nodiscard]] std::uint32_t IndexCount() const noexcept { return m_IndexCount; }
+        [[nodiscard]] std::uint32_t IndexCount() const noexcept
+        {
+            return m_IndexCount;
+        }
 
         /** Index ranges (at least one). */
-        [[nodiscard]] std::span<const Submesh> Submeshes() const noexcept { return m_Submeshes; }
+        [[nodiscard]] std::span<const Submesh> Submeshes() const noexcept
+        {
+            return m_Submeshes;
+        }
 
         /** Object-space bounds. */
-        [[nodiscard]] const Bounds& GetBounds() const noexcept { return m_Bounds; }
+        [[nodiscard]] const Bounds& GetBounds() const noexcept
+        {
+            return m_Bounds;
+        }
 
     private:
+
         /** Vertex buffer. */
         Buffer m_Vertices;
 

@@ -4,12 +4,12 @@
 
 #pragma once
 
+#include "luvk/Core/Types/Types.hpp"
 #include <cstdint>
 #include <type_traits>
-#include "luvk/Core/Types.hpp"
 
 #ifndef LUVK_API
-#    define LUVK_API
+#define LUVK_API
 #endif
 
 namespace luvk

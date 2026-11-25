@@ -1,14 +1,17 @@
-// Author: Lucas Vilas-Boas
-// Year: 2026
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2026
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Scene/MeshRenderer.hpp"
-#include <algorithm>
-#include <type_traits>
-#include <luvk/Core/Context.hpp>
-#include <luvk/Render/CommandList.hpp>
+
 #include "luvk/Scene/Mesh.hpp"
 #include "SceneShaders.hpp"
+#include <algorithm>
+#include <luvk/Core/Device/Context.hpp>
+#include <luvk/Core/Render/CommandList.hpp>
+#include <type_traits>
 
 namespace
 {
@@ -24,37 +27,37 @@ namespace
     /** Per-draw push constants (matches Mesh.vert / Mesh.frag). */
     struct MeshPushConstants
     {
-        luvk::DeviceAddress Frame     = 0U;
-        luvk::DeviceAddress Vertices  = 0U;
+        luvk::DeviceAddress Frame = 0U;
+        luvk::DeviceAddress Vertices = 0U;
         luvk::DeviceAddress Instances = 0U;
-        std::uint32_t   Texture   = 0U;
-        std::uint32_t   Sampler   = 0U;
-        glm::vec4       BaseColor{1.F};
-        glm::vec4       Emissive{0.F};
-        std::uint32_t   Flags = 0U;
+        std::uint32_t Texture = 0U;
+        std::uint32_t Sampler = 0U;
+        glm::vec4 BaseColor{1.F};
+        glm::vec4 Emissive{0.F};
+        std::uint32_t Flags = 0U;
     };
 
     static_assert(std::is_trivially_copyable_v<MeshPushConstants>);
     static_assert(sizeof(MeshPushConstants) <= luvk::PushConstantSize);
 
     /** Material flags (matches Mesh.frag). */
-    constexpr std::uint32_t FlagLit     = 1U;
+    constexpr std::uint32_t FlagLit = 1U;
     constexpr std::uint32_t FlagTexture = 2U;
 
     /** One recorded draw: everything the execute callback needs, resolved on the CPU beforehand. */
     struct PreparedDraw
     {
-        const luvk::Pipeline* Pipeline  = nullptr;
-        const luvk::Buffer*   Indices   = nullptr;
-        luvk::scene::Submesh  Range     = {};
-        std::uint32_t         Instances = 0U;
-        MeshPushConstants     Push;
+        const luvk::Pipeline* Pipeline = nullptr;
+        const luvk::Buffer* Indices = nullptr;
+        luvk::scene::Submesh Range = {};
+        std::uint32_t Instances = 0U;
+        MeshPushConstants Push;
     };
 }
 
 luvk::scene::MeshRenderer::MeshRenderer(Context& Ctx)
-    : m_Context(Ctx),
-      m_Sampler(Ctx, {.Name = "luvk-scene linear repeat"})
+    : m_Context(Ctx)
+    , m_Sampler(Ctx, {.Name = "luvk-scene linear repeat"})
 {
 }
 
@@ -70,8 +73,8 @@ void luvk::scene::MeshRenderer::DrawInstanced(const Mesh& Target, const Material
         return;
     }
 
-    m_Requests.push_back({.Target         = &Target,
-                          .Surface        = Surface,
+    m_Requests.push_back({.Target = &Target,
+                          .Surface = Surface,
                           .FirstTransform = static_cast<std::uint32_t>(std::size(m_Transforms)),
                           .TransformCount = static_cast<std::uint32_t>(std::size(Transforms))});
     m_Transforms.insert(std::end(m_Transforms), std::begin(Transforms), std::end(Transforms));
@@ -84,24 +87,24 @@ const luvk::Pipeline& luvk::scene::MeshRenderer::PipelineFor(const PipelineKey& 
         return *It->second;
     }
 
-    const GraphicsPipelineDesc Desc{.Vertex       = {.Code = Shaders::MeshVertex()},
-                                    .Fragment     = {.Code = Shaders::MeshFragment()},
+    const GraphicsPipelineDesc Desc{.Vertex = {.Code = Shaders::MeshVertex()},
+                                    .Fragment = {.Code = Shaders::MeshFragment()},
                                     .ColorFormats = {Key.ColorFormat},
-                                    .Blend        = {Key.Transparent ? BlendMode::Alpha : BlendMode::Opaque},
-                                    .DepthFormat  = Key.DepthFormat,
-                                    .PolygonMode  = Key.Wireframe ? PolygonMode::Line : PolygonMode::Fill,
-                                    .CullMode     = Key.DoubleSided ? CullMode::None : CullMode::Back,
-                                    .DepthTest    = true,
-                                    .DepthWrite   = !Key.Transparent,
+                                    .Blend = {Key.Transparent ? BlendMode::Alpha : BlendMode::Opaque},
+                                    .DepthFormat = Key.DepthFormat,
+                                    .PolygonMode = Key.Wireframe ? PolygonMode::Line : PolygonMode::Fill,
+                                    .CullMode = Key.DoubleSided ? CullMode::None : CullMode::Back,
+                                    .DepthTest = true,
+                                    .DepthWrite = !Key.Transparent,
                                     .DepthCompare = Key.ReverseDepth ? CompareOp::GreaterOrEqual : CompareOp::LessOrEqual,
-                                    .Name         = "luvk-scene mesh"};
+                                    .Name = "luvk-scene mesh"};
 
     return *m_Pipelines.emplace_back(Key, std::make_unique<Pipeline>(m_Context, Desc)).second;
 }
 
 void luvk::scene::MeshRenderer::AddPasses(RenderGraph& Graph, FrameAllocator& Allocator, const MeshTargets& Targets)
 {
-    m_LastDrawCount     = 0U;
+    m_LastDrawCount = 0U;
     m_LastInstanceCount = static_cast<std::uint32_t>(std::size(m_Transforms));
 
     if (std::empty(m_Requests) || !Targets.Color.IsValid() || !Targets.Depth.IsValid())
@@ -114,20 +117,15 @@ void luvk::scene::MeshRenderer::AddPasses(RenderGraph& Graph, FrameAllocator& Al
     const FrameConstants Constants{.ViewProjection = Targets.ViewProjection,
                                    .CameraPosition = glm::vec4(Targets.CameraPosition, 1.F),
                                    .LightDirection = glm::vec4(glm::normalize(Light.Direction), Light.Ambient),
-                                   .LightColor     = glm::vec4(Light.Color, 1.F)};
+                                   .LightColor = glm::vec4(Light.Color, 1.F)};
 
-    const FrameAllocation Frame     = Allocator.Upload(std::span<const FrameConstants>(&Constants, 1U));
+    const FrameAllocation Frame = Allocator.Upload(std::span<const FrameConstants>(&Constants, 1U));
     const FrameAllocation Instances = Allocator.Upload(std::span<const glm::mat4>(m_Transforms));
 
-    // Opaque meshes first, then the transparent ones over them (in queue order).
-    std::ranges::stable_partition(m_Requests,
-                                  [](const DrawRequest& Request)
-                                  {
-                                      return !Request.Surface.Transparent;
-                                  });
+    std::ranges::stable_partition(m_Requests, [](const DrawRequest& Request) { return !Request.Surface.Transparent; });
 
-    // Every material image is a graph resource sampled by the pass, so earlier writes this frame are synchronised.
     std::vector<TextureHandle> Sampled;
+
     for (const DrawRequest& Request : m_Requests)
     {
         if (Request.Surface.BaseColorTexture != nullptr)
@@ -137,33 +135,34 @@ void luvk::scene::MeshRenderer::AddPasses(RenderGraph& Graph, FrameAllocator& Al
     }
 
     std::vector<PreparedDraw> Draws;
+
     for (const DrawRequest& Request : m_Requests)
     {
-        const Material&   Surface  = Request.Surface;
-        const Pipeline&   Selected = PipelineFor({.ColorFormat  = Targets.ColorFormat,
-                                                  .DepthFormat  = Targets.DepthFormat,
-                                                  .Wireframe    = Targets.Wireframe,
-                                                  .ReverseDepth = Targets.ReverseDepth,
-                                                  .Transparent  = Surface.Transparent,
-                                                  .DoubleSided  = Surface.DoubleSided});
-        const bool        Textured = Surface.BaseColorTexture != nullptr;
+        const Material& Surface = Request.Surface;
+        const Pipeline& Selected = PipelineFor({.ColorFormat = Targets.ColorFormat,
+                                                .DepthFormat = Targets.DepthFormat,
+                                                .Wireframe = Targets.Wireframe,
+                                                .ReverseDepth = Targets.ReverseDepth,
+                                                .Transparent = Surface.Transparent,
+                                                .DoubleSided = Surface.DoubleSided});
+        const bool Textured = Surface.BaseColorTexture != nullptr;
 
-        const MeshPushConstants Push{.Frame     = Frame.Address,
-                                     .Vertices  = Request.Target->Vertices().Address(),
+        const MeshPushConstants Push{.Frame = Frame.Address,
+                                     .Vertices = Request.Target->Vertices().Address(),
                                      .Instances = Instances.Address + static_cast<DeviceAddress>(Request.FirstTransform) * sizeof(glm::mat4),
-                                     .Texture   = Textured ? Surface.BaseColorTexture->SampledIndex() : 0U,
-                                     .Sampler   = Surface.Sampler != InvalidBindlessIndex ? Surface.Sampler : m_Sampler.Index(),
+                                     .Texture = Textured ? Surface.BaseColorTexture->SampledIndex() : 0U,
+                                     .Sampler = Surface.Sampler != InvalidBindlessIndex ? Surface.Sampler : m_Sampler.Index(),
                                      .BaseColor = Surface.BaseColor,
-                                     .Emissive  = glm::vec4(Surface.Emissive, Surface.Roughness),
-                                     .Flags     = (Surface.Model == Shading::Lit ? FlagLit : 0U) | (Textured ? FlagTexture : 0U)};
+                                     .Emissive = glm::vec4(Surface.Emissive, Surface.Roughness),
+                                     .Flags = (Surface.Model == Shading::Lit ? FlagLit : 0U) | (Textured ? FlagTexture : 0U)};
 
         for (const Submesh& Range : Request.Target->Submeshes())
         {
-            Draws.push_back({.Pipeline  = &Selected,
-                             .Indices   = &Request.Target->Indices(),
-                             .Range     = Range,
+            Draws.push_back({.Pipeline = &Selected,
+                             .Indices = &Request.Target->Indices(),
+                             .Range = Range,
                              .Instances = Request.TransformCount,
-                             .Push      = Push});
+                             .Push = Push});
         }
     }
 
@@ -171,25 +170,27 @@ void luvk::scene::MeshRenderer::AddPasses(RenderGraph& Graph, FrameAllocator& Al
     m_Requests.clear();
     m_Transforms.clear();
 
-    Graph.AddPass("Meshes",
-                  PassType::Graphics,
-                  [&](PassBuilder& Pass)
-                  {
-                      Pass.ColorAttachment(Targets.Color, LoadOp::Load);
-                      Pass.DepthAttachment(Targets.Depth, LoadOp::Load);
-                      for (const TextureHandle Texture : Sampled)
-                      {
-                          Pass.Use(Texture, Access::ShaderSampled);
-                      }
-                  },
-                  [Draws = std::move(Draws)](CommandList& Cmd)
-                  {
-                      for (const PreparedDraw& It : Draws)
-                      {
-                          Cmd.BindPipeline(*It.Pipeline);
-                          Cmd.BindIndexBuffer(*It.Indices, IndexType::UInt32);
-                          Cmd.PushConstants(It.Push);
-                          Cmd.DrawIndexed(It.Range.IndexCount, It.Instances, It.Range.FirstIndex);
-                      }
-                  });
+    Graph.AddPass(
+        "Meshes",
+        PassType::Graphics,
+        [&](PassBuilder& Pass)
+        {
+            Pass.ColorAttachment(Targets.Color, LoadOp::Load);
+            Pass.DepthAttachment(Targets.Depth, LoadOp::Load);
+
+            for (const TextureHandle Texture : Sampled)
+            {
+                Pass.Use(Texture, Access::ShaderSampled);
+            }
+        },
+        [Draws = std::move(Draws)](CommandList& Cmd)
+        {
+            for (const PreparedDraw& It : Draws)
+            {
+                Cmd.BindPipeline(*It.Pipeline);
+                Cmd.BindIndexBuffer(*It.Indices, IndexType::UInt32);
+                Cmd.PushConstants(It.Push);
+                Cmd.DrawIndexed(It.Range.IndexCount, It.Instances, It.Range.FirstIndex);
+            }
+        });
 }

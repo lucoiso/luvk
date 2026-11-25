@@ -4,11 +4,11 @@
 
 #pragma once
 
-#include <optional>
-#include <string>
 #include <glm/glm.hpp>
 #include <imgui.h>
 #include <luvk/Frame/Feature.hpp>
+#include <optional>
+#include <string>
 
 namespace luvk::app
 {
@@ -58,6 +58,7 @@ namespace Example
     class ExampleUi
     {
     public:
+
         /** Constructor. App and Exhibits must outlive the UI. */
         ExampleUi(luvk::app::Application& App, const GalleryExhibits& Exhibits);
 
@@ -65,18 +66,31 @@ namespace Example
         void Draw();
 
         /** Whether the floor grid is drawn. */
-        [[nodiscard]] bool DrawGrid() const noexcept { return m_DrawGrid; }
+        [[nodiscard]] bool DrawGrid() const noexcept
+        {
+            return m_DrawGrid;
+        }
 
         /** Whether the world axes are drawn. */
-        [[nodiscard]] bool DrawAxes() const noexcept { return m_DrawAxes; }
+        [[nodiscard]] bool DrawAxes() const noexcept
+        {
+            return m_DrawAxes;
+        }
 
         /** Whether the mesh shader cube bounds are drawn. */
-        [[nodiscard]] bool DrawBounds() const noexcept { return m_DrawBounds; }
+        [[nodiscard]] bool DrawBounds() const noexcept
+        {
+            return m_DrawBounds;
+        }
 
         /** Inverse view-projection of the frozen camera frustum, when frozen. */
-        [[nodiscard]] const std::optional<glm::mat4>& FrozenFrustum() const noexcept { return m_FrozenFrustum; }
+        [[nodiscard]] const std::optional<glm::mat4>& FrozenFrustum() const noexcept
+        {
+            return m_FrozenFrustum;
+        }
 
     private:
+
         /** Exhibits, debug draw toggles and lighting. */
         void DrawSceneTab();
 

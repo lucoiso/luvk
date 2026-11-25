@@ -11,7 +11,7 @@ The project is split into layers so that you can use only what you need:
 | Target / folder       | Alias            | What it is                                                                                                  |
 |-----------------------|------------------|-------------------------------------------------------------------------------------------------------------|
 | `source/core/`              | `luvk::core`     | Vulkan without the verbosity: context, queues, bindless heap, uploads, deletion queue, resources, render graph, frame allocator, readback, renderer. Vulkan-free public headers. No policy. |
-| (interface)           | `luvk::vulkan`   | Interop: adds volk and VMA to `luvk::core` for code that includes `luvk/Core/Vulkan.hpp` and calls Vulkan directly. |
+| (interface)           | `luvk::vulkan`   | Interop: adds volk and VMA to `luvk::core` for code that includes `luvk/Core/Device/Vulkan.hpp` and calls Vulkan directly. |
 | `source/frame/`             | `luvk::frame`    | Render features ordered by phases, typed blackboard slots, `SceneRenderer` (scene color/depth, clear, composite). No window, no UI. |
 | `source/platform/`          | `luvk::platform` | SDL3 window (surface, hit-testing, display scale), per-user data directory, event input. No ImGui.          |
 | `source/imgui/`             | `luvk::imgui`    | Dear ImGui rendered through luvk: layer, renderer backend, layout persistence and multi-viewport windows.    |
@@ -42,8 +42,6 @@ renderer backend, add `luvk-frame` for the feature framework, or take `luvk-app`
 tools and demos.
 
 ### Header/source organization
-
-Code style, folders, class size and the front end / back end split: [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 Every class has a declaration header and a `.cpp` with its definitions. Inline code in headers is limited to
 trivial getters and to the few templates that cannot live in a `.cpp` (`FeatureStack::Add<T>`,
@@ -362,7 +360,7 @@ nobody reads, and recycles transient images/buffers across frames.
 | **Occlusion culling**    | Build a depth pyramid with `TextureHandle::Mip(n)` reads/writes (per-mip `Image::Subview` storage slots) and a sampler with `ReductionMode::Max`; test bounds against it in `Compute`. |
 | **FSR / DLSS / upscalers**| Set the render scale (< 1), add an `Upscale` feature that reads `SceneColor`/`SceneDepth`/`MotionVectors` (and `FrameSettings::ProjectionJitter`) and publishes a display-sized `SceneColor`. The composite always uses whatever `SceneColor` is on the blackboard. |
 | **VSync at runtime**     | `Renderer::SetVSync(bool)` recreates the main swapchain (FIFO or mailbox/immediate fallback) outside a frame; `Renderer::PresentMode()` reports the mode actually selected. |
-| **Device extensions**    | A `luvk::Module` declares extensions + typed feature structs (see `MeshShaderModule`, `RayTracingModule`) and is passed in `ApplicationDesc::Modules`. `DeviceRequirements` lives in the interop header `luvk/Core/FeatureChain.hpp`. |
+| **Device extensions**    | A `luvk::Module` declares extensions + typed feature structs (see `MeshShaderModule`, `RayTracingModule`) and is passed in `ApplicationDesc::Modules`. `DeviceRequirements` lives in the interop header `luvk/Core/Device/FeatureChain.hpp`. |
 | **Async compute**        | Add `PassType::Compute` passes to `Frame.AsyncGraph` instead of `Frame.Graph` (see *Async compute* below); the example's particle simulation does it. |
 
 `luvk::frame` does not need `luvk::app`: an engine with its own loop creates a `SceneRenderer(Ctx, LinearSampler,
@@ -392,7 +390,7 @@ Frame layer:                RenderFeature / FeatureStack / Blackboard / SceneRen
 
 ### Vulkan-free headers and interop
 
-The public headers declare luvk types only: `luvk/Core/Types.hpp` holds the enums (`Format`, `ImageUsage`,
+The public headers declare luvk types only: `luvk/Core/Types/Types.hpp` holds the enums (`Format`, `ImageUsage`,
 `SampleCount`, `CompareOp`, `Filter`, `MipmapMode`, `AddressMode`, `ReductionMode`, `CullMode`, `FrontFace`,
 `PolygonMode`, `StencilOp`, `PresentMode`, `CompositeAlpha`, ...), the structs (`Extent2D/3D`, `Offset2D/3D`,
 `Rect2D`, `Viewport`, `ClearColorValue`, the indirect argument records) and opaque typedefs of the Vulkan and VMA
@@ -400,10 +398,10 @@ handles (64-bit targets only). Enum values are the Vulkan values, so conversions
 (`Handle()`, `View()`, `Context::Device()`, ...) return the real Vulkan handle types without the Vulkan headers on the
 include path.
 
-Code that calls Vulkan directly includes `luvk/Core/Vulkan.hpp` (volk + VMA, `ToVk` / `FromVk` conversions) and links
-`luvk::vulkan`. The other interop headers are `luvk/Core/FeatureChain.hpp` (`InstanceRequirements`,
-`DeviceRequirements` for custom modules), `luvk/Core/Diagnostics.hpp` and `luvk/Render/SwapchainProvider.hpp`.
-`luvk/Core/Error.hpp` takes results as `std::int32_t`: `Check(Result, What)` throws `VulkanError` on negative values
+Code that calls Vulkan directly includes `luvk/Core/Device/Vulkan.hpp` (volk + VMA, `ToVk` / `FromVk` conversions) and links
+`luvk::vulkan`. The other interop headers are `luvk/Core/Device/FeatureChain.hpp` (`InstanceRequirements`,
+`DeviceRequirements` for custom modules), `luvk/Core/Diagnostics/Diagnostics.hpp` and `luvk/Core/Present/SwapchainProvider.hpp`.
+`luvk/Core/Diagnostics/Error.hpp` takes results as `std::int32_t`: `Check(Result, What)` throws `VulkanError` on negative values
 and `ResultName(Result)` returns the `VK_*` name.
 
 ### Deferred destruction ("GPU garbage collector")
@@ -512,9 +510,9 @@ Frame.AsyncGraph.AddPass("Simulate", luvk::PassType::Compute,
 
 ### Diagnostics and GPU crashes
 
-`luvk::DiagnosticsModule` (interop header `luvk/Core/Diagnostics.hpp`, added automatically by the app layer) enables,
+`luvk::DiagnosticsModule` (interop header `luvk/Core/Diagnostics/Diagnostics.hpp`, added automatically by the app layer) enables,
 when supported, what its `DiagnosticsDesc` asks for. `DiagnosticsDesc`, `DeviceLostReport` and the breadcrumb enums live
-in the Vulkan-free `luvk/Core/DiagnosticsTypes.hpp`.
+in the Vulkan-free `luvk/Core/Diagnostics/DiagnosticsTypes.hpp`.
 
 | `DiagnosticsDesc` | Default | Effect |
 |-------------------|---------|--------|
@@ -564,7 +562,7 @@ if (const auto Values = m_Readback.Collect()) { /* a few frames old, never stall
 
 One pipeline layout: set 0 is the bindless heap, plus 128 bytes of push constants visible to every stage. Images
 with sampled/storage usage (`ImageUsage::Auto` gives both when the format supports them) and samplers register
-themselves. Their slots come as typed 4-byte handles (`luvk/Core/Handles.hpp`): `Image::Sampled()` (`Texture2D`),
+themselves. Their slots come as typed 4-byte handles (`luvk/Core/Device/Handles.hpp`): `Image::Sampled()` (`Texture2D`),
 `Sampled3D()`, `SampledCube()`, `SampledArray()` (each throws for the wrong image kind), `Image::Storage()`
 (`StorageImage`), `Subview(Mip, Layer).Sampled()/Storage()`, `Sampler::Bindless()` (`SamplerHandle`); the raw indices
 remain available (`SampledIndex()`, `StorageIndex()`, `Sampler::Index()`). Buffers are passed as `Buffer::Address()`
@@ -642,7 +640,7 @@ purpose. `SwapchainDesc::PreferredCompositeAlpha` selects the alpha mode.
 
 ### Swapchain providers (FidelityFX frame generation)
 
-A `luvk::SwapchainProvider` (interop header `luvk/Render/SwapchainProvider.hpp`) takes over a swapchain: `Create(Ctx, Info,
+A `luvk::SwapchainProvider` (interop header `luvk/Core/Present/SwapchainProvider.hpp`) takes over a swapchain: `Create(Ctx, Info,
 InOutSwapchain)`, `Destroy(Ctx, Swapchain)` and `Functions()` (replacement `vkGetSwapchainImagesKHR`,
 `vkAcquireNextImageKHR` and `vkQueuePresentKHR`; null fields use the core functions). Install it with
 `Renderer::SetSwapchainProvider` (main window: waits for every frame in flight first), `PresentTarget::SetProvider` or
@@ -833,7 +831,7 @@ the standalone CMake setup (luvk as a git submodule or through `FetchContent`).
 
 - Public headers no longer include Vulkan: descriptors take luvk types (`luvk::Format`, `ImageUsage`, `CompareOp`,
   `Filter`, `AddressMode`, `ReductionMode`, `CullMode`, `PresentMode`, `Extent2D`, `Rect2D`, `Viewport`, ...). Code that
-  calls Vulkan includes `luvk/Core/Vulkan.hpp` (`ToVk` / `FromVk`) and links `luvk::vulkan`.
+  calls Vulkan includes `luvk/Core/Device/Vulkan.hpp` (`ToVk` / `FromVk`) and links `luvk::vulkan`.
 - `BufferDesc::Usage` is gone (every usage is enabled); `ImageDesc::Usage` defaults to `ImageUsage::Auto`.
 - `UploadOrder` is gone: `Buffer::Write(Data, Offset)` orders itself against the resource's `LastGraphicsUse`.
 - Raw bindless indices → typed handles (`Image::Sampled()`, `Storage()`, `Sampler::Bindless()`) and `GpuSpan<T>`;
@@ -844,7 +842,7 @@ the standalone CMake setup (luvk as a git submodule or through `FetchContent`).
 - Blackboard string names → `SlotKey<T>` constants; `SetTexture` → `Set`.
 - Transient textures/buffers are bound at `CreateTexture` / `CreateBuffer`; `AddPass<Push>` with a `PassBinder`
   declares accesses and fills the push struct at once.
-- `luvk/Core/DeviceLost.hpp` → `luvk/Core/DiagnosticsTypes.hpp`; `Check` / `VulkanError` take `std::int32_t`.
+- `luvk/Core/DeviceLost.hpp` → `luvk/Core/Diagnostics/DiagnosticsTypes.hpp`; `Check` / `VulkanError` take `std::int32_t`.
 - GLSL, `glslc`, `tools/generate-embedded-shaders.ps1` and the `luvk-embedded-shaders` target are gone: shaders are
   Slang, compiled at build time (`LUVK_EMBED_SHADERS`), so building frame, imgui, scene or app needs `slangc`.
 - `CompileShader` / `CompileShaderFile` results carry `Reflection` and `FromCache`.

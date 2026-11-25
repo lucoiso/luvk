@@ -1,16 +1,18 @@
-// Author: Lucas Vilas-Boas
-// Year: 2026
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2026
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Scene/Mesh.hpp"
+
 #include <array>
+#include <glm/gtc/constants.hpp>
 #include <stdexcept>
 #include <string>
-#include <glm/gtc/constants.hpp>
 
 luvk::scene::MeshData luvk::scene::MeshData::Box(const glm::vec3& HalfExtent)
 {
-    // One quad per face so every face has its own normal and texture coordinates.
     struct Face
     {
         glm::vec3 Normal;
@@ -26,9 +28,11 @@ luvk::scene::MeshData luvk::scene::MeshData::Box(const glm::vec3& HalfExtent)
                                          {{0.F, 0.F, -1.F}, {-1.F, 0.F, 0.F}, {0.F, 1.F, 0.F}}}};
 
     MeshData Result;
+
     for (const Face& It : Faces)
     {
         const auto Base = static_cast<std::uint32_t>(std::size(Result.Vertices));
+
         for (const glm::vec2 Corner : {glm::vec2{-1.F, -1.F}, glm::vec2{1.F, -1.F}, glm::vec2{1.F, 1.F}, glm::vec2{-1.F, 1.F}})
         {
             const glm::vec3 Position = (It.Normal + It.Tangent * Corner.x + It.Bitangent * Corner.y) * HalfExtent;
@@ -36,26 +40,30 @@ luvk::scene::MeshData luvk::scene::MeshData::Box(const glm::vec3& HalfExtent)
         }
         Result.Indices.insert(std::end(Result.Indices), {Base, Base + 1U, Base + 2U, Base, Base + 2U, Base + 3U});
     }
+
     return Result;
 }
 
 luvk::scene::MeshData luvk::scene::MeshData::Sphere(const float Radius, const std::uint32_t Rings, const std::uint32_t Segments)
 {
     MeshData Result;
+
     for (std::uint32_t Ring = 0U; Ring <= Rings; ++Ring)
     {
-        const float V   = static_cast<float>(Ring) / static_cast<float>(Rings);
+        const float V = static_cast<float>(Ring) / static_cast<float>(Rings);
         const float Phi = V * glm::pi<float>();
+
         for (std::uint32_t Segment = 0U; Segment <= Segments; ++Segment)
         {
-            const float     U      = static_cast<float>(Segment) / static_cast<float>(Segments);
-            const float     Theta  = U * glm::two_pi<float>();
+            const float U = static_cast<float>(Segment) / static_cast<float>(Segments);
+            const float Theta = U * glm::two_pi<float>();
             const glm::vec3 Normal = {std::sin(Phi) * std::cos(Theta), std::cos(Phi), std::sin(Phi) * std::sin(Theta)};
             Result.Vertices.push_back({.Position = Normal * Radius, .Normal = Normal, .TexCoord = {U, V}});
         }
     }
 
     const std::uint32_t Stride = Segments + 1U;
+
     for (std::uint32_t Ring = 0U; Ring < Rings; ++Ring)
     {
         for (std::uint32_t Segment = 0U; Segment < Segments; ++Segment)
@@ -65,19 +73,22 @@ luvk::scene::MeshData luvk::scene::MeshData::Sphere(const float Radius, const st
             Result.Indices.insert(std::end(Result.Indices), {A, A + 1U, B, B, A + 1U, B + 1U});
         }
     }
+
     return Result;
 }
 
 luvk::scene::MeshData luvk::scene::MeshData::Plane(const glm::vec2& HalfExtent, const float UvScale)
 {
     MeshData Result;
+
     for (const glm::vec2 Corner : {glm::vec2{-1.F, -1.F}, glm::vec2{1.F, -1.F}, glm::vec2{1.F, 1.F}, glm::vec2{-1.F, 1.F}})
     {
         Result.Vertices.push_back({.Position = {Corner.x * HalfExtent.x, 0.F, Corner.y * HalfExtent.y},
-                                   .Normal   = {0.F, 1.F, 0.F},
+                                   .Normal = {0.F, 1.F, 0.F},
                                    .TexCoord = (Corner * 0.5F + 0.5F) * UvScale});
     }
     Result.Indices = {0U, 2U, 1U, 0U, 3U, 2U};
+
     return Result;
 }
 
@@ -89,11 +100,13 @@ luvk::scene::Bounds luvk::scene::MeshData::ComputeBounds() const
     }
 
     Bounds Result{.Min = Vertices.front().Position, .Max = Vertices.front().Position};
+
     for (const Vertex& It : Vertices)
     {
         Result.Min = glm::min(Result.Min, It.Position);
         Result.Max = glm::max(Result.Max, It.Position);
     }
+
     return Result;
 }
 
@@ -101,17 +114,19 @@ std::vector<float> luvk::scene::MeshData::Positions() const
 {
     std::vector<float> Result;
     Result.reserve(std::size(Vertices) * 3U);
+
     for (const Vertex& It : Vertices)
     {
         Result.insert(std::end(Result), {It.Position.x, It.Position.y, It.Position.z});
     }
+
     return Result;
 }
 
 luvk::scene::Mesh::Mesh(Context& Ctx, const MeshData& Data, const std::string_view Name)
-    : m_IndexCount(static_cast<std::uint32_t>(std::size(Data.Indices))),
-      m_Submeshes(Data.Submeshes),
-      m_Bounds(Data.ComputeBounds())
+    : m_IndexCount(static_cast<std::uint32_t>(std::size(Data.Indices)))
+    , m_Submeshes(Data.Submeshes)
+    , m_Bounds(Data.ComputeBounds())
 {
     if (std::empty(Data.Vertices) || std::size(Data.Indices) < 3U || std::size(Data.Indices) % 3U != 0U)
     {
@@ -120,7 +135,7 @@ luvk::scene::Mesh::Mesh(Context& Ctx, const MeshData& Data, const std::string_vi
 
     const std::string Label(Name);
     m_Vertices = Buffer(Ctx, {.Size = std::size(Data.Vertices) * sizeof(Vertex), .Name = Label + " vertices"});
-    m_Indices  = Buffer(Ctx, {.Size = std::size(Data.Indices) * sizeof(std::uint32_t), .Name = Label + " indices"});
+    m_Indices = Buffer(Ctx, {.Size = std::size(Data.Indices) * sizeof(std::uint32_t), .Name = Label + " indices"});
     m_Vertices.Write(std::span<const Vertex>(Data.Vertices));
     m_Indices.Write(std::span<const std::uint32_t>(Data.Indices));
 

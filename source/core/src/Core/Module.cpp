@@ -1,11 +1,14 @@
-// Author: Lucas Vilas-Boas
-// Year: 2026
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2026
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Core/Module.hpp"
-#include "luvk/Core/Context.hpp"
-#include "luvk/Core/FeatureChain.hpp"
-#include "luvk/Core/Vulkan.hpp"
+
+#include "luvk/Core/Device/Context.hpp"
+#include "luvk/Core/Device/FeatureChain.hpp"
+#include "luvk/Core/Device/Vulkan.hpp"
 
 luvk::Module::~Module() = default;
 
@@ -33,16 +36,18 @@ luvk::MeshShaderModule::MeshShaderModule(const bool Required)
 void luvk::MeshShaderModule::ConfigureDevice(DeviceRequirements& Requirements)
 {
     constexpr auto Extension = VK_EXT_MESH_SHADER_EXTENSION_NAME;
-    auto&          Features  = m_Required ? Requirements.Features : Requirements.OptionalFeatures;
-    auto&          Mesh      = Features.Get<VkPhysicalDeviceMeshShaderFeaturesEXT>(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT, Extension);
-    Mesh.meshShader          = VK_TRUE;
-    Mesh.taskShader          = VK_TRUE;
+    auto& Features = m_Required ? Requirements.Features : Requirements.OptionalFeatures;
+    auto& Mesh = Features.Get<VkPhysicalDeviceMeshShaderFeaturesEXT>(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT, Extension);
+    Mesh.meshShader = VK_TRUE;
+    Mesh.taskShader = VK_TRUE;
     (m_Required ? Requirements.Extensions : Requirements.OptionalExtensions).emplace_back(Extension);
 }
 
 bool luvk::MeshShaderModule::IsAvailable(const Context& Ctx)
 {
-    const auto* const Mesh = Ctx.EnabledFeatures().Find<VkPhysicalDeviceMeshShaderFeaturesEXT>(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT);
+    const auto* const Mesh =
+        Ctx.EnabledFeatures().Find<VkPhysicalDeviceMeshShaderFeaturesEXT>(VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT);
+
     return Mesh != nullptr && Mesh->meshShader != VK_FALSE && Mesh->taskShader != VK_FALSE &&
            Ctx.IsDeviceExtensionEnabled(VK_EXT_MESH_SHADER_EXTENSION_NAME);
 }

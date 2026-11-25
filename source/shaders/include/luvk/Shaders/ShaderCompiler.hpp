@@ -9,11 +9,11 @@
 #include <cstdint>
 #include <expected>
 #include <filesystem>
+#include <luvk/Core/Common.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-#include <luvk/Core/Common.hpp>
 
 namespace luvk
 {
@@ -152,19 +152,23 @@ namespace luvk
     };
 
     /** Compiles Slang source to SPIR-V (thread-safe, one Slang global session behind a mutex). Returns the result or the diagnostics. */
-    [[nodiscard]] LUVK_API std::expected<ShaderCompileResult, std::string> CompileShader(std::string_view Source, const ShaderCompileOptions& Options = {});
+    [[nodiscard]] LUVK_API std::expected<ShaderCompileResult, std::string> CompileShader(std::string_view Source,
+                                                                                         const ShaderCompileOptions& Options = {});
 
     /**
      * Compiles a Slang file to SPIR-V (thread-safe). The file's directory is searched first for imports and includes; the
      * module is named after the file stem unless Options.ModuleName is changed from its default.
      */
-    [[nodiscard]] LUVK_API std::expected<ShaderCompileResult, std::string> CompileShaderFile(const std::filesystem::path& Path, const ShaderCompileOptions& Options = {});
+    [[nodiscard]] LUVK_API std::expected<ShaderCompileResult, std::string> CompileShaderFile(const std::filesystem::path& Path,
+                                                                                             const ShaderCompileOptions& Options = {});
 
     /** CompileShader that throws std::runtime_error with the diagnostics on failure and returns the SPIR-V. */
     [[nodiscard]] LUVK_API std::vector<std::uint32_t> CompileShaderOrThrow(std::string_view Source, const ShaderCompileOptions& Options = {});
 
     /** Shorthand compiling one entry point of a named module, e.g. CompileShaderOrThrow(Source, "particles", "ComputeMain"). */
-    [[nodiscard]] inline std::vector<std::uint32_t> CompileShaderOrThrow(const std::string_view Source, const std::string_view ModuleName, const std::string_view EntryPoint)
+    [[nodiscard]] inline std::vector<std::uint32_t> CompileShaderOrThrow(const std::string_view Source,
+                                                                         const std::string_view ModuleName,
+                                                                         const std::string_view EntryPoint)
     {
         return CompileShaderOrThrow(Source, ShaderCompileOptions{.ModuleName = ModuleName, .EntryPoint = EntryPoint});
     }
@@ -198,6 +202,7 @@ namespace luvk
         std::chrono::steady_clock::time_point m_LastScan;
 
     public:
+
         /** Constructor; Interval is the minimum time between two scans (default 500 ms, i.e. 2 Hz). */
         explicit FileWatcher(std::chrono::steady_clock::duration Interval = std::chrono::milliseconds(500));
 
@@ -208,7 +213,10 @@ namespace luvk
         void Clear() noexcept;
 
         /** Number of watched files. */
-        [[nodiscard]] std::size_t Count() const noexcept { return m_Files.size(); }
+        [[nodiscard]] std::size_t Count() const noexcept
+        {
+            return m_Files.size();
+        }
 
         /** Files changed since the previous scan; empty when the interval has not elapsed. Valid until the next Poll. */
         [[nodiscard]] const std::vector<std::filesystem::path>& Poll();

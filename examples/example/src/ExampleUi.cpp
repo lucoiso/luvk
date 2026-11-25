@@ -3,22 +3,23 @@
 // Repo: https://github.com/lucoiso/luvk
 
 #include "ExampleUi.hpp"
-#include <algorithm>
-#include <luvk/App/Application.hpp>
-#include <luvk/App/DebugDraw.hpp>
-#include <luvk/App/MeshFeature.hpp>
-#include <luvk/Core/Context.hpp>
+
+#include "Gallery.hpp"
 #include "MeshShaderCube.hpp"
 #include "Particles.hpp"
 #include "RayTracingPreview.hpp"
 #include "ShaderPlayground.hpp"
 #include "Skybox.hpp"
-#include "Gallery.hpp"
+#include <algorithm>
+#include <luvk/App/Application.hpp>
+#include <luvk/App/Debug/DebugDraw.hpp>
+#include <luvk/App/MeshFeature.hpp>
+#include <luvk/Core/Device/Context.hpp>
 
 Example::ExampleUi::ExampleUi(luvk::app::Application& App, const GalleryExhibits& Exhibits)
-    : m_App(App),
-      m_Exhibits(Exhibits),
-      m_ShaderCode(ShaderPlayground::DefaultSource())
+    : m_App(App)
+    , m_Exhibits(Exhibits)
+    , m_ShaderCode(ShaderPlayground::DefaultSource())
 {
 }
 
@@ -161,7 +162,7 @@ void Example::ExampleUi::DrawShaderLabTab()
     ImGui::SameLine();
     if (ImGui::Button("Reset"))
     {
-        m_ShaderCode   = std::string(ShaderPlayground::DefaultSource());
+        m_ShaderCode = std::string(ShaderPlayground::DefaultSource());
         m_CompileError = m_Exhibits.ShaderLab.Compile(m_ShaderCode);
     }
     ImGui::SameLine();
@@ -175,22 +176,23 @@ void Example::ExampleUi::DrawShaderLabTab()
     }
 
     const float Preview = std::min(ImGui::GetContentRegionAvail().x, 220.F);
-    ImGui::InputTextMultiline("##source",
-                              m_ShaderCode.data(),
-                              m_ShaderCode.capacity() + 1U,
-                              ImVec2(-1.F, std::max(120.F, ImGui::GetContentRegionAvail().y - Preview - 12.F)),
-                              ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AllowTabInput,
-                              [](ImGuiInputTextCallbackData* Data)
-                              {
-                                  if (Data->EventFlag == ImGuiInputTextFlags_CallbackResize)
-                                  {
-                                      auto* const Text = static_cast<std::string*>(Data->UserData);
-                                      Text->resize(static_cast<std::size_t>(Data->BufTextLen));
-                                      Data->Buf = Text->data();
-                                  }
-                                  return 0;
-                              },
-                              &m_ShaderCode);
+    ImGui::InputTextMultiline(
+        "##source",
+        m_ShaderCode.data(),
+        m_ShaderCode.capacity() + 1U,
+        ImVec2(-1.F, std::max(120.F, ImGui::GetContentRegionAvail().y - Preview - 12.F)),
+        ImGuiInputTextFlags_CallbackResize | ImGuiInputTextFlags_AllowTabInput,
+        [](ImGuiInputTextCallbackData* Data)
+        {
+            if (Data->EventFlag == ImGuiInputTextFlags_CallbackResize)
+            {
+                auto* const Text = static_cast<std::string*>(Data->UserData);
+                Text->resize(static_cast<std::size_t>(Data->BufTextLen));
+                Data->Buf = Text->data();
+            }
+            return 0;
+        },
+        &m_ShaderCode);
 
     ImageFit(m_App.UiTexture(m_Exhibits.ShaderLab.Output()), Preview);
 }
@@ -219,7 +221,10 @@ void Example::ExampleUi::DrawDiagnosticsTab()
     {
         const auto Status = [](const char* Name, const bool Available, const std::string& Detail)
         {
-            ImGui::TextColored(Available ? ImVec4(0.4F, 0.9F, 0.4F, 1.F) : ImVec4(1.F, 0.75F, 0.2F, 1.F), "%s %s", Available ? "[ok] " : "[off]", Name);
+            ImGui::TextColored(Available ? ImVec4(0.4F, 0.9F, 0.4F, 1.F) : ImVec4(1.F, 0.75F, 0.2F, 1.F),
+                               "%s %s",
+                               Available ? "[ok] " : "[off]",
+                               Name);
             ImGui::TextWrapped("%s", Detail.c_str());
             ImGui::Separator();
         };
@@ -228,7 +233,9 @@ void Example::ExampleUi::DrawDiagnosticsTab()
         Status("Mesh shading", m_Exhibits.Cube.IsAvailable(), m_Exhibits.Cube.Status());
         Status("Ray queries", m_Exhibits.RayTracing.IsAvailable(), m_Exhibits.RayTracing.Status());
         Status("Present fences", Ctx.SupportsPresentFences(), "VK_KHR/EXT_swapchain_maintenance1: exact present semaphore lifetimes.");
-        Status("Validation layers", Ctx.IsValidationEnabled(), Ctx.IsValidationEnabled() ? "VK_LAYER_KHRONOS_validation active." : "Install the Vulkan SDK to enable validation.");
+        Status("Validation layers",
+               Ctx.IsValidationEnabled(),
+               Ctx.IsValidationEnabled() ? "VK_LAYER_KHRONOS_validation active." : "Install the Vulkan SDK to enable validation.");
     }
 
     if (ImGui::CollapsingHeader("Windows"))
@@ -268,9 +275,9 @@ void Example::ExampleUi::DrawFloatingWindow()
 void Example::ExampleUi::Focus(const glm::vec3& Target) const
 {
     luvk::app::Camera& Camera = m_App.GetCamera();
-    Camera.Position           = Target + glm::vec3{0.F, 1.1F, 3.6F};
-    Camera.Yaw                = -90.F;
-    Camera.Pitch              = -14.F;
+    Camera.Position = Target + glm::vec3{0.F, 1.1F, 3.6F};
+    Camera.Yaw = -90.F;
+    Camera.Pitch = -14.F;
 }
 
 void Example::ExampleUi::ImageFit(const ImTextureID Texture, const float MaxSide)

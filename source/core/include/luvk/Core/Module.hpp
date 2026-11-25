@@ -24,6 +24,7 @@ namespace luvk
     class LUVK_API Module
     {
     public:
+
         /** Destructor. */
         virtual ~Module();
 
@@ -47,6 +48,7 @@ namespace luvk
         bool m_Required;
 
     public:
+
         /** Constructor: Required selects between mandatory and optional registration of the extension/features. */
         explicit MeshShaderModule(bool Required = true);
 

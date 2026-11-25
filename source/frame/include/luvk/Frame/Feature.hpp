@@ -4,7 +4,12 @@
 
 #pragma once
 
+#include "luvk/Frame/Blackboard.hpp"
 #include <cstdint>
+#include <glm/vec2.hpp>
+#include <luvk/Core/Common.hpp>
+#include <luvk/Core/Memory/FrameAllocator.hpp>
+#include <luvk/Core/Render/RenderGraph.hpp>
 #include <memory>
 #include <optional>
 #include <span>
@@ -12,11 +17,6 @@
 #include <string_view>
 #include <type_traits>
 #include <vector>
-#include <glm/vec2.hpp>
-#include <luvk/Core/Common.hpp>
-#include <luvk/Render/FrameAllocator.hpp>
-#include <luvk/Render/RenderGraph.hpp>
-#include "luvk/Frame/Blackboard.hpp"
 
 namespace luvk
 {
@@ -28,14 +28,14 @@ namespace luvk::frame
     /** Names of the default phases, in frame order. Features of one phase are ordered by their After/Before names. */
     namespace Phases
     {
-        inline constexpr std::string_view Prepare     = "Prepare";
-        inline constexpr std::string_view Compute     = "Compute";
-        inline constexpr std::string_view Opaque      = "Opaque";
+        inline constexpr std::string_view Prepare = "Prepare";
+        inline constexpr std::string_view Compute = "Compute";
+        inline constexpr std::string_view Opaque = "Opaque";
         inline constexpr std::string_view Transparent = "Transparent";
-        inline constexpr std::string_view Debug       = "Debug";
+        inline constexpr std::string_view Debug = "Debug";
         inline constexpr std::string_view PostProcess = "PostProcess";
-        inline constexpr std::string_view Upscale     = "Upscale";
-        inline constexpr std::string_view Overlay     = "Overlay";
+        inline constexpr std::string_view Upscale = "Upscale";
+        inline constexpr std::string_view Overlay = "Overlay";
 
         /** Writes the final image into the output (the composite, a tonemapper writing the backbuffer, ...). */
         inline constexpr std::string_view Output = "Output";
@@ -87,13 +87,22 @@ namespace luvk::frame
         bool ReverseDepth = false;
 
         /** Fill mode matching Wireframe, ready for GraphicsPipelineDesc::PolygonMode. */
-        [[nodiscard]] constexpr luvk::PolygonMode PolygonMode() const noexcept { return Wireframe ? luvk::PolygonMode::Line : luvk::PolygonMode::Fill; }
+        [[nodiscard]] constexpr luvk::PolygonMode PolygonMode() const noexcept
+        {
+            return Wireframe ? luvk::PolygonMode::Line : luvk::PolygonMode::Fill;
+        }
 
         /** Depth value of the far plane, used to clear SceneDepth. */
-        [[nodiscard]] constexpr float ClearDepth() const noexcept { return ReverseDepth ? 0.F : 1.F; }
+        [[nodiscard]] constexpr float ClearDepth() const noexcept
+        {
+            return ReverseDepth ? 0.F : 1.F;
+        }
 
         /** Depth comparison matching ReverseDepth, ready for GraphicsPipelineDesc::DepthCompare. */
-        [[nodiscard]] constexpr CompareOp DepthCompare() const noexcept { return ReverseDepth ? CompareOp::GreaterOrEqual : CompareOp::LessOrEqual; }
+        [[nodiscard]] constexpr CompareOp DepthCompare() const noexcept
+        {
+            return ReverseDepth ? CompareOp::GreaterOrEqual : CompareOp::LessOrEqual;
+        }
     };
 
     /** Everything a feature needs to add its passes for the current frame. */
@@ -144,6 +153,7 @@ namespace luvk::frame
         friend class FeatureStack;
 
     public:
+
         /** Destructor. */
         virtual ~RenderFeature();
 
@@ -178,13 +188,19 @@ namespace luvk::frame
         virtual void OnGui();
 
         /** True when the feature participates in Update and AddPasses. */
-        [[nodiscard]] bool IsEnabled() const noexcept { return m_Enabled && m_Failure.empty(); }
+        [[nodiscard]] bool IsEnabled() const noexcept
+        {
+            return m_Enabled && m_Failure.empty();
+        }
 
         /** Enables or disables the feature; enabling clears a recorded failure. */
         void SetEnabled(bool Enabled) noexcept;
 
         /** Message of the exception that disabled the feature (empty when it runs). */
-        [[nodiscard]] std::string_view Failure() const noexcept { return m_Failure; }
+        [[nodiscard]] std::string_view Failure() const noexcept
+        {
+            return m_Failure;
+        }
     };
 
     /**
@@ -227,6 +243,7 @@ namespace luvk::frame
         void Guard(RenderFeature& Feature, std::string_view Where, Callback&& Function) const;
 
     public:
+
         /** Constructor: the default phases (Phases::Prepare ... Phases::Output, in that order). */
         explicit FeatureStack(Context& Ctx);
 
@@ -243,7 +260,10 @@ namespace luvk::frame
         void AddPhase(PhaseDesc Phase);
 
         /** Phase names in execution order. */
-        [[nodiscard]] std::span<const std::string> PhaseOrder() const noexcept { return m_PhaseOrder; }
+        [[nodiscard]] std::span<const std::string> PhaseOrder() const noexcept
+        {
+            return m_PhaseOrder;
+        }
 
         /** Attaches the feature and inserts it in phase order. If attaching or resizing throws, the feature is detached and
          *  the stack is unchanged. */
@@ -292,6 +312,9 @@ namespace luvk::frame
         void AddPasses(FeatureContext& Frame, std::string_view First, std::string_view Last) const;
 
         /** Read-only view of the features in execution order. */
-        [[nodiscard]] std::span<const std::shared_ptr<RenderFeature>> All() const noexcept { return m_Features; }
+        [[nodiscard]] std::span<const std::shared_ptr<RenderFeature>> All() const noexcept
+        {
+            return m_Features;
+        }
     };
 }

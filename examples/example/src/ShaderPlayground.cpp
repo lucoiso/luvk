@@ -2,12 +2,13 @@
 // Year: 2026
 // Repo : https://github.com/lucoiso/luvk
 
-#include <stdexcept>
-#include <luvk/Core/Context.hpp>
-#include <luvk/Render/CommandList.hpp>
-#include <luvk/Shaders/ShaderCompiler.hpp>
 #include "Shaders/ShaderPlayground.hpp"
+
 #include "ShaderPlayground.hpp"
+#include <luvk/Core/Device/Context.hpp>
+#include <luvk/Core/Render/CommandList.hpp>
+#include <luvk/Shaders/ShaderCompiler.hpp>
+#include <stdexcept>
 
 namespace
 {
@@ -29,15 +30,11 @@ void Example::ShaderPlayground::Update(const float DeltaTime)
 
 void Example::ShaderPlayground::OnAttach(luvk::Context& Ctx)
 {
-    m_Context      = &Ctx;
+    m_Context = &Ctx;
     m_VertexShader = luvk::CompileShaderOrThrow(VertexSource, "playground_vertex", "main");
-    m_Output       = luvk::Image(Ctx,
-                                 {.Extent = {PreviewSize, PreviewSize, 1U},
-                                  .Format = luvk::Format::R8G8B8A8Unorm,
-                                  .Name   = "shader playground"});
+    m_Output = luvk::Image(Ctx, {.Extent = {PreviewSize, PreviewSize, 1U}, .Format = luvk::Format::R8G8B8A8Unorm, .Name = "shader playground"});
 
-    if (const std::string Error = Compile(DefaultFragmentSource);
-        !std::empty(Error))
+    if (const std::string Error = Compile(DefaultFragmentSource); !std::empty(Error))
     {
         throw std::runtime_error("Default playground shader failed to compile:\n" + Error);
     }
@@ -53,13 +50,12 @@ std::string Example::ShaderPlayground::Compile(const std::string_view FragmentSo
 
     try
     {
-
         m_Pipeline = luvk::Pipeline(*m_Context,
-                                    luvk::GraphicsPipelineDesc{.Vertex       = {.Code = m_VertexShader},
-                                                               .Fragment     = {.Code = Fragment->Spirv},
+                                    luvk::GraphicsPipelineDesc{.Vertex = {.Code = m_VertexShader},
+                                                               .Fragment = {.Code = Fragment->Spirv},
                                                                .ColorFormats = {luvk::Format::R8G8B8A8Unorm},
-                                                               .CullMode     = luvk::CullMode::None,
-                                                               .Name         = "shader playground"});
+                                                               .CullMode = luvk::CullMode::None,
+                                                               .Name = "shader playground"});
     }
     catch (const std::exception& Exception)
     {
@@ -73,18 +69,16 @@ std::string Example::ShaderPlayground::Compile(const std::string_view FragmentSo
 void Example::ShaderPlayground::AddPasses(luvk::frame::FeatureContext& Frame)
 {
     const luvk::TextureHandle Output = Frame.Graph.Import(m_Output);
-    const float               Time   = m_Time;
+    const float Time = m_Time;
 
-    Frame.Graph.AddPass("Shader Playground",
-                        luvk::PassType::Graphics,
-                        [&](luvk::PassBuilder& Pass)
-                        {
-                            Pass.ColorAttachment(Output, luvk::LoadOp::Clear, luvk::ClearColorValue{.Float = {0.F, 0.F, 0.F, 1.F}});
-                        },
-                        [this, Time](luvk::CommandList& Cmd)
-                        {
-                            Cmd.BindPipeline(m_Pipeline);
-                            Cmd.PushConstants(Time);
-                            Cmd.Draw(3U);
-                        });
+    Frame.Graph.AddPass(
+        "Shader Playground",
+        luvk::PassType::Graphics,
+        [&](luvk::PassBuilder& Pass) { Pass.ColorAttachment(Output, luvk::LoadOp::Clear, luvk::ClearColorValue{.Float = {0.F, 0.F, 0.F, 1.F}}); },
+        [this, Time](luvk::CommandList& Cmd)
+        {
+            Cmd.BindPipeline(m_Pipeline);
+            Cmd.PushConstants(Time);
+            Cmd.Draw(3U);
+        });
 }

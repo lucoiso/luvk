@@ -1,0 +1,230 @@
+// Author: Lucas Vilas-Boas
+// Year: 2026
+// Repo : https://github.com/lucoiso/luvk
+
+#pragma once
+
+#include "luvk/Core/Common.hpp"
+#include "luvk/Core/Memory/DeletionQueue.hpp"
+#include "luvk/Resources/ResourceState.hpp"
+#include <cstddef>
+#include <cstdint>
+#include <span>
+#include <string_view>
+#include <type_traits>
+
+namespace luvk
+{
+    class Context;
+
+    /** Memory placement policy for buffer allocations. */
+    enum class MemoryUsage : std::uint8_t
+    {
+        /** Device-local; Write() stages the data through the transfer queue. */
+        GpuOnly,
+
+        /** Always mapped, written by the CPU and read by the GPU, preferably device-local (ReBAR). Writes are direct, so
+         *  only write ranges the GPU is not reading: per-frame data belongs in a FrameAllocator. */
+        Stream,
+
+        /** Host memory for staging copies. */
+        Upload,
+
+        /** Host memory the GPU writes and the CPU reads back. */
+        Readback,
+    };
+
+    /**
+     * Creation parameters for luvk::Buffer. There is no usage to declare: every buffer can be a storage, indirect,
+     * index, vertex, uniform and transfer buffer and has a device address; the only decision is where it lives.
+     */
+    struct BufferDesc
+    {
+        /** Buffer size in bytes (must be greater than zero). */
+        DeviceSize Size = 0U;
+
+        /** Memory placement policy. */
+        MemoryUsage Memory = MemoryUsage::GpuOnly;
+
+        /** VMA allocation priority in [0, 1] (higher means more likely to get dedicated memory). */
+        float Priority = 0.5F;
+
+        /** Optional debug name applied to the allocation and the VkBuffer. */
+        std::string_view Name;
+    };
+
+    /**
+     * Address and element count of a buffer range, the C++ twin of luvk::Span<T> in the Slang module: shaders read it
+     * with bounds-checked Load/Store. Sixteen bytes on both sides, so it fits push constants and parameter blocks.
+     */
+    template <typename T>
+    struct GpuSpan
+    {
+        /** Device address of the first element. */
+        DeviceAddress Address = 0U;
+
+        /** Number of elements. */
+        std::uint32_t Count = 0U;
+
+        /** Keeps the struct at sixteen bytes. */
+        std::uint32_t Reserved = 0U;
+    };
+
+    static_assert(sizeof(GpuSpan<std::uint32_t>) == 16U);
+
+    /** Move-only RAII buffer with a device address. On destruction the VkBuffer is retired to the Context deletion queue,
+     *  never destroyed while in use. */
+    class LUVK_API Buffer
+    {
+        /** Owning Context used for allocation, uploads and retirement. */
+        Context* m_Context = nullptr;
+
+        /** Vulkan buffer handle. */
+        VkBuffer m_Buffer = nullptr;
+
+        /** VMA allocation backing the buffer. */
+        VmaAllocation m_Allocation = nullptr;
+
+        /** Buffer size in bytes. */
+        DeviceSize m_Size = 0U;
+
+        /** Persistent mapping of host-visible memory, or nullptr for device-local allocations. */
+        std::byte* m_Mapped = nullptr;
+
+        /** Shader device address of the buffer start. */
+        DeviceAddress m_Address = 0U;
+
+        /** True when the memory is host coherent (Write and Read then skip explicit flush or invalidate). */
+        bool m_Coherent = false;
+
+        /** Highest transfer-queue timeline value using this buffer; destruction also waits for it. */
+        std::uint64_t m_TransferUse = 0U;
+
+        /** Graphics-timeline synchronisation state, maintained by the render graph. */
+        ResourceState m_State = {};
+
+    public:
+
+        /** Default constructor. */
+        Buffer() = default;
+
+        /** Constructor. Creates the buffer through VMA: Desc.Size must be greater than zero. */
+        Buffer(Context& Ctx, const BufferDesc& Desc);
+
+        /** Destructor. */
+        ~Buffer();
+
+        /** Non-copyable. */
+        Buffer(const Buffer&) = delete;
+
+        /** Non-copyable. */
+        Buffer& operator=(const Buffer&) = delete;
+
+        /** Move-only. */
+        Buffer(Buffer&& Other) noexcept;
+
+        /** Move-only. */
+        Buffer& operator=(Buffer&& Other) noexcept;
+
+        /** Releases the buffer (deferred) and leaves this object empty. */
+        void Reset() noexcept;
+
+        /** Releases the buffer once Point is reached on both timelines (e.g. transfer-only staging buffers). */
+        void Release(const TimelinePoint& Point) noexcept;
+
+        /** Records that a transfer batch (timeline value) uses this buffer; destruction then also waits for it. */
+        void NoteTransferUse(std::uint64_t TransferValue) noexcept;
+
+        /**
+         * Bounds-checked write: mapped memory is written directly (and flushed), otherwise the data is staged and copied on
+         * the transfer queue. A staged copy waits only for the graphics work that last used this buffer (tracked by the
+         * render graph), so rewriting a buffer in use is safe and streaming into an idle one overlaps rendering.
+         */
+        void Write(std::span<const std::byte> Data, DeviceSize Offset = 0U);
+
+        /** Writes the trivially copyable elements of Data as raw bytes at the given byte offset. */
+        template <typename T>
+            requires std::is_trivially_copyable_v<T>
+        void Write(const std::span<const T> Data, const DeviceSize Offset = 0U)
+        {
+            Write(std::as_bytes(Data), Offset);
+        }
+
+        /** Writes a single trivially copyable Value at the given byte offset. */
+        template <typename T>
+            requires std::is_trivially_copyable_v<T>
+        void WriteValue(const T& Value, const DeviceSize Offset = 0U)
+        {
+            Write(std::as_bytes(std::span<const T, 1>(&Value, 1U)), Offset);
+        }
+
+        /** Makes CPU writes done through Mapped() visible to the GPU (no-op for host-coherent memory). */
+        void Flush(DeviceSize Offset = 0U, DeviceSize Size = WholeSize) const;
+
+        /** Makes GPU writes visible to CPU reads through Mapped() (no-op for host-coherent memory). */
+        void Invalidate(DeviceSize Offset = 0U, DeviceSize Size = WholeSize) const;
+
+        /** Bounds-checked read of host-visible memory (invalidates non-coherent memory first). */
+        void Read(std::span<std::byte> Output, DeviceSize Offset = 0U) const;
+
+        /** True when a VkBuffer was created. */
+        [[nodiscard]] explicit operator bool() const noexcept
+        {
+            return m_Buffer != nullptr;
+        }
+
+        /** Underlying VkBuffer handle. */
+        [[nodiscard]] VkBuffer Handle() const noexcept
+        {
+            return m_Buffer;
+        }
+
+        /** Buffer size in bytes. */
+        [[nodiscard]] DeviceSize Size() const noexcept
+        {
+            return m_Size;
+        }
+
+        /** Shader device address of the buffer start. */
+        [[nodiscard]] DeviceAddress Address() const noexcept
+        {
+            return m_Address;
+        }
+
+        /** The whole buffer seen as an array of T, for push constants and parameter blocks. */
+        template <typename T>
+        [[nodiscard]] GpuSpan<T> Span() const noexcept
+        {
+            return {.Address = m_Address, .Count = static_cast<std::uint32_t>(m_Size / sizeof(T))};
+        }
+
+        /** True when the buffer is host visible and persistently mapped. */
+        [[nodiscard]] bool IsMapped() const noexcept
+        {
+            return m_Mapped != nullptr;
+        }
+
+        /** Underlying VMA allocation. */
+        [[nodiscard]] VmaAllocation Allocation() const noexcept
+        {
+            return m_Allocation;
+        }
+
+        /** Mapped bytes (empty when not host visible). Writing here bypasses bounds/flush handling of Write(). */
+        [[nodiscard]] std::span<std::byte> Mapped() const noexcept
+        {
+            return m_Mapped ? std::span<std::byte>(m_Mapped, m_Size) : std::span<std::byte>{};
+        }
+
+        /** Graphics-timeline synchronisation state, maintained by the render graph. */
+        [[nodiscard]] ResourceState& State() noexcept
+        {
+            return m_State;
+        }
+
+    private:
+
+        /** Throws std::out_of_range when [Offset, Offset + Size) is out of bounds or the buffer is empty. */
+        void CheckRange(DeviceSize Offset, DeviceSize Size) const;
+    };
+}

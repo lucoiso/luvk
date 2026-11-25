@@ -4,11 +4,11 @@
 
 #pragma once
 
+#include <glm/glm.hpp>
+#include <luvk/Core/Resources/Pipeline.hpp>
+#include <luvk/Frame/Feature.hpp>
 #include <string>
 #include <string_view>
-#include <glm/glm.hpp>
-#include <luvk/Frame/Feature.hpp>
-#include <luvk/Resources/Pipeline.hpp>
 
 namespace Example
 {
@@ -16,10 +16,15 @@ namespace Example
     class MeshShaderCube final : public luvk::frame::RenderFeature
     {
     public:
+
         /** Constructor: places the cube at Position. */
-        explicit MeshShaderCube(const glm::vec3& Position) : m_Position(Position) {}
+        explicit MeshShaderCube(const glm::vec3& Position)
+            : m_Position(Position)
+        {
+        }
 
     private:
+
         /** World position of the cube centre. */
         glm::vec3 m_Position{0.F};
 
@@ -48,11 +53,18 @@ namespace Example
         std::string m_Status = "not attached";
 
     public:
+
         /** Name shown in the debug window. */
-        [[nodiscard]] std::string_view Name() const override { return "Mesh Shader Cube"; }
+        [[nodiscard]] std::string_view Name() const override
+        {
+            return "Mesh Shader Cube";
+        }
 
         /** Stage in the frame graph (opaque geometry). */
-        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Opaque; }
+        [[nodiscard]] std::string_view Phase() const override
+        {
+            return luvk::frame::Phases::Opaque;
+        }
 
         /** Checks the mesh shader feature requirements. */
         void OnAttach(luvk::Context& Ctx) override;
@@ -70,9 +82,15 @@ namespace Example
         [[nodiscard]] glm::mat4 Transform() const;
 
         /** Whether VK_EXT_mesh_shader is supported by the device. */
-        [[nodiscard]] bool IsAvailable() const noexcept { return m_Available; }
+        [[nodiscard]] bool IsAvailable() const noexcept
+        {
+            return m_Available;
+        }
 
         /** Human-readable capability status. */
-        [[nodiscard]] const std::string& Status() const noexcept { return m_Status; }
+        [[nodiscard]] const std::string& Status() const noexcept
+        {
+            return m_Status;
+        }
     };
 }

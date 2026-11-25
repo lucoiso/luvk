@@ -3,17 +3,18 @@
 // Repo : https://github.com/lucoiso/luvk
 
 #include "Particles.hpp"
+
+#include "Shaders/Particles.hpp"
 #include <algorithm>
+#include <imgui.h>
+#include <luvk/App/Debug/DebugDraw.hpp>
+#include <luvk/Core/Device/Context.hpp>
+#include <luvk/Core/Render/CommandList.hpp>
+#include <luvk/Frame/Slots.hpp>
+#include <luvk/Shaders/ShaderCompiler.hpp>
 #include <random>
 #include <type_traits>
 #include <vector>
-#include <imgui.h>
-#include <luvk/App/DebugDraw.hpp>
-#include <luvk/Frame/Slots.hpp>
-#include <luvk/Core/Context.hpp>
-#include <luvk/Render/CommandList.hpp>
-#include <luvk/Shaders/ShaderCompiler.hpp>
-#include "Shaders/Particles.hpp"
 
 namespace
 {
@@ -27,7 +28,7 @@ namespace
 void Example::Particles::OnAttach(luvk::Context& Ctx)
 {
     // Every particle starts "dead" with a random delay, so the fountain fills up over its first seconds.
-    std::mt19937                          Generator{7U};
+    std::mt19937 Generator{7U};
     std::uniform_real_distribution<float> Distribution(0.F, 1.F);
 
     std::vector<Particle> Initial(ParticleCount);
@@ -41,7 +42,7 @@ void Example::Particles::OnAttach(luvk::Context& Ctx)
 
     m_Compute = luvk::Pipeline(Ctx,
                                luvk::ComputePipelineDesc{.Compute = {.Code = luvk::CompileShaderOrThrow(Shader, "particles", "ComputeMain")},
-                                                         .Name    = "particles (simulate)"});
+                                                         .Name = "particles (simulate)"});
 }
 
 void Example::Particles::Update(const float DeltaTime)
@@ -63,75 +64,74 @@ void Example::Particles::AddPasses(luvk::frame::FeatureContext& Frame)
 
     if (m_Format != Frame.Settings.ColorFormat || m_Wireframe != Frame.Settings.Wireframe || m_ReverseDepth != Frame.Settings.ReverseDepth)
     {
-        m_Graphics  = luvk::Pipeline(Frame.Ctx,
-                                     luvk::GraphicsPipelineDesc{.Vertex       = {.Code = luvk::CompileShaderOrThrow(Shader, "particles", "VertexMain")},
-                                                                .Fragment     = {.Code = luvk::CompileShaderOrThrow(Shader, "particles", "FragmentMain")},
-                                                                .ColorFormats = {Frame.Settings.ColorFormat},
-                                                                .Blend        = {luvk::BlendMode::Alpha},
-                                                                .DepthFormat  = Frame.Settings.DepthFormat,
-                                                                .PolygonMode  = Frame.Settings.PolygonMode(),
-                                                                .CullMode     = luvk::CullMode::None,
-                                                                .DepthTest    = true,
-                                                                .DepthWrite   = false,
-                                                                .DepthCompare = Frame.Settings.DepthCompare(),
-                                                                .Name         = "particles (draw)"});
-        m_Format       = Frame.Settings.ColorFormat;
-        m_Wireframe    = Frame.Settings.Wireframe;
+        m_Graphics = luvk::Pipeline(Frame.Ctx,
+                                    luvk::GraphicsPipelineDesc{.Vertex = {.Code = luvk::CompileShaderOrThrow(Shader, "particles", "VertexMain")},
+                                                               .Fragment = {.Code = luvk::CompileShaderOrThrow(Shader, "particles", "FragmentMain")},
+                                                               .ColorFormats = {Frame.Settings.ColorFormat},
+                                                               .Blend = {luvk::BlendMode::Alpha},
+                                                               .DepthFormat = Frame.Settings.DepthFormat,
+                                                               .PolygonMode = Frame.Settings.PolygonMode(),
+                                                               .CullMode = luvk::CullMode::None,
+                                                               .DepthTest = true,
+                                                               .DepthWrite = false,
+                                                               .DepthCompare = Frame.Settings.DepthCompare(),
+                                                               .Name = "particles (draw)"});
+        m_Format = Frame.Settings.ColorFormat;
+        m_Wireframe = Frame.Settings.Wireframe;
         m_ReverseDepth = Frame.Settings.ReverseDepth;
     }
 
     // The camera basis comes from the rows of the view matrix (world -> view).
     const PushData Push{.ViewProjection = View->ViewProjection,
-                        .Particles      = m_Buffer.Address(),
-                        .Count          = ParticleCount,
-                        .DeltaTime      = m_DeltaTime,
-                        .Emitter        = Emitter,
-                        .Time           = m_Time,
-                        .CameraRight    = {View->View[0][0], View->View[1][0], View->View[2][0]},
-                        .Size           = m_Size,
-                        .CameraUp       = {View->View[0][1], View->View[1][1], View->View[2][1]}};
+                        .Particles = m_Buffer.Address(),
+                        .Count = ParticleCount,
+                        .DeltaTime = m_DeltaTime,
+                        .Emitter = Emitter,
+                        .Time = m_Time,
+                        .CameraRight = {View->View[0][0], View->View[1][0], View->View[2][0]},
+                        .Size = m_Size,
+                        .CameraUp = {View->View[0][1], View->View[1][1], View->View[2][1]}};
 
-    const luvk::BufferHandle  Data  = Frame.Graph.Import(m_Buffer);
+    const luvk::BufferHandle Data = Frame.Graph.Import(m_Buffer);
     const luvk::TextureHandle Color = Frame.Board.FindTexture(luvk::frame::Slots::SceneColor);
     const luvk::TextureHandle Depth = Frame.Board.FindTexture(luvk::frame::Slots::SceneDepth);
 
     // On the async compute graph the simulation runs on the compute queue before the frame's graphics work (which waits
     // for it); the particle buffer is imported in both graphs and its barriers follow from its tracked state.
-    luvk::RenderGraph&       SimulationGraph = m_AsyncSimulation ? Frame.AsyncGraph : Frame.Graph;
-    const luvk::BufferHandle SimulationData  = m_AsyncSimulation ? SimulationGraph.Import(m_Buffer) : Data;
+    luvk::RenderGraph& SimulationGraph = m_AsyncSimulation ? Frame.AsyncGraph : Frame.Graph;
+    const luvk::BufferHandle SimulationData = m_AsyncSimulation ? SimulationGraph.Import(m_Buffer) : Data;
 
-    SimulationGraph.AddPass("Particles: simulate",
-                        luvk::PassType::Compute,
-                        [&](luvk::PassBuilder& Pass)
-                        {
-                            Pass.Use(SimulationData, luvk::Access::ShaderStorageWrite);
-                        },
-                        [this, Push](luvk::CommandList& Cmd)
-                        {
-                            Cmd.BindPipeline(m_Compute);
-                            Cmd.PushConstants(Push);
-                            Cmd.Dispatch((ParticleCount + 63U) / 64U);
-                        });
+    SimulationGraph.AddPass(
+        "Particles: simulate",
+        luvk::PassType::Compute,
+        [&](luvk::PassBuilder& Pass) { Pass.Use(SimulationData, luvk::Access::ShaderStorageWrite); },
+        [this, Push](luvk::CommandList& Cmd)
+        {
+            Cmd.BindPipeline(m_Compute);
+            Cmd.PushConstants(Push);
+            Cmd.Dispatch((ParticleCount + 63U) / 64U);
+        });
 
     if (m_ShowVelocities)
     {
         AddVelocityLines(Frame, Data);
     }
 
-    Frame.Graph.AddPass("Particles: draw",
-                        luvk::PassType::Graphics,
-                        [&](luvk::PassBuilder& Pass)
-                        {
-                            Pass.Use(Data, luvk::Access::ShaderStorageRead);
-                            Pass.ColorAttachment(Color, luvk::LoadOp::Load);
-                            Pass.DepthAttachment(Depth, luvk::LoadOp::Load, Frame.Settings.ClearDepth(), false);
-                        },
-                        [this, Push](luvk::CommandList& Cmd)
-                        {
-                            Cmd.BindPipeline(m_Graphics);
-                            Cmd.PushConstants(Push);
-                            Cmd.Draw(6U, ParticleCount);
-                        });
+    Frame.Graph.AddPass(
+        "Particles: draw",
+        luvk::PassType::Graphics,
+        [&](luvk::PassBuilder& Pass)
+        {
+            Pass.Use(Data, luvk::Access::ShaderStorageRead);
+            Pass.ColorAttachment(Color, luvk::LoadOp::Load);
+            Pass.DepthAttachment(Depth, luvk::LoadOp::Load, Frame.Settings.ClearDepth(), false);
+        },
+        [this, Push](luvk::CommandList& Cmd)
+        {
+            Cmd.BindPipeline(m_Graphics);
+            Cmd.PushConstants(Push);
+            Cmd.Draw(6U, ParticleCount);
+        });
 }
 
 void Example::Particles::AddVelocityLines(luvk::frame::FeatureContext& Frame, const luvk::BufferHandle Data)
@@ -143,32 +143,33 @@ void Example::Particles::AddVelocityLines(luvk::frame::FeatureContext& Frame, co
         static const std::vector<std::uint32_t> Code = luvk::CompileShaderOrThrow(Shader, "particles", "DebugMain");
         m_Debug = luvk::Pipeline(Frame.Ctx,
                                  luvk::ComputePipelineDesc{.Compute = {.Code = Code, .Constants = {luvk::SpecializationConstant::UInt(0U, Stride)}},
-                                                           .Name    = "particles (velocity lines)"});
+                                                           .Name = "particles (velocity lines)"});
         m_DebugBuiltStride = Stride;
     }
 
     const luvk::BufferHandle Lines = luvk::app::DebugDraw::AcquireGpuLines(Frame);
-    const float              Scale = m_VelocityScale;
+    const float Scale = m_VelocityScale;
 
-    Frame.Graph.AddPass("Particles: velocity lines",
-                        luvk::PassType::Compute,
-                        [&](luvk::PassBuilder& Pass)
-                        {
-                            Pass.Use(Data, luvk::Access::ShaderStorageRead);
-                            Pass.Use(Lines, luvk::Access::ShaderStorageWrite);
-                        },
-                        [this, Data, Lines, Scale, Stride](luvk::CommandList& Cmd)
-                        {
-                            const luvk::DeviceAddress Header = Cmd.ResolveBuffer(Lines).Address;
-                            const DebugPush       Push{.Particles = Cmd.ResolveBuffer(Data).Address,
-                                                       .Lines     = Header,
-                                                       .Vertices  = Header + sizeof(luvk::app::GpuDebugLinesHeader),
-                                                       .Count     = ParticleCount,
-                                                       .Scale     = Scale};
-                            Cmd.BindPipeline(m_Debug);
-                            Cmd.PushConstants(Push);
-                            Cmd.Dispatch((ParticleCount / Stride + 63U) / 64U);
-                        });
+    Frame.Graph.AddPass(
+        "Particles: velocity lines",
+        luvk::PassType::Compute,
+        [&](luvk::PassBuilder& Pass)
+        {
+            Pass.Use(Data, luvk::Access::ShaderStorageRead);
+            Pass.Use(Lines, luvk::Access::ShaderStorageWrite);
+        },
+        [this, Data, Lines, Scale, Stride](luvk::CommandList& Cmd)
+        {
+            const luvk::DeviceAddress Header = Cmd.ResolveBuffer(Lines).Address;
+            const DebugPush Push{.Particles = Cmd.ResolveBuffer(Data).Address,
+                                 .Lines = Header,
+                                 .Vertices = Header + sizeof(luvk::app::GpuDebugLinesHeader),
+                                 .Count = ParticleCount,
+                                 .Scale = Scale};
+            Cmd.BindPipeline(m_Debug);
+            Cmd.PushConstants(Push);
+            Cmd.Dispatch((ParticleCount / Stride + 63U) / 64U);
+        });
 }
 
 void Example::Particles::OnGui()

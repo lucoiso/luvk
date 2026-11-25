@@ -2,21 +2,22 @@
 // Year: 2026
 // Repo : https://github.com/lucoiso/luvk
 
-#include <type_traits>
 #include "RayTracingPreview.hpp"
+
+#include "Shaders/RayTracingPreview.hpp"
 #include <array>
 #include <bit>
-#include <stdexcept>
-#include <string>
-#include <vector>
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <imgui.h>
-#include <luvk/Core/Context.hpp>
-#include <luvk/Core/FeatureChain.hpp>
-#include <luvk/Render/CommandList.hpp>
+#include <luvk/Core/Device/Context.hpp>
+#include <luvk/Core/Device/FeatureChain.hpp>
+#include <luvk/Core/Render/CommandList.hpp>
 #include <luvk/Shaders/ShaderCompiler.hpp>
-#include "Shaders/RayTracingPreview.hpp"
+#include <stdexcept>
+#include <string>
+#include <type_traits>
+#include <vector>
 
 namespace
 {
@@ -26,9 +27,9 @@ namespace
     using TriangleSoup = std::vector<float>;
 
     constexpr std::uint32_t PreviewSize = 512U;
-    constexpr float         CubeHalfExtent = 0.34F;
-    constexpr float         CubeRotation   = 0.55F;
-    constexpr float         SphereRadius   = 0.36F;
+    constexpr float CubeHalfExtent = 0.34F;
+    constexpr float CubeRotation = 0.55F;
+    constexpr float SphereRadius = 0.36F;
 
     void AddTriangle(TriangleSoup& Soup, const glm::vec3& A, const glm::vec3& B, const glm::vec3& C)
     {
@@ -108,9 +109,18 @@ namespace
     /** Converts a glm transform to the row-major 3x4 layout used by VkAccelerationStructureInstanceKHR. */
     std::array<float, 12> ToInstanceTransform(const glm::mat4& Matrix)
     {
-        return {Matrix[0][0], Matrix[1][0], Matrix[2][0], Matrix[3][0],
-                Matrix[0][1], Matrix[1][1], Matrix[2][1], Matrix[3][1],
-                Matrix[0][2], Matrix[1][2], Matrix[2][2], Matrix[3][2]};
+        return {Matrix[0][0],
+                Matrix[1][0],
+                Matrix[2][0],
+                Matrix[3][0],
+                Matrix[0][1],
+                Matrix[1][1],
+                Matrix[2][1],
+                Matrix[3][1],
+                Matrix[0][2],
+                Matrix[1][2],
+                Matrix[2][2],
+                Matrix[3][2]};
     }
 
     glm::mat4 CubeTransform()
@@ -138,34 +148,36 @@ void Example::RayTracingPreview::OnAttach(luvk::Context& Ctx)
 
     try
     {
-        const TriangleSoup BoxSoup    = MakeBoxSoup({-1.F, 0.F, -2.F}, {1.F, 2.F, 1.F});
-        const TriangleSoup CubeSoup   = MakeCubeSoup(glm::vec3{CubeHalfExtent});
+        const TriangleSoup BoxSoup = MakeBoxSoup({-1.F, 0.F, -2.F}, {1.F, 2.F, 1.F});
+        const TriangleSoup CubeSoup = MakeCubeSoup(glm::vec3{CubeHalfExtent});
         const TriangleSoup SphereSoup = MakeSphereSoup(18U, 28U);
 
-        m_Box    = luvk::AccelerationStructure::BuildBottomLevel(Ctx, {.Positions = BoxSoup}, "example cornell box");
-        m_Cube   = luvk::AccelerationStructure::BuildBottomLevel(Ctx, {.Positions = CubeSoup}, "example cube");
+        m_Box = luvk::AccelerationStructure::BuildBottomLevel(Ctx, {.Positions = BoxSoup}, "example cornell box");
+        m_Cube = luvk::AccelerationStructure::BuildBottomLevel(Ctx, {.Positions = CubeSoup}, "example cube");
         m_Sphere = luvk::AccelerationStructure::BuildBottomLevel(Ctx, {.Positions = SphereSoup}, "example sphere");
 
-        const std::array Instances{
-            luvk::TopLevelInstance{.BottomLevel = &m_Box, .Transform = ToInstanceTransform(glm::mat4{1.F}), .CustomIndex = 0U},
-            luvk::TopLevelInstance{.BottomLevel = &m_Cube, .Transform = ToInstanceTransform(CubeTransform()), .CustomIndex = 1U},
-            luvk::TopLevelInstance{.BottomLevel = &m_Sphere, .Transform = ToInstanceTransform(SphereTransform()), .CustomIndex = 2U}};
+        const std::array
+            Instances{luvk::TopLevelInstance{.BottomLevel = &m_Box, .Transform = ToInstanceTransform(glm::mat4{1.F}), .CustomIndex = 0U},
+                      luvk::TopLevelInstance{.BottomLevel = &m_Cube, .Transform = ToInstanceTransform(CubeTransform()), .CustomIndex = 1U},
+                      luvk::TopLevelInstance{.BottomLevel = &m_Sphere, .Transform = ToInstanceTransform(SphereTransform()), .CustomIndex = 2U}};
         m_TopLevel = luvk::AccelerationStructure::BuildTopLevel(Ctx, Instances, "example tlas");
 
         // Traced into mip 0, then the mip chain is generated every frame: the gallery screen samples it minified.
         m_Output = luvk::Image(Ctx,
-                               {.Extent    = {PreviewSize, PreviewSize, 1U},
-                                .Format    = luvk::Format::R8G8B8A8Unorm,
+                               {.Extent = {PreviewSize, PreviewSize, 1U},
+                                .Format = luvk::Format::R8G8B8A8Unorm,
                                 .MipLevels = static_cast<std::uint32_t>(std::bit_width(PreviewSize)),
-                                .Name      = "ray tracing output"});
+                                .Name = "ray tracing output"});
 
-        m_Pipeline = luvk::Pipeline(Ctx, luvk::ComputePipelineDesc{.Compute = {.Code = luvk::CompileShaderOrThrow(Shader, "ray_query", "ComputeMain")}, .Name = "ray query"});
-        m_Status   = "ready: 3 BLAS (Cornell box, cube, sphere), 3 TLAS instances, 512x512 primary + shadow + reflection rays";
+        m_Pipeline = luvk::Pipeline(Ctx,
+                                    luvk::ComputePipelineDesc{.Compute = {.Code = luvk::CompileShaderOrThrow(Shader, "ray_query", "ComputeMain")},
+                                                              .Name = "ray query"});
+        m_Status = "ready: 3 BLAS (Cornell box, cube, sphere), 3 TLAS instances, 512x512 primary + shadow + reflection rays";
     }
     catch (const std::exception& Exception)
     {
         m_Available = false;
-        m_Status    = std::string("initialization failed: ") + Exception.what();
+        m_Status = std::string("initialization failed: ") + Exception.what();
         SetEnabled(false);
     }
 }
@@ -187,29 +199,27 @@ void Example::RayTracingPreview::AddPasses(luvk::frame::FeatureContext& Frame)
         return;
     }
 
-    const PushData Push{.Scene         = m_TopLevel.BindlessIndex(),
-                        .Image         = m_Output.Subview(0U).StorageIndex,
-                        .Time          = m_OrbitTime,
-                        .Exposure      = m_Exposure,
+    const PushData Push{.Scene = m_TopLevel.BindlessIndex(),
+                        .Image = m_Output.Subview(0U).StorageIndex,
+                        .Time = m_OrbitTime,
+                        .Exposure = m_Exposure,
                         .LightPosition = {0.15F, 1.88F, -0.55F, 0.F},
-                        .LightColor    = {1.F, 0.82F, 0.62F, 1.35F},
-                        .Sphere        = {0.36F, SphereRadius, -0.82F, SphereRadius},
-                        .Cube          = {-0.42F, CubeHalfExtent, -0.62F, CubeRotation}};
+                        .LightColor = {1.F, 0.82F, 0.62F, 1.35F},
+                        .Sphere = {0.36F, SphereRadius, -0.82F, SphereRadius},
+                        .Cube = {-0.42F, CubeHalfExtent, -0.62F, CubeRotation}};
 
     const luvk::TextureHandle Output = Frame.Graph.Import(m_Output);
 
-    Frame.Graph.AddPass("Ray Tracing",
-                        luvk::PassType::Compute,
-                        [&](luvk::PassBuilder& Pass)
-                        {
-                            Pass.Use(Output.Mip(0U), luvk::Access::ShaderStorageWrite);
-                        },
-                        [this, Push](luvk::CommandList& Cmd)
-                        {
-                            Cmd.BindPipeline(m_Pipeline);
-                            Cmd.PushConstants(Push);
-                            Cmd.Dispatch(PreviewSize / 8U, PreviewSize / 8U);
-                        });
+    Frame.Graph.AddPass(
+        "Ray Tracing",
+        luvk::PassType::Compute,
+        [&](luvk::PassBuilder& Pass) { Pass.Use(Output.Mip(0U), luvk::Access::ShaderStorageWrite); },
+        [this, Push](luvk::CommandList& Cmd)
+        {
+            Cmd.BindPipeline(m_Pipeline);
+            Cmd.PushConstants(Push);
+            Cmd.Dispatch(PreviewSize / 8U, PreviewSize / 8U);
+        });
 
     Frame.Graph.GenerateMips(Output);
 }

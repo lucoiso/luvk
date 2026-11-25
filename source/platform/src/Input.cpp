@@ -1,13 +1,15 @@
-// Author: Lucas Vilas-Boas
-// Year: 2026
-// Repo: https://github.com/lucoiso/luvk
+/*
+ * Author: Lucas Vilas-Boas
+ * Year: 2026
+ * Repo: https://github.com/lucoiso/luvk
+ */
 
 #include "luvk/Platform/Input.hpp"
 
 void luvk::platform::Input::BeginFrame() noexcept
 {
     m_MouseDelta = glm::vec2{0.F};
-    m_Wheel      = 0.F;
+    m_Wheel = 0.F;
 }
 
 void luvk::platform::Input::ProcessEvent(const SDL_Event& Event)

@@ -4,9 +4,9 @@
 
 #pragma once
 
-#include <unordered_set>
 #include <glm/vec2.hpp>
 #include <SDL3/SDL_events.h>
+#include <unordered_set>
 
 namespace luvk::platform
 {
@@ -14,6 +14,7 @@ namespace luvk::platform
     class Input
     {
     public:
+
         /** Resets per-frame deltas; call before processing the frame's events. */
         void BeginFrame() noexcept;
 
@@ -33,18 +34,28 @@ namespace luvk::platform
         [[nodiscard]] bool RightDown() const noexcept;
 
         /** Returns the last reported cursor position, in window coordinates (pixels). */
-        [[nodiscard]] glm::vec2 MousePosition() const noexcept { return m_MousePosition; }
+        [[nodiscard]] glm::vec2 MousePosition() const noexcept
+        {
+            return m_MousePosition;
+        }
 
         /** Returns the cursor motion accumulated since BeginFrame, in pixels. */
-        [[nodiscard]] glm::vec2 MouseDelta() const noexcept { return m_MouseDelta; }
+        [[nodiscard]] glm::vec2 MouseDelta() const noexcept
+        {
+            return m_MouseDelta;
+        }
 
         /** Returns the vertical wheel motion accumulated since BeginFrame, in wheel ticks. */
-        [[nodiscard]] float Wheel() const noexcept { return m_Wheel; }
+        [[nodiscard]] float Wheel() const noexcept
+        {
+            return m_Wheel;
+        }
 
         /** Forgets every held key and button (e.g. when the window loses focus). */
         void Reset() noexcept;
 
     private:
+
         /** Keycodes currently held down. */
         std::unordered_set<SDL_Keycode> m_Keys;
 

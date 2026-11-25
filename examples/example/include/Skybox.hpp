@@ -5,11 +5,11 @@
 #pragma once
 
 #include <cstdint>
-#include <string_view>
 #include <glm/glm.hpp>
+#include <luvk/Core/Resources/Pipeline.hpp>
 #include <luvk/Frame/Feature.hpp>
-#include <luvk/Resources/Pipeline.hpp>
 #include <luvk/Scene/Texture.hpp>
+#include <string_view>
 
 namespace Example
 {
@@ -17,6 +17,7 @@ namespace Example
     class Skybox final : public luvk::frame::RenderFeature
     {
     public:
+
         /** CPU-side mirror of the shader push constant block. */
         struct PushData
         {
@@ -34,6 +35,7 @@ namespace Example
         };
 
     private:
+
         /** Procedural cubemap generated and uploaded once on attach. */
         luvk::scene::Texture m_Cubemap;
 
@@ -47,14 +49,21 @@ namespace Example
         std::uint32_t m_Sampler = 0U;
 
     public:
+
         /** Constructor: stores the bindless sampler index used by the sky shader. */
         explicit Skybox(std::uint32_t SamplerIndex);
 
         /** Name shown in the debug window. */
-        [[nodiscard]] std::string_view Name() const override { return "Skybox (cubemap)"; }
+        [[nodiscard]] std::string_view Name() const override
+        {
+            return "Skybox (cubemap)";
+        }
 
         /** Stage in the frame graph (opaque geometry). */
-        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Opaque; }
+        [[nodiscard]] std::string_view Phase() const override
+        {
+            return luvk::frame::Phases::Opaque;
+        }
 
         /** Generates and uploads the 6 cubemap faces. */
         void OnAttach(luvk::Context& Ctx) override;

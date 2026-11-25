@@ -4,12 +4,12 @@
 
 #pragma once
 
-#include <cstdint>
-#include <functional>
-#include <optional>
-#include <glm/vec2.hpp>
 #include "luvk/Frame/Feature.hpp"
 #include "luvk/Frame/Slots.hpp"
+#include <cstdint>
+#include <functional>
+#include <glm/vec2.hpp>
+#include <optional>
 
 namespace luvk
 {
@@ -73,6 +73,7 @@ namespace luvk::frame
     class SceneRenderer
     {
     public:
+
         /** Constructor: adds the default SceneClearFeature and CompositeFeature (LinearSampler must outlive the renderer). */
         SceneRenderer(Context& Ctx, const Sampler& LinearSampler, float RenderScale);
 
@@ -86,22 +87,37 @@ namespace luvk::frame
         SceneRenderer& operator=(const SceneRenderer&) = delete;
 
         /** The feature stack. */
-        [[nodiscard]] FeatureStack& Features() noexcept { return m_Features; }
+        [[nodiscard]] FeatureStack& Features() noexcept
+        {
+            return m_Features;
+        }
 
         /** Settings of the last built frame. */
-        [[nodiscard]] const FrameSettings& Settings() const noexcept { return m_Settings; }
+        [[nodiscard]] const FrameSettings& Settings() const noexcept
+        {
+            return m_Settings;
+        }
 
         /** Camera of the last built frame. */
-        [[nodiscard]] const ViewData& View() const noexcept { return m_View; }
+        [[nodiscard]] const ViewData& View() const noexcept
+        {
+            return m_View;
+        }
 
         /** Render resolution relative to the viewport. */
-        [[nodiscard]] float RenderScale() const noexcept { return m_RenderScale; }
+        [[nodiscard]] float RenderScale() const noexcept
+        {
+            return m_RenderScale;
+        }
 
         /** Sets the render resolution relative to the viewport (clamped to [0.25, 2]). */
         void SetRenderScale(float Scale) noexcept;
 
         /** True when the device supports wireframe rasterization. */
-        [[nodiscard]] bool SupportsWireframe() const noexcept { return m_SupportsWireframe; }
+        [[nodiscard]] bool SupportsWireframe() const noexcept
+        {
+            return m_SupportsWireframe;
+        }
 
         /** Requests wireframe rasterization (ignored without device support). */
         void SetWireframe(bool Enabled) noexcept;
@@ -119,6 +135,7 @@ namespace luvk::frame
         void AddPasses(const SceneFrame& Frame, const std::function<void(FeatureContext&)>& Custom = {});
 
     private:
+
         /** Recomputes the settings and resizes the features when anything that matters to them changed. */
         void UpdateSettings(Extent2D OutputExtent, Format OutputFormat, Rect2D Viewport);
 

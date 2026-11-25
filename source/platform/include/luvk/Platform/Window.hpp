@@ -7,11 +7,11 @@
 #include <cstdint>
 #include <filesystem>
 #include <functional>
+#include <luvk/Core/Common.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
-#include <luvk/Core/Common.hpp>
 
 struct SDL_Window;
 
@@ -76,6 +76,7 @@ namespace luvk::platform
     class Window
     {
     public:
+
         /** Constructor. Initializes the SDL video subsystem and creates the window. */
         explicit Window(const WindowDesc& Desc);
 
@@ -101,7 +102,10 @@ namespace luvk::platform
         [[nodiscard]] VkSurfaceKHR CreateSurface(VkInstance Instance) const;
 
         /** Native SDL window, used by the ImGui platform backend. */
-        [[nodiscard]] SDL_Window* Native() const noexcept { return m_Window; }
+        [[nodiscard]] SDL_Window* Native() const noexcept
+        {
+            return m_Window;
+        }
 
         /** SDL window id, used to filter events that belong to this window. */
         [[nodiscard]] std::uint32_t Id() const noexcept;
@@ -116,10 +120,16 @@ namespace luvk::platform
         [[nodiscard]] bool IsMinimized() const noexcept;
 
         /** True when the window was created with a transparent framebuffer. */
-        [[nodiscard]] bool IsTransparent() const noexcept { return m_Transparent; }
+        [[nodiscard]] bool IsTransparent() const noexcept
+        {
+            return m_Transparent;
+        }
 
         /** True when the window was created as a background window (WindowDesc::Background). */
-        [[nodiscard]] bool IsBackground() const noexcept { return m_Background; }
+        [[nodiscard]] bool IsBackground() const noexcept
+        {
+            return m_Background;
+        }
 
         /** Changes the window title. */
         void SetTitle(const std::string& Title) const;
@@ -138,6 +148,7 @@ namespace luvk::platform
         void SetHitTest(HitTestFunction Function);
 
     private:
+
         /** Native SDL window. */
         SDL_Window* m_Window = nullptr;
 

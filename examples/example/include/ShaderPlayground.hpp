@@ -5,12 +5,12 @@
 #pragma once
 
 #include <cstdint>
+#include <luvk/Core/Resources/Image.hpp>
+#include <luvk/Core/Resources/Pipeline.hpp>
+#include <luvk/Frame/Feature.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
-#include <luvk/Frame/Feature.hpp>
-#include <luvk/Resources/Image.hpp>
-#include <luvk/Resources/Pipeline.hpp>
 
 namespace Example
 {
@@ -18,6 +18,7 @@ namespace Example
     class ShaderPlayground final : public luvk::frame::RenderFeature
     {
     private:
+
         /** Preview image the compiled fragment shader renders into. */
         luvk::Image m_Output;
 
@@ -34,11 +35,18 @@ namespace Example
         float m_Time = 0.F;
 
     public:
+
         /** Name shown in the debug window. */
-        [[nodiscard]] std::string_view Name() const override { return "Shader Playground"; }
+        [[nodiscard]] std::string_view Name() const override
+        {
+            return "Shader Playground";
+        }
 
         /** Stage in the frame graph (offscreen preparation). */
-        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Prepare; }
+        [[nodiscard]] std::string_view Phase() const override
+        {
+            return luvk::frame::Phases::Prepare;
+        }
 
         /** Creates the preview image and compiles the default fragment shader. */
         void OnAttach(luvk::Context& Ctx) override;
@@ -56,6 +64,9 @@ namespace Example
         [[nodiscard]] static std::string_view DefaultSource();
 
         /** Preview image the UI can display. */
-        [[nodiscard]] luvk::Image& Output() noexcept { return m_Output; }
+        [[nodiscard]] luvk::Image& Output() noexcept
+        {
+            return m_Output;
+        }
     };
 }

@@ -5,11 +5,11 @@
 #pragma once
 
 #include <cstdint>
-#include <string_view>
 #include <glm/glm.hpp>
+#include <luvk/Core/Resources/Buffer.hpp>
+#include <luvk/Core/Resources/Pipeline.hpp>
 #include <luvk/Frame/Feature.hpp>
-#include <luvk/Resources/Buffer.hpp>
-#include <luvk/Resources/Pipeline.hpp>
+#include <string_view>
 
 namespace Example
 {
@@ -18,6 +18,7 @@ namespace Example
     class Particles final : public luvk::frame::RenderFeature
     {
     public:
+
         /** One particle (matches the shader layout: two 16-byte rows). */
         struct Particle
         {
@@ -35,12 +36,16 @@ namespace Example
         };
 
         /** Constructor: places the fountain at Position. */
-        explicit Particles(const glm::vec3& Position) : Emitter(Position) {}
+        explicit Particles(const glm::vec3& Position)
+            : Emitter(Position)
+        {
+        }
 
         /** World position of the fountain. */
         glm::vec3 Emitter{0.F};
 
     private:
+
         /** CPU-side mirror of the shader push constant block. */
         struct PushData
         {
@@ -143,11 +148,18 @@ namespace Example
         void AddVelocityLines(luvk::frame::FeatureContext& Frame, luvk::BufferHandle Data);
 
     public:
+
         /** Name shown in the UI. */
-        [[nodiscard]] std::string_view Name() const override { return "Particle fountain (compute)"; }
+        [[nodiscard]] std::string_view Name() const override
+        {
+            return "Particle fountain (compute)";
+        }
 
         /** Blended over the opaque scene. */
-        [[nodiscard]] std::string_view Phase() const override { return luvk::frame::Phases::Transparent; }
+        [[nodiscard]] std::string_view Phase() const override
+        {
+            return luvk::frame::Phases::Transparent;
+        }
 
         /** Creates the particle buffer (staggered lifetimes, so the fountain starts gradually) and the compute pipeline. */
         void OnAttach(luvk::Context& Ctx) override;
